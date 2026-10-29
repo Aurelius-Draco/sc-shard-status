@@ -247,6 +247,10 @@ td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
 .state { display: inline-flex; align-items: center; gap: var(--s2); font-size: .875rem; font-weight: 600; }
 .state i { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); }
 .state.on { color: var(--teal); } .state.on i { background: var(--teal); }
+table.switches td { vertical-align: middle; }
+table.switches td .sub { display: block; }
+table.switches td:last-child { white-space: nowrap; }
+.cmdsm { font: .875rem var(--mono); color: var(--text); background: var(--well); border: 1px solid var(--line2); border-radius: var(--r-sm); padding: 2px 6px; white-space: nowrap; }
 .rules { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--s2); max-width: 85ch; }
 .foot { margin-top: var(--s7); color: var(--muted); font-size: .8125rem; display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
 
@@ -486,12 +490,14 @@ async function renderNow() {
     <span class="eyebrow">Also by Aurelius_Draco</span><b>SC Inventory Tracker</b>
     <span>Keeps track of what you've stored at every station: scans the storage kiosk, follows Game.log, wish lists with where to buy or craft, ship fittings. Free.</span>
     <span class="btn sm">Download from GitHub</span></a></section>
+  ${h.score !== null ? `<p class="sub" style="margin-top:var(--s5)">Overlay in the way? Press <kbd>~</kbd> and type <code>r_displayinfo 0</code> to hide it; <code>r_displayinfo 3</code> brings it back. <button class="link" id="goSetup2">More on the switches</button></p>` : ""}
   <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
   lineChart($("cFps"), d.spark, "server_fps", "var(--amber)", "fps", "Server fps");
   lineChart($("cPop"), d.spark, "pop_srv", "var(--teal)", "players", "Players on your server");
   const b = $("addCfg");
   if (b) b.onclick = async () => { try { const r = await api("/api/usercfg", {name: "r_displayinfo"}); toast(r.message); renderNow(); } catch (e) { toast(e.message, true); } };
   if ($("goSetup")) $("goSetup").onclick = () => show("setup");
+  if ($("goSetup2")) $("goSetup2").onclick = () => show("setup");
 }
 
 /* ---------- What's gone wrong ---------- */
@@ -707,9 +713,21 @@ async function renderSetup() {
   const st = (on, yes, no) => `<span class="state ${on ? "on" : ""}"><i></i>${on ? yes : no}</span>`;
   $("view").innerHTML = `
   ${u.game_found === false ? `<div class="sec notice rust"><p><b>Game folder not found,</b> so the USER.cfg buttons are off. Put the path of your StarCitizen\\LIVE folder in <code>data\\config.json</code> as <code>game_dir</code>, then restart.</p></div>` : ""}
-  <section class="sec"><h3>Turn on the game's information <span>two console settings, both from CIG, both safe to leave on</span></h3>
+  <section class="sec"><h3>Turn on the game's information <span>two console settings from CIG, on only when you want them</span></h3>
     <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
     Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
+  <section class="sec frame setcard">
+    <h4>Quick switches</h4>
+    <p>Neither has to stay on. Switch them on when you want readings or you're about to report a bug, and off again when you don't. In game it takes effect straight away; the start-up setting is what the game does each time it launches.</p>
+    <div class="tscroll"><table class="switches"><thead><tr><th>What</th><th>Switch on now</th><th>Switch off now</th><th>When the game starts</th></tr></thead><tbody>
+      <tr><td><b>Performance overlay</b><span class="sub">health numbers</span></td><td><code class="cmdsm">r_displayinfo 3</code></td><td><code class="cmdsm">r_displayinfo 0</code></td>
+        <td>${st(u.has_displayinfo, "On", "Off")} <button class="btn sm ghost" ${u.game_found === false ? "disabled" : ""} data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Start with it off" : "Start with it on"}</button></td></tr>
+      <tr><td><b>Session QR code</b><span class="sub">bug reports</span></td><td><code class="cmdsm">r_DisplaySessionInfo 1</code></td><td><code class="cmdsm">r_DisplaySessionInfo 0</code></td>
+        <td>${st(u.has_sessioninfo, "On", "Off")} <button class="btn sm ghost" ${u.game_found === false ? "disabled" : ""} data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Start with it off" : "Start with it on"}</button></td></tr>
+    </tbody></table></div>
+    <p class="sub"><b>Shortcut:</b> the console remembers what you typed. Press <kbd>~</kbd>, then the <kbd>Up</kbd> arrow to bring back an earlier command, and <kbd>Enter</kbd> to run it. Flicking the overlay on and off becomes two or three key presses.</p>
+    <p class="sub"><b>Screenshot-only?</b> Leave both off at start-up. When you want a reading, switch the overlay on, press <kbd>Esc</kbd> then <kbd>Print Screen</kbd>, and switch it off again.</p>
+  </section>
   <section class="sec frame setcard">
     <h4>1. The performance overlay (needed for the live health numbers)</h4>
     <span class="cmd">r_displayinfo 3</span>
@@ -746,7 +764,7 @@ async function renderSetup() {
     <p><b>Live</b> reads the overlay corner of your screen every 5 seconds while the game is in front. That gives the health score, the charts and warnings when the server slows down. <b>Screenshots</b> reads only the screenshots you take, so nothing watches your screen; you get a reading each time you press <kbd>Print Screen</kbd>, but no live score.</p>
     <div class="fa" id="setToggles"></div>
   </section>
-  <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. The app keeps a copy of the original as USER.cfg.bak the first time it changes it. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
+  <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. Before each change the app saves the file as it was to USER.cfg.bak. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
   const drawToggles = async () => {
     const st = await api("/api/settings");
     $("setToggles").innerHTML = `

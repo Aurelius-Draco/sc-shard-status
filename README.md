@@ -34,6 +34,8 @@ r_DisplaySessionInfo 1
 - `r_displayinfo 3` shows the performance block in the top right: server fps, players on the shard and on your server, ping, packet loss, hitches, restarts, your fps and location. The live health numbers come from this; Game.log doesn't have them. Levels 2, 3 and 4 show the same block in 4.10.
 - `r_DisplaySessionInfo 1` shows the session QR code (also in the game's Graphics settings). It's optional, but it makes every screenshot far more useful in an Issue Council report, because CIG can find your session from it. Blur it in screenshots you post publicly.
 
+Neither has to stay on: `r_displayinfo 0` and `r_DisplaySessionInfo 0` switch them off again, and the console remembers what you typed (press `~`, then the Up arrow, then Enter), so flicking them on and off is a couple of key presses. The Set up tab has the full list of switches.
+
 To have them on every time, add `r_displayinfo = 3` and `r_DisplaySessionInfo = 1` to `USER.cfg` in your `StarCitizen\LIVE` folder (the Set up tab does it for you and keeps a backup).
 
 ## Live or screenshots
