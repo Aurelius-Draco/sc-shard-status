@@ -59,7 +59,7 @@ jobs:
         run: |
           if [ -z "$HOOK" ]; then echo "No DISCORD_WEBHOOK secret; skipping."; exit 0; fi
           VER="${TAG#v}"
-          jq -n --arg v "$VER" --arg url "https://github.com/${{ github.repository }}/releases/tag/$TAG" '{username: "Verse Shards",
+          jq -n --arg v "$VER" --arg url "https://github.com/${{ github.repository }}/releases/tag/$TAG" '{username: "Verse Shards", avatar_url: "https://verseshards.com/img/verse-shards-icon.png",
             allowed_mentions: {parse: []}, embeds: [{title: ("SC Shard Status " + $v + " is out"), url: $url, color: 5031088,
             description: ("Already have it? The app offers the update on its dashboard. New to it? Download at https://verseshards.com/app\n\nWhat changed: " + $url)}]}' \
             | curl -fsS -H "content-type: application/json" -d @- "$HOOK"
