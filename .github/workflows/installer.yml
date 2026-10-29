@@ -13,6 +13,10 @@ on:
         required: true
 permissions:
   contents: write
+# A newer push to next makes an older build pointless
+concurrency:
+  group: installer-${{ inputs.tag || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 jobs:
   build:
     runs-on: windows-latest
