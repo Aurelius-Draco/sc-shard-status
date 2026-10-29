@@ -9,6 +9,7 @@
 - Send for review now really sends: unrecognised errors go to the review queue on the community site, after you've seen exactly what's in them. Answers show under Your reviews on the "What's gone wrong?" tab.
 - Pop-up alerts while you play (new set-up question, with or without a sound): a Windows notification when the server's fps falls off a cliff, the server restarts, packet loss climbs, you're disconnected, or a known problem turns up, like contract deliveries not counting. Each kind at most once every 10 minutes.
 - Patch day: when the game build changes, the Now tab says so and explains why servers may be slower for the first day.
+- About links to the new Verse Shards Discord: https://discord.gg/8kH5pfHYbe (shard alerts, help, new versions).
 - Your region on the Now tab marks a score from one player as a first look, and won't suggest a server hop on the strength of one.
 - New set-up questions: tell you when there's a new version, pop-up alerts, and keep the library current. If you've already been through set-up, you're asked only the new ones.
 
