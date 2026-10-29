@@ -300,6 +300,8 @@ class App:
         if share is not None:
             self.cfg["share_readings"] = bool(share)
             save_setting("share_readings", self.cfg["share_readings"])
+            if share and self.community.share_status in ("off", ""):
+                self.community.share_status = "starting"
             msg.append("Sharing on. Your first summary goes after 5 minutes of overlay readings." if share
                        else "Sharing off. Nothing more is sent.")
         if board is not None:
@@ -349,7 +351,8 @@ class App:
                 "screenshots": bool(self.cfg.get("read_screenshots", True)),
                 "live_running": self.watcher is not None, "screenshot_readings": self.shots.count if self.shots else None,
                 "share": bool(self.cfg.get("share_readings")), "board": bool(self.cfg.get("community_board")),
-                "share_status": c.share_status, "sent": c.sent, "last_payload": c.last_payload,
+                "share_status": c.share_status, "sent": c.sent, "sent_at": c.sent_at if c.sent else None,
+                "last_payload": c.last_payload,
                 "board_url": c.url, "board_error": c.board_error}
 
     # Settings the app can put in USER.cfg: name -> value to set

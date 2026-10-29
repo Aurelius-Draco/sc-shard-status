@@ -88,7 +88,7 @@ class Community:
         self.sent_at = 0
         self.sent = 0
         self.last_payload = None
-        self.share_status = "off"
+        self.share_status = "starting" if app.cfg.get("share_readings") else "off"
         self.retry_at = 0
 
     def _req(self, path, body=None):

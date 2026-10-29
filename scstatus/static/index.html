@@ -268,6 +268,16 @@ table.switches td:last-child { white-space: nowrap; }
 .rules { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--s2); max-width: 85ch; }
 .foot { margin-top: var(--s7); color: var(--muted); font-size: .8125rem; display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
 
+.swrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s5); padding: var(--s3) 0; border-top: 1px solid var(--line); width: 100%; }
+.swrow:first-child { border-top: 0; }
+.swl { flex: 1 1 22rem; display: grid; gap: 2px; }
+.swl b { font-size: .9375rem; }
+.onoff { display: inline-flex; border: 1px solid var(--line2); border-radius: var(--r-sm); overflow: hidden; }
+.onoff button { min-width: 4.5rem; height: 2.125rem; background: var(--field); border: 0; color: var(--muted); font-weight: 700; }
+.onoff button + button { border-left: 1px solid var(--line2); }
+.onoff button[data-v="1"][aria-pressed="true"] { background: var(--teal); color: var(--on-amber); }
+.onoff button[data-v="0"][aria-pressed="true"] { background: var(--raise2); color: var(--text); }
+.onoff button[aria-pressed="false"]:hover { color: var(--text); background: var(--hover); }
 .chipt { display: inline-flex; align-items: center; gap: var(--s2); height: var(--h); padding: 0 var(--s3) 0 var(--s2); border: 1px solid var(--line2); border-radius: var(--r-sm); background: var(--field); font-size: .875rem; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
 .chipt:hover { color: var(--text); border-color: var(--muted); }
 .chipt input { appearance: none; -webkit-appearance: none; flex: none; width: 14px; height: 14px; margin: 0; border: 1.5px solid var(--line2); border-radius: 2px; background: var(--field); }
@@ -843,16 +853,16 @@ async function renderSetup() {
   <section class="sec frame setcard">
     <h4>How readings are taken</h4>
     <p><b>Live</b> reads the overlay corner of your screen every 5 seconds while the game is in front. That gives the health score, the charts and warnings when the server slows down. <b>Screenshots</b> reads only the screenshots you take, so nothing watches your screen; you get a reading each time you press <kbd>Print Screen</kbd>, but no live score.</p>
-    <div class="fa" id="setToggles"></div>
+    <div class="swlist" id="setToggles"></div>
   </section>
   <section class="sec frame setcard" id="commCard">
     <h4>Community board</h4>
-    <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. Both switches are off until you turn them on.</p>
+    <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
     <ul class="rules">
       <li><b>Show other shards</b> fetches the board every 2 minutes and puts your region on the Now tab. It sends nothing about you.</li>
       <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
     </ul>
-    <div class="fa" id="commToggles"></div>
+    <div class="swlist" id="commToggles"></div>
     <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
   </section>
   <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. Before each change the app saves the file as it was to USER.cfg.bak. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
@@ -860,25 +870,36 @@ async function renderSetup() {
     try { const r = await api("/api/gamedir", {path: $("gdPath").value}); toast(r.message); nowData = await api("/api/now"); renderSetup(); }
     catch (e) { toast(e.message, true); }
   };
+  // Each setting is a row with clear On / Off buttons and a sentence saying what it's doing right now
+  const swRow = (key, label, on, note) => `<div class="swrow"><div class="swl"><b>${label}</b><span class="sub">${note}</span></div>
+    <div class="onoff" role="group" aria-label="${label}"><button type="button" data-sw="${key}" data-v="1" aria-pressed="${!!on}">On</button><button type="button" data-sw="${key}" data-v="0" aria-pressed="${!on}">Off</button></div></div>`;
+  const bindRows = (el, redraw) => el.querySelectorAll("[data-sw]").forEach(b => b.onclick = async () => {
+    try { const r = await api("/api/settings", {[b.dataset.sw]: b.dataset.v === "1"}); toast(r.message); redraw(); } catch (e) { toast(e.message, true); }
+  });
   const drawToggles = async () => {
     const st = await api("/api/settings");
-    $("setToggles").innerHTML = `
-      <label class="chipt"><input type="checkbox" id="tgLive" ${st.live ? "checked" : ""}> Live screen reading</label>
-      <label class="chipt"><input type="checkbox" id="tgShots" ${st.screenshots ? "checked" : ""}> Read my screenshots</label>
-      <span class="sub">${st.screenshot_readings ? st.screenshot_readings + " readings from screenshots this run." : ""}</span>`;
-    const save = async () => { try { const r = await api("/api/settings", {live: $("tgLive").checked, screenshots: $("tgShots").checked}); toast(r.message); drawToggles(); } catch (e) { toast(e.message, true); } };
-    $("tgLive").onchange = save; $("tgShots").onchange = save;
+    $("setToggles").innerHTML =
+      swRow("live", "Live screen reading", st.live, st.live ? "On. Reads the overlay every 5 seconds while the game is in front." : "Off. Nothing watches your screen.") +
+      swRow("screenshots", "Read my screenshots", st.screenshots, st.screenshots ? `On. Screenshots with the overlay become readings${st.screenshot_readings ? ` (${st.screenshot_readings} this run)` : ""}.` : "Off. Screenshots are left alone.");
+    bindRows($("setToggles"), drawToggles);
   };
   drawToggles();
+  const shareNote = st => {
+    if (!st.share) return "Off. Nothing is sent.";
+    if (st.share_status === "sharing") return `On. ${st.sent} summar${st.sent === 1 ? "y" : "ies"} sent this run${st.sent_at ? ", the last at " + tm(st.sent_at) : ""}. Your shard is on the board.`;
+    if (st.share_status === "waiting for overlay readings") return "On, waiting for overlay readings. In game, press ~ and type r_displayinfo 3. The first summary goes after 5 minutes of readings.";
+    if (st.share_status === "starting" || st.share_status === "off") return "On. The first summary goes after 5 minutes of overlay readings.";
+    return "On, but: " + esc(st.share_status);
+  };
   const drawComm = async () => {
+    if (!$("commToggles")) return;
     const st = await api("/api/settings");
-    $("commToggles").innerHTML = `
-      <label class="chipt"><input type="checkbox" id="tgBoard" ${st.board ? "checked" : ""}> Show other shards</label>
-      <label class="chipt"><input type="checkbox" id="tgShare" ${st.share ? "checked" : ""}> Share my readings</label>
-      <span class="sub">${st.share ? esc(st.share_status === "sharing" ? `Sharing: ${st.sent} summar${st.sent === 1 ? "y" : "ies"} sent this run.` : "Sharing: " + st.share_status) : ""}${st.board && st.board_error ? " " + esc(st.board_error) : ""}</span>`;
+    $("commToggles").innerHTML =
+      swRow("board", "Show other shards", st.board, st.board ? (st.board_error ? "On, but: " + esc(st.board_error) : "On. Your region shows on the Now tab, updated every 2 minutes.") : "Off. The Now tab doesn't show other shards.") +
+      swRow("share", "Share my readings", st.share, shareNote(st));
     $("commPayload").textContent = st.last_payload ? JSON.stringify(st.last_payload, null, 2) : "Nothing sent yet.";
-    const save = async () => { try { const r = await api("/api/settings", {board: $("tgBoard").checked, share: $("tgShare").checked}); toast(r.message); drawComm(); } catch (e) { toast(e.message, true); } };
-    $("tgBoard").onchange = save; $("tgShare").onchange = save;
+    bindRows($("commToggles"), drawComm);
+    clearTimeout(window.__commT); window.__commT = setTimeout(() => { if (tab === "setup") drawComm(); }, 15000);
   };
   drawComm();
   $("redoWiz").onclick = openWizard;
