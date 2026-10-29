@@ -8,7 +8,7 @@ import string
 import sys
 from pathlib import Path
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 # The public community board (Cloudflare Worker in the admin repo)
 COMMUNITY_URL = "https://verseshards.com"
 APP_NAME = "SC Shard Status"
@@ -114,21 +114,34 @@ def find_game_dir(channel="LIVE"):
             except OSError:
                 continue
         cands += [r / t for r in roots for t in tails]
+    # Every install found, then the one played most recently (newest Game.log). Some people keep an old copy of
+    # the game alongside the current one, and picking the first match read the old one's logs.
+    found = []
     for c in cands:
         try:
-            if _is_game_dir(c):
-                return c
+            if _is_game_dir(c) and c not in found:
+                found.append(c)
         except OSError:
             continue
     for r in roots:
         for pattern in (f"*/StarCitizen/{channel}", f"*/*/StarCitizen/{channel}"):
             try:
                 for c in r.glob(pattern):
-                    if _is_game_dir(c):
-                        return c
+                    if c not in found and _is_game_dir(c):
+                        found.append(c)
             except OSError:
                 continue
-    return None
+    return newest_install(found)
+
+
+def newest_install(dirs):
+    """The install whose Game.log was written last (one without a Game.log counts as oldest)."""
+    def played(d):
+        try:
+            return (Path(d) / "Game.log").stat().st_mtime
+        except OSError:
+            return 0
+    return max(dirs, key=played) if dirs else None
 
 
 def running_game_dir():

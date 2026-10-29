@@ -153,3 +153,15 @@ def test_new_game_build_is_noticed_once(tmp_path):
     a.dismiss("patch")
     a._b = next(builds)
     assert a.patch_state()["new"] is False
+
+
+def test_newest_install_wins(tmp_path):
+    import os
+    from scstatus.config import newest_install
+    old, cur, empty = tmp_path / "old" / "LIVE", tmp_path / "cur" / "LIVE", tmp_path / "e" / "LIVE"
+    for d in (old, cur, empty):
+        d.mkdir(parents=True)
+    (old / "Game.log").write_text("x"); (cur / "Game.log").write_text("x"); (empty / "Data.p4k").write_text("")
+    os.utime(old / "Game.log", (1_700_000_000, 1_700_000_000))
+    assert newest_install([old, empty, cur]) == cur
+    assert newest_install([]) is None

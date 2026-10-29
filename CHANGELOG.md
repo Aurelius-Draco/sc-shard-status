@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2
+
+- With more than one copy of Star Citizen on the PC, the app now picks the one you played most recently. Before, the installed app could pick an old copy and spend a long time reading its old logs.
+
 ## 1.1.1
 
 - Pop-up alerts only cover the last 15 minutes, so starting the app no longer alerts about a crash from an earlier session.
