@@ -134,7 +134,7 @@ Optional (asked on first start), with or without a sound: a Windows notification
 https://verseshards.com · Discord: https://discord.gg/8kH5pfHYbe
 
 - **Shard board:** live health for every shard players are reporting from, best first in each region, so you know where to server hop.
-- **Broken right now:** known problems two or more players hit in the last 2 hours, at the top of the board.
+- **Common in-game issues right now:** known Star Citizen problems two or more players hit in the last 2 hours, under the 24-hour history.
 - **Known issues:** a page for each issue the app recognises. Press "I had this too", add the Issue Council report so others can upvote it, and post workarounds that others mark as worked or didn't work. After a patch, each issue says whether it's still happening on the new build. The app's "What's gone wrong?" links each finding to its page.
 - Scores from one player are marked as a first look; more players reporting means a score you can trust.
 - Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**.
