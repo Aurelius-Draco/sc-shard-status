@@ -46,7 +46,9 @@ def main():
     if not config.LIBRARY.exists():
         shutil.copy2(Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "mini_issues.json",
                      config.DATA / "issues.json")
-    cfg = dict(config.DEFAULT_CONFIG, game_dir=str(game), dashboard_port=a.port, open_browser=False)
+    cfg = dict(config.DEFAULT_CONFIG, game_dir=str(game), dashboard_port=a.port, open_browser=False,
+               # Never talk to the real community site from a demo (made-up readings would land on the live board)
+               community_url="http://127.0.0.1:9", share_readings=False, community_board=False)
     app = appmod.App(cfg)
     app.start(overlay=False)
     now = time.time()

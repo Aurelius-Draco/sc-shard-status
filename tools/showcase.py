@@ -242,7 +242,9 @@ def main():
     appmod.DATA = config.DATA
     issues.DATA = config.DATA
     cfg = dict(config.DEFAULT_CONFIG, game_dir=str(game), dashboard_port=a.port, open_browser=False,
-               read_screenshots=False)
+               read_screenshots=False,
+               # Never talk to the real community site from a demo (made-up readings would land on the live board)
+               community_url="http://127.0.0.1:9", share_readings=False, community_board=False)
     app = appmod.App(cfg)
     app.start(overlay=False)
 
