@@ -132,3 +132,24 @@ def test_old_copy_found_through_its_shortcut(tmp_path, monkeypatch):
     monkeypatch.setattr(migrate, "is_zip_copy", lambda p: str(p) == "C:\\Games\\StarCitizen\\SC-Shard-Status")
     assert [str(p) for p in migrate.from_shortcuts(home)] == ["C:\\Games\\StarCitizen\\SC-Shard-Status"]
     assert migrate.from_shortcuts(tmp_path / "nobody") == []
+
+
+def test_new_game_build_is_noticed_once(tmp_path):
+    from scstatus import app as appmod
+    from scstatus.store import Store
+    class A(appmod.App):                  # build normally comes from Game.log
+        build = property(lambda self: self._b)
+    a = A.__new__(A)
+    a.store = Store(tmp_path / "s.db")
+    a.cfg = {}
+    builds = iter(["100", "100", "200", "200"])
+    a._b = next(builds)
+    assert a.patch_state()["new"] is False            # first build ever seen: nothing to compare with
+    a._b = next(builds)
+    assert a.patch_state()["new"] is False
+    a._b = next(builds)
+    p = a.patch_state()
+    assert p["new"] is True and p["previous"] == "100" and p["build"] == "200"
+    a.dismiss("patch")
+    a._b = next(builds)
+    assert a.patch_state()["new"] is False

@@ -211,9 +211,28 @@ class App:
             "community": self.community.region_view(shard, _region(shard)) if self.cfg.get("community_board") else None,
             "sharing": self.community.share_status if self.cfg.get("share_readings") else "off",
             "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
-            "update": self.updater.info(),
+            "update": self.updater.info(), "patch": self.patch_state(),
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
         }
+
+    PATCH_NOTICE_S = 36 * 3600
+
+    def patch_state(self):
+        """Notices a new game build: the first day after a patch, servers are often busier and slower, and the
+        'your usual fps on this patch' comparison starts again from nothing."""
+        b = self.build
+        if not b:
+            return None
+        last = self.store.meta("last_build")
+        if last != b:
+            if last:
+                self.store.set_meta("prev_build", last)
+                self.store.set_meta("patch_seen_at", int(time.time()))
+            self.store.set_meta("last_build", b)
+        prev, at = self.store.meta("prev_build"), int(self.store.meta("patch_seen_at", 0) or 0)
+        new = bool(prev and prev != b and time.time() - at < self.PATCH_NOTICE_S
+                   and self.store.meta("patch_dismissed") != b)
+        return {"build": b, "previous": prev, "new": new, "since": at or None}
 
     def quit(self):
         """Close the app (the updater calls this once the new installer is running)."""
@@ -225,6 +244,9 @@ class App:
         if what == "migrated":
             self.cfg["migrated_notice"] = False
             save_setting("migrated_notice", False)
+            return "OK."
+        if what == "patch":
+            self.store.set_meta("patch_dismissed", self.build or "")
             return "OK."
         raise ValueError("Unknown notice.")
 

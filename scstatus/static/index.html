@@ -528,6 +528,7 @@ async function renderNow() {
   const setup = [];
   const un = updNotice(d.update);
   if (un) setup.push(un);
+  if (d.patch && d.patch.new) setup.push(`<div class="notice"><p><b>New game build today</b> (${esc(d.patch.build)}, was ${esc(d.patch.previous)}). The first day after a patch, servers are often busier and slower than usual. Your "usual fps on this patch" starts again from nothing, so that comparison shows once you've played a while. Some known issues may be fixed and new ones may turn up; <a href="${esc(COMMUNITY_SITE)}/issues" target="_blank" rel="noopener">the community site</a> marks which ones players are still hitting.</p><button class="btn sm ghost" data-dismiss="patch">Got it</button></div>`);
   if (d.migrated_from) setup.push(`<div class="notice teal"><p><b>Your settings and history came across</b> from the copy you unzipped before, in <code>${esc(d.migrated_from)}</code>. That folder isn't used any more, so delete it when you're ready.</p><button class="btn sm ghost" data-dismiss="migrated">Got it</button></div>`);
   if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game folder not found yet.</b> Start Star Citizen and the app picks it up by itself, or paste the folder on the Set up tab.</p><button class="btn sm" id="goSetup3">Set up</button></div>`);
   if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
@@ -604,10 +605,11 @@ function commSection(d) {
   const mine = c.mine, best = c.best;
   const dot = x => `<span class="score ${x.cls}"><i></i>${x.score}</span>`;
   let hop = "";
-  if (best && mine && best.shard_id !== mine.shard_id && best.score - mine.score >= 20)
-    hop = `<div class="notice"><p><b>${esc(best.shard_id)} is running better</b> (${best.score}/100, server at ${fmt(best.server_fps, 1)} fps). If yours is causing trouble, a server hop could land you somewhere healthier, though the game picks the shard, not you.</p></div>`;
+  // A score from one player is a first look; don't suggest hopping on the strength of it
+  if (best && mine && best.shard_id !== mine.shard_id && best.score - mine.score >= 20 && best.reporters >= 2)
+    hop = `<div class="notice"><p><b>${esc(best.shard_id)} is running better</b> (${best.score}/100, server at ${fmt(best.server_fps, 1)} fps, from ${best.reporters} players). If yours is causing trouble, a server hop could land you somewhere healthier, though the game picks the shard, not you.</p></div>`;
   const rows = c.shards.map(x => `<tr class="${x.shard_id === (mine && mine.shard_id) ? "me" : ""}"><td>${dot(x)}</td><td><code>${esc(x.shard_id)}</code>${x.shard_id === (mine && mine.shard_id) ? ` <span class="chip area">you</span>` : ""}</td>
-    <td class="num">${fmt(x.server_fps, 1)}</td><td class="num">${fmt(x.pop_shard)}</td><td class="num">${x.reporters}</td></tr>`).join("");
+    <td class="num">${fmt(x.server_fps, 1)}</td><td class="num">${fmt(x.pop_shard)}</td><td class="num">${x.reporters}${x.reporters < 2 ? ` <span class="sub" title="One player's readings: a first look, not a verdict">first look</span>` : ""}</td></tr>`).join("");
   return `<section class="sec"><h3>Your region right now <span>${esc(c.region || "")} on the community board${c.updated ? ", updated " + ago(c.updated) : ""}</span></h3>
     ${hop}
     ${c.shards.length ? `<div class="frame" style="overflow-x:auto"><table class="comm"><thead><tr><th>Health</th><th>Shard</th><th class="num">Server fps</th><th class="num">Players</th><th class="num">Reporting</th></tr></thead><tbody>${rows}</tbody></table></div>`
