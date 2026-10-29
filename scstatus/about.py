@@ -33,8 +33,8 @@ MESSAGE = [
 RULES = [
     "It only reads your screen (the game's own debug overlay), Game.log and the game's text file. It never "
     "touches the game's memory or network traffic, and never sends mouse or keyboard input.",
-    "In this version nothing leaves your PC. Anything meant for the future community service is shown to you "
-    "first, with your handle, other players' names, account numbers, session ids and IP addresses removed.",
+    "Nothing leaves your PC unless you turn on sharing. The community board summary is shown to you on the Set up "
+    "tab and never includes your handle, other players' names, account or session numbers, or IP address.",
     "Issue Council reports are drafts for you to check and submit yourself.",
     "The dashboard only answers this PC (127.0.0.1).",
     "Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium "

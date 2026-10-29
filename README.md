@@ -10,6 +10,8 @@ It reads two things the game already gives you: the debug overlay (`r_displayinf
 - **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
 - **My PC.** Your hardware and the game's own CPU and GPU test results from every launch, plus your frame rate by location.
 
+**Live community board:** https://sc-shard-status.aurelius-draco.workers.dev shows the health of every shard players are reporting from, and a page for every known issue with Issue Council links, workarounds and votes.
+
 By Aurelius_Draco. Also by me: [SC Inventory Tracker](https://github.com/Aurelius-Draco/sc-inventory-tracker), which keeps track of what you've stored at every station.
 
 ## What it looks like
@@ -104,8 +106,8 @@ Players on shard is everyone on the shard; on your server is the server node han
 ## Ground rules
 
 - It only reads your screen (the game's own overlay), Game.log and the game's text file. It never touches the game's memory or network traffic, and never sends mouse or keyboard input.
-- Nothing leaves your PC in this version. The dashboard only answers this PC (127.0.0.1).
-- Anything meant for the future community service is shown to you first, with your handle, other players' names, account and entity numbers, session ids and IP addresses removed.
+- Nothing leaves your PC unless you turn on sharing. The dashboard only answers this PC (127.0.0.1).
+- When sharing is on, the app sends one summary every 5 minutes and shows you exactly what it sent. It never includes your handle, other players' names, account or session numbers, file paths or your IP address.
 - Issue Council reports are drafts. You check them and submit them yourself. Each one ends with a line saying it was compiled by this tool.
 - Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
@@ -113,9 +115,15 @@ Players on shard is everyone on the shard; on your server is the server node han
 
 What the app recognises lives in `scstatus/library/issues.json`: each entry is a log pattern, a plain-English explanation, fixes and a suggested Issue Council title. It's data, not code, so new entries don't need a new version of the app. See [docs/library.md](docs/library.md) to add one, or open an issue with the log lines and what was happening.
 
-## Coming next
+## Community board
 
-The community shard status board: everyone who opts in shares a stripped-down reading every minute or so, and the site shows live health for every shard, which ones to avoid, issues hitting lots of players right now with their Issue Council links, and an admin review queue for errors nobody recognises yet. See [docs/ROADMAP.md](docs/ROADMAP.md).
+https://sc-shard-status.aurelius-draco.workers.dev
+
+- **Shard board:** live health for every shard players are reporting from, best first in each region, so you know where to server hop.
+- **Known issues:** a page for each issue the app recognises. Press "I had this too", add the Issue Council report so others can upvote it, and post workarounds that others mark as worked or didn't work. The app's "What's gone wrong?" links each finding to its page.
+- Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**.
+
+Still to come: the review queue for errors nobody recognises yet. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## For developers
 

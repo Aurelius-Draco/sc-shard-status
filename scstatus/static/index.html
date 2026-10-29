@@ -591,6 +591,8 @@ function findCard(f, i, group) {
     <div class="fa">
       ${group === "unknown" ? `<button class="btn sm ghost" data-review="${i}">Prepare for review</button>` : ""}
       <button class="btn sm ghost" data-report="${i}" data-group="${group}">Issue Council draft</button>
+      ${f.rule_id && group !== "unknown" ? `<button class="btn sm ghost" data-had="${esc(f.rule_id)}" title="Adds one to the count on the community board's page for this issue">I had this: count me</button>
+        <a class="btn sm ghost" href="${esc(COMMUNITY_SITE)}/issues/${esc(f.rule_id)}" target="_blank" rel="noopener">Workarounds and Issue Council links</a>` : ""}
     </div></article>`;
 }
 
@@ -605,6 +607,10 @@ function drawCheck(r) {
     ${r.unknown.length ? `<section class="sec"><h3>Unrecognised errors <span>${r.unknown.length} kinds. Probably harmless, but if one lines up with your problem, send it for review.</span></h3>
       <details><summary class="link" style="cursor:pointer">Show them</summary><div class="finds">${r.unknown.slice(0, 40).map((f, i) => findCard(f, i, "unknown")).join("")}</div></details></section>` : ""}`;
   out.querySelectorAll("[data-report]").forEach(b => b.onclick = () => openReport(b.dataset.group, +b.dataset.report));
+  out.querySelectorAll("[data-had]").forEach(b => b.onclick = async () => {
+    try { const r = await api("/api/had", {rule_id: b.dataset.had}); toast(r.message); b.disabled = true; b.textContent = "Counted"; }
+    catch (e) { toast(e.message, true); }
+  });
   out.querySelectorAll("[data-review]").forEach(b => b.onclick = () => openReview(+b.dataset.review));
 }
 

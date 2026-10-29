@@ -147,6 +147,19 @@ class Community:
         else:
             self.share_status = f"the board refused the reading ({d.get('error') or code})"
 
+    def had(self, rule_id):
+        """'I had this too' on the board's page for this issue. Sends the issue id and this install's random id."""
+        import re
+        if not re.fullmatch(r"[a-z0-9-]{2,80}", rule_id or ""):
+            raise ValueError("That finding isn't on the community board.")
+        try:
+            code, d = self._req(f"/api/v1/issue/{rule_id}/had", {"voter": self.app.store.install_id(), "on": True})
+        except Exception as e:
+            raise ValueError(f"Couldn't reach the community board ({e.__class__.__name__}).")
+        if code != 200:
+            raise ValueError(d.get("error") or f"The board answered {code}.")
+        return "Counted on the community board. Thanks: it shows others it's still happening."
+
     def run(self, stop):
         while not stop.wait(15):
             try:
