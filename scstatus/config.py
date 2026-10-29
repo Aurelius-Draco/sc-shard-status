@@ -68,6 +68,8 @@ DEFAULT_CONFIG = {
     "check_updates": True,
     # Fetch newer copies of the known-issues library from the community site (a plain download; nothing sent)
     "library_updates": False,
+    # Pop-up alerts while you play: "sound", "quiet" (no sound) or null (off)
+    "alerts": None,
 }
 
 

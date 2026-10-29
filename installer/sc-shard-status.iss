@@ -58,7 +58,8 @@ Type: filesandordirs; Name: "{app}\_internal"
 Source: "..\dist\SC Shard Status\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; Comment: "Shard health and what's gone wrong, while you play"
+; The AppUserModelID lets the app's pop-up alerts show under its own name and icon
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; Comment: "Shard health and what's gone wrong, while you play"; AppUserModelID: "AureliusDraco.SCShardStatus"
 Name: "{group}\{#AppName} - check"; Filename: "{app}\{#AppExe}"; Parameters: "--check --wait"; Comment: "What's gone wrong in the last 30 minutes"
 Name: "{group}\{#AppName} (log only)"; Filename: "{app}\{#AppExe}"; Parameters: "--no-overlay"; Comment: "Without reading the game overlay off the screen"
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"

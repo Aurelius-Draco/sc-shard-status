@@ -156,6 +156,9 @@ def handle_post(app, path, body):
     if path == "/api/review/send":
         d = app.send_saved_review(str(body.get("ticket", "")))
         return {"message": "Sent." + (" It already has an answer." if d.get("answer") else ""), "reviews": app.store.reviews()}
+    if path == "/api/alerts/test":
+        app.alerts.test()
+        return {"message": "Test alert sent."}
     if path == "/api/library/check":
         return app.libsync.update_library()
     if path == "/api/usercfg":
@@ -169,7 +172,7 @@ def handle_post(app, path, body):
         return {"message": app.set_game_dir(body.get("path", "")), "game_dir": app.cfg["game_dir"]}
     if path == "/api/settings":
         return {"message": app.save_settings(body.get("live"), body.get("screenshots"), body.get("share"), body.get("board"),
-                                             body.get("updates"), body.get("library")),
+                                             body.get("updates"), body.get("library"), body.get("alerts")),
                 "settings": app.settings()}
     if path == "/api/update/check":
         return app.updater.check()

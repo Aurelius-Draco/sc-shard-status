@@ -38,6 +38,8 @@ class App:
         self.community = community.Community(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
         from .updater import Updater
         self.updater = Updater(self)
+        from .alerts import Alerts
+        self.alerts = Alerts(self)
         from .libsync import LibrarySync
         self.libsync = LibrarySync(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
         self.quitting = False
@@ -70,6 +72,7 @@ class App:
         threading.Thread(target=self.community.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.updater.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.libsync.run, args=(self.stop,), daemon=True).start()
+        threading.Thread(target=self.alerts.run, args=(self.stop,), daemon=True).start()
         if not self.game_found:
             threading.Thread(target=self._watch_for_game, daemon=True).start()
 
@@ -214,7 +217,7 @@ class App:
             "community": self.community.region_view(shard, _region(shard)) if self.cfg.get("community_board") else None,
             "sharing": self.community.share_status if self.cfg.get("share_readings") else "off",
             "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
-            "update": self.updater.info(), "patch": self.patch_state(),
+            "update": self.updater.info(), "patch": self.patch_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
         }
 
@@ -341,7 +344,8 @@ class App:
         return self.libsync.send_review(rid, r["data"])
 
     # -- the game's USER.cfg
-    def save_settings(self, live=None, screenshots=None, share=None, board=None, updates=None, library=None):
+    def save_settings(self, live=None, screenshots=None, share=None, board=None, updates=None, library=None,
+                      alerts=None):
         """Change settings. Saved to data\\config.json. Reading changes take effect on the next start;
         the community switches take effect straight away."""
         from .config import save_setting
@@ -382,13 +386,19 @@ class App:
                 threading.Thread(target=self.libsync.update_library, daemon=True).start()
             msg.append("Keeping the known-issues library up to date." if library
                        else "Using the known-issues library that came with the app.")
+        if alerts is not None:
+            mode = alerts if alerts in ("sound", "quiet") else None
+            self.cfg["alerts"] = mode
+            save_setting("alerts", mode)
+            msg.append({"sound": "Pop-up alerts on, with a sound.", "quiet": "Pop-up alerts on, without a sound."}
+                       .get(mode, "Pop-up alerts off."))
         return " ".join(msg) or "Saved."
 
     # -- first-run questions: every setting is a yes/no the player has to answer once
     # Each question and the set-up version it arrived in. Raise SETUP_VERSION when adding one: players who have
     # already been through set-up are asked only the new ones.
     QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 1,
-                 "updates": 2, "library": 2}
+                 "updates": 2, "library": 2, "alerts": 2}
     SETUP_VERSION = max(QUESTIONS.values())
 
     @property
@@ -426,6 +436,8 @@ class App:
                 notes.append("The USER.cfg choices will be saved once the game folder is found.")
         self.save_settings(**{k: bool(given[k]) for k in ("live", "screenshots", "share", "board", "updates", "library")
                               if k in given})
+        if "alerts" in given:
+            self.save_settings(alerts=given["alerts"])
         self.cfg["setup_version"] = self.SETUP_VERSION
         save_setting("setup_version", self.SETUP_VERSION)
         return " ".join(["All set. You can change any of these on the Set up tab."] + notes)
@@ -440,7 +452,8 @@ class App:
                 "last_payload": c.last_payload,
                 "board_url": c.url, "board_error": c.board_error,
                 "updates": bool(self.cfg.get("check_updates", True)), "update": self.updater.info(),
-                "library": bool(self.cfg.get("library_updates")), "library_sync": self.libsync.info()}
+                "library": bool(self.cfg.get("library_updates")), "library_sync": self.libsync.info(),
+                "alerts": self.alerts.info()}
 
     # Settings the app can put in USER.cfg: name -> value to set
     CFG_SETTINGS = {"r_displayinfo": 3, "r_DisplaySessionInfo": 1}

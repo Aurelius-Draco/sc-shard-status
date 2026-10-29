@@ -290,6 +290,9 @@ table.switches td:last-child { white-space: nowrap; }
 .chipt:has(input:checked) { color: var(--text); border-color: var(--amber-line); }
 .chipt:has(input:focus-visible) { outline: 2px solid var(--amber); outline-offset: 2px; }
 
+.alist { padding: var(--s3) var(--s4); display: grid; gap: var(--s2); font-size: .875rem; }
+.alist > div { display: grid; grid-template-columns: 4rem 1fr; gap: var(--s3); }
+.alist > div > b { color: var(--muted); font-weight: 600; }
 /* First-run questions */
 .wiz { position: fixed; inset: 0; z-index: 40; overflow-y: auto; background: rgba(4,6,9,.78); padding: var(--s6) var(--s4) 0; }
 .wiz .box { max-width: 54rem; margin: 0 auto var(--s6); background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r); box-shadow: var(--shadow); }
@@ -553,6 +556,7 @@ async function renderNow() {
     </div>
   </section>
   ${setup.length ? `<div class="sec" style="display:grid;gap:var(--s2)">${setup.join("")}</div>` : ""}
+  ${d.alerts && d.alerts.length ? `<section class="sec"><h3>Alerts this run <span>also sent as Windows notifications</span></h3><div class="frame alist">${d.alerts.map(a => `<div><b>${tm(a.ts)}</b><span><b>${esc(a.title)}</b> ${esc(a.body)}</span></div>`).join("")}</div></section>` : ""}
   <section class="sec"><h3>Live numbers <span>from the game's overlay, median of the last 5 minutes</span></h3>
     <dl class="readout">
       <div class="cell ${cls(h.server_fps, 18, 10)}"><dt>Server fps</dt><dd>${fmt(h.server_fps, 1)}${h.server_fps_low != null ? `<small>low ${fmt(h.server_fps_low, 1)}</small>` : ""}</dd></div>
@@ -945,6 +949,12 @@ async function renderSetup() {
     <div class="swlist" id="updToggles"></div>
     <div id="updState" style="display:grid;gap:var(--s2);margin-top:var(--s3)"></div>
   </section>
+  <section class="sec frame setcard" id="alertCard">
+    <h4>Pop-up alerts</h4>
+    <p>A Windows notification when the server's fps falls off a cliff, the server restarts, packet loss climbs, you're disconnected, or a known problem turns up in Game.log. Each kind at most once every 10 minutes.</p>
+    <p class="sub">Windows holds notifications back while a full-screen game is in front (Settings, System, Notifications, "Turn on do not disturb automatically when playing a game"). Borderless window mode or a second screen gets them through; the sound plays either way.</p>
+    <div class="fa"><div class="seg" id="alertSeg" role="radiogroup" aria-label="Pop-up alerts"></div><button class="btn sm ghost" id="alertTest">Send a test alert</button></div>
+  </section>
   <section class="sec frame setcard" id="libCard">
     <h4>Known-issues library</h4>
     <p>The library is what "What's gone wrong?" checks Game.log against. New entries are added as players send errors for review and patches change things. With updates on, the app fetches the newest copy from the community site a minute and a half after it starts and every 6 hours. It's a plain download; nothing is sent about you.</p>
@@ -1009,6 +1019,18 @@ async function renderSetup() {
     $("libCheck").onclick = async () => { $("libCheck").disabled = true; try { const r = await api("/api/library/check", {}); toast(r.error || r.note || "Already up to date."); } catch (e) { toast(e.message, true); } drawLib(); };
   };
   drawLib();
+  const drawAlerts = async () => {
+    if (!$("alertSeg")) return;
+    const st = await api("/api/settings"), m = (st.alerts || {}).mode || "";
+    $("alertSeg").innerHTML = [["sound", "On, with a sound"], ["quiet", "On, no sound"], ["", "Off"]]
+      .map(([v, l]) => `<button type="button" data-al="${v}" aria-pressed="${m === v}">${l}</button>`).join("");
+    $("alertSeg").querySelectorAll("[data-al]").forEach(b => b.onclick = async () => {
+      try { const r = await api("/api/settings", {alerts: b.dataset.al || false}); toast(r.message); drawAlerts(); } catch (e) { toast(e.message, true); }
+    });
+    $("alertTest").disabled = !m;
+  };
+  drawAlerts();
+  $("alertTest").onclick = async () => { try { const r = await api("/api/alerts/test", {}); toast(r.message); } catch (e) { toast(e.message, true); } };
   $("redoWiz").onclick = () => openWizard(true);
   $("view").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => {
     try { const r = await api("/api/usercfg", {name: b.dataset.cfg, on: b.dataset.on === "1"}); toast(r.message); nowData = null; nowData = await api("/api/now"); renderSetup(); }
@@ -1082,6 +1104,10 @@ async function openWizard(all) {
     ["updates", "This app", "Tell you when there's a new version?",
       `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. Nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,
       yn("updates", "Yes, tell me", "No, I'll check myself") + now(st.updates)],
+    ["alerts", "This app", "Pop up an alert when something goes wrong while you play?",
+      `A Windows notification when the server's fps falls off a cliff, the server restarts, packet loss climbs, you're disconnected, or a known problem turns up (like contract deliveries not counting). Each kind at most once every 10 minutes. Windows holds notifications back over full-screen games, so borderless window mode or a second screen works best; the sound plays either way.`,
+      `<div class="ans" data-q="alerts"><button type="button" data-v="sound">Yes, with a sound</button><button type="button" data-v="quiet">Yes, no sound</button><button type="button" data-v="0">No</button></div>` +
+      (st.alerts && st.alerts.mode ? `<span class="now">Right now: on${st.alerts.mode === "quiet" ? ", no sound" : ", with a sound"}</span>` : `<span class="now">Right now: off</span>`)],
     ["library", "This app", "Keep the known-issues library up to date?",
       `"What's gone wrong?" checks your Game.log against a library of known issues. New entries are added as players send errors for review and patches change things. Yes fetches the newest copy from the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community site</a> every 6 hours. It's a plain download; nothing is sent about you.`,
       yn("library", "Yes, keep it current", "No, use the one that came with the app") + now(st.library)],
