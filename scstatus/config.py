@@ -1,0 +1,92 @@
+"""Settings, folders and small helpers shared by every part of SC Shard Status."""
+
+import datetime as dt
+import json
+import os
+import string
+from pathlib import Path
+
+VERSION = "1.0"
+APP_NAME = "SC Shard Status"
+AUTHOR = "Aurelius_Draco"
+REPO = "https://github.com/Aurelius-Draco/sc-shard-status"
+
+# The tool's own folder (where status.py lives) and its data folder
+HERE = Path(__file__).resolve().parent.parent
+DATA = HERE / "data"
+LIBRARY = Path(__file__).resolve().parent / "library" / "issues.json"
+
+DEFAULT_CONFIG = {
+    # Folder holding Game.log (StarCitizen\LIVE). Leave blank and the tool looks for it.
+    "game_dir": "",
+    # Game language folder under Data\Localization (for item names)
+    "language": "english",
+    # Read the game's debug overlay (r_displayinfo) off the screen every this many seconds. 0 = off.
+    "overlay_every_s": 5,
+    # Which monitor the game is on (1 = main)
+    "monitor": 1,
+    # "What's gone wrong?" looks back this many minutes
+    "lookback_minutes": 30,
+    # Local dashboard (only reachable from this PC). The inventory tracker uses 8765.
+    "dashboard_port": 8775,
+    "open_browser": True,
+    # Add r_displayinfo to the game's USER.cfg when it's missing (asks first)
+    "offer_user_cfg": True,
+}
+
+
+def say(msg):
+    """Print a message, and keep it in data\\status.log for checking a run later."""
+    line = f"[{dt.datetime.now():%H:%M:%S}] {msg}"
+    print(line, flush=True)
+    try:
+        DATA.mkdir(exist_ok=True)
+        log = DATA / "status.log"
+        if log.exists() and log.stat().st_size > 2_000_000:
+            log.replace(DATA / "status.old.log")
+        with open(log, "a", encoding="utf-8") as f:
+            f.write(f"{dt.datetime.now():%Y-%m-%d} {line}\n")
+    except Exception:
+        pass
+
+
+def _is_game_dir(p):
+    p = Path(p)
+    return (p / "Game.log").exists() or (p / "Data.p4k").exists()
+
+
+def find_game_dir():
+    """Look for the StarCitizen\\LIVE folder in the usual places."""
+    cands = [HERE.parent / "StarCitizen" / "LIVE", HERE.parent / "LIVE", HERE.parent]
+    tails = [r"Program Files\Roberts Space Industries\StarCitizen\LIVE",
+             r"Roberts Space Industries\StarCitizen\LIVE",
+             r"Games\Roberts Space Industries\StarCitizen\LIVE",
+             r"StarCitizen\LIVE", r"Games\StarCitizen\LIVE", r"Games\StarCitizen\StarCitizen\LIVE"]
+    if os.name == "nt":
+        for d in string.ascii_uppercase[2:]:
+            root = Path(f"{d}:\\")
+            if root.exists():
+                cands += [root / t for t in tails]
+    for c in cands:
+        if _is_game_dir(c):
+            return c
+    return None
+
+
+def load_config():
+    DATA.mkdir(exist_ok=True)
+    cfg_path = DATA / "config.json"
+    cfg = json.loads(json.dumps(DEFAULT_CONFIG))
+    if cfg_path.exists():
+        try:
+            cfg.update(json.loads(cfg_path.read_text(encoding="utf-8")))
+        except Exception:
+            pass
+    try:
+        cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+    if not cfg.get("game_dir") or not _is_game_dir(cfg["game_dir"]):
+        found = find_game_dir()
+        cfg["game_dir"] = str(found) if found else ""
+    return cfg

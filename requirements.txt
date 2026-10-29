@@ -1,0 +1,5 @@
+rapidocr>=3.10
+onnxruntime>=1.20
+opencv-python-headless>=4.9
+numpy
+mss>=9.0

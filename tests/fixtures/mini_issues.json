@@ -1,0 +1,7 @@
+{"version": "test", "rules": [
+ {"id": "cargo-no-resource-container", "kind": "problem", "severity": "high", "area": "Cargo",
+  "match": {"tag": "CargoSystemUtilities::FindBoxSize", "regex": "Item class \\[(?P<item>[^\\]]+)\\] does not have a resource container"},
+  "title": "Items can't go through the freight elevator", "explain": "No cargo box for {item_name}.",
+  "fixes": ["Stop sending {item_name}."], "ic_title": "Freight elevator: {item_name} has no resource container"},
+ {"id": "noise-obstruction", "kind": "noise", "match": {"tag": "LoadingPlatformUtilities::LoadFromXmlNode"}}
+]}

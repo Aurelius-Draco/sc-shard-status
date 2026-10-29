@@ -1,0 +1,1905 @@
+{
+ "version": "2026-10-29.1",
+ "rules": [
+  {
+   "id": "cargo-no-resource-container",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Cargo",
+   "match": {
+    "tag": "CargoSystemUtilities::FindBoxSize",
+    "regex": "Item class \\[(?P<item>[^\\]]+)\\] does not have a resource container"
+   },
+   "title": "The cargo system can't size {item_name}",
+   "explain": "The freight elevator or cargo screen looked at {item_name} and couldn't find a cargo box size for it. This shows up every time a Wikelo food or drink delivery (Very Hungry) was tried and the objective never moved. It also showed up when a Vestal Water delivery did count, so on its own it doesn't prove the delivery failed: check whether the objective counter went up.",
+   "fixes": [
+    "Check the contract objective right after the elevator goes down. If the count didn't go up, the delivery didn't register.",
+    "Don't keep re-sending the same items. Take them back out of the elevator so they're not left behind if you change server.",
+    "Try handing the item over on a fresh server after a full relog, with only that contract active.",
+    "If it still won't count, abandon the contract and report it on the Issue Council with this log line. It needs a fix from CIG."
+   ],
+   "ic_title": "Freight elevator / cargo: {item_name} has no resource container (CargoSystemUtilities::FindBoxSize)",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "freight-entity-not-present",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Freight elevator",
+   "match": {
+    "tag": "CEntityComponentFreightElevatorUIProvider::FillUnstowRequest",
+    "regex": "\\[FreightElevatorKioskUIProvider\\] EntityId\\[\\d+\\] is not present"
+   },
+   "title": "The freight elevator is asking for items that aren't there",
+   "explain": "The freight elevator kiosk built a request that includes items it can't find. In this player's logs it happened after changing server: items left in the elevator on the old server were still listed but don't exist on the new one.",
+   "fixes": [
+    "Don't leave items in a freight elevator or on its platform when you leave the server; take them back first.",
+    "Close and reopen the kiosk, or store and retrieve again, so the list refreshes.",
+    "If the items are gone, they stayed on the old server. Relogging may put you back there, but there's no reliable way to get them.",
+    "Report it with the time and location if items went missing."
+   ],
+   "ic_title": "Freight elevator kiosk lists items that are not present after a server change (FillUnstowRequest EntityId not present)",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "freight-entities-mismatch",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Freight elevator",
+   "match": {
+    "tag": "CEntityComponentFreightElevatorUIProvider::Client_SendRequest",
+    "regex": "Error validating freight items\\. result\\[(?P<result>\\w+)\\]"
+   },
+   "title": "The freight elevator rejected the request ({result})",
+   "explain": "The kiosk's list of items didn't match what the server has, so the move was refused. Items usually stay where they were.",
+   "fixes": [
+    "Close the kiosk, wait a few seconds and try again.",
+    "Move fewer items at a time.",
+    "If it keeps failing, relog. Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+   ],
+   "ic_title": "Freight elevator request fails with {result}",
+   "links": [],
+   "builds_seen": [
+    "12660092"
+   ]
+  },
+  {
+   "id": "freight-bad-state-recovery",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Freight elevator",
+   "match": {
+    "tag": "CEntityComponentFreightElevatorUIProvider::HandleComponentEvent",
+    "regex": "bad state recovery"
+   },
+   "title": "A freight elevator reset itself",
+   "explain": "The freight elevator kiosk got into a bad state and the game forced a reset. Anything mid-transfer may not have moved.",
+   "fixes": [
+    "Check the elevator and your local inventory for the items you were moving.",
+    "Wait for the elevator to settle, then try the transfer again.",
+    "If items are missing, relog and check again before reporting."
+   ],
+   "ic_title": "Freight elevator kiosk goes into bad state recovery during transfer",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "freight-cargo-grid-closed",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Freight elevator",
+   "match": {
+    "tag": "CSCLoadingPlatformManager::ValidateAndRepairCargoGrid::<lambda_2>::operator ()",
+    "regex": "inventory container (?P<grid>\\S+) \\[\\d+\\] was closed, this should never happen"
+   },
+   "title": "A freight elevator cargo grid had to be repaired",
+   "explain": "The elevator's cargo grid was found closed and the game moved its contents in a repair step. Items can end up in the wrong place.",
+   "fixes": [
+    "Check the elevator and the station inventory for your items.",
+    "If something is missing, relog and look again before you buy replacements."
+   ],
+   "ic_title": "Freight elevator cargo grid closed unexpectedly and needed repair",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "cargo-boxes-cant-fit",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Inventory",
+   "match": {
+    "tag": "SBindings_InventoryView::TryAddItemPlatformImpl",
+    "regex": "failed to generate packing plan with result (?P<result>\\w+)"
+   },
+   "title": "An item transfer failed: no room ({result})",
+   "explain": "The game couldn't work out how to pack the item into the destination, so the transfer was refused.",
+   "fixes": [
+    "Make room in the destination or move a smaller stack.",
+    "Try moving it into a different container."
+   ],
+   "ic_title": "Inventory transfer fails with packing plan result {result}",
+   "links": [],
+   "builds_seen": [
+    "12572603"
+   ]
+  },
+  {
+   "id": "inventory-request-failed",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Inventory",
+   "match": {
+    "tag": "Player Inventory Request Complete",
+    "regex": "Type\\[(?P<type>\\w+)\\] Result\\[(?P<result>(?!Succeed\\])\\w+)\\]"
+   },
+   "title": "An inventory action failed ({type})",
+   "explain": "The server refused or dropped an inventory request of type {type}. The item usually snaps back to where it was. A burst of these means the inventory service is struggling on this server.",
+   "fixes": [
+    "Close the inventory, wait a few seconds and try again.",
+    "Don't drag lots of items quickly; the requests queue up and fail together.",
+    "If every move fails, relog. Server hop if it carries on."
+   ],
+   "ic_title": "Inventory {type} request fails (Result {result})",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "inventory-populate-failed",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Inventory",
+   "match": {
+    "tag": "Populate Inventory Failed",
+    "regex": "InventoryDataRequest Failed Inventory\\[[^\\]]*\\]"
+   },
+   "title": "A container's contents wouldn't load",
+   "explain": "The game asked the server for what's in a container and the request failed, so it may look empty or not open.",
+   "fixes": [
+    "Close and reopen the container.",
+    "Walk away and come back so it reloads.",
+    "Relog if it stays empty. Don't assume the items are gone."
+   ],
+   "ic_title": "Inventory container fails to populate (InventoryDataRequest Failed)",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "inventory-request-completed-failed",
+   "kind": "info",
+   "severity": "low",
+   "area": "Inventory",
+   "match": {
+    "tag": "Inventory Request Completed",
+    "regex": "Result\\[(?P<result>failed)\\]"
+   },
+   "title": "An inventory request finished with a failure",
+   "explain": "Summary line for a failed inventory request. See the matching 'inventory action failed' finding for which kind.",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "inventory-op-over-budget",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Inventory",
+   "match": {
+    "tag": "Remote Method Over Budget (Soft Limit)",
+    "regex": "Remote Method size (?P<size>\\d+) is greater than soft limit of \\d+\\..*rmName=\"(?P<rm>[^\"]+)\""
+   },
+   "title": "An inventory action was too big to send in one go",
+   "explain": "A request ({rm}) was larger than the network soft limit. Above the hard limit it isn't sent at all, which can make big inventory moves fail.",
+   "fixes": [
+    "Move items in smaller batches.",
+    "If a big move didn't happen, try again with fewer items."
+   ],
+   "ic_title": "{rm} over replication soft limit ({size} bytes)",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "inventory-respawn-during-cache",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Inventory",
+   "match": {
+    "tag": "Respawn loadout completed during location inventory caching"
+   },
+   "title": "Respawned while the station inventory was loading",
+   "explain": "Your respawn loadout arrived while the local inventory was still being cached. The game warns this can leave the cached list wrong.",
+   "fixes": [
+    "If the station inventory looks wrong, close it, walk away and reopen it.",
+    "Relog if items look missing."
+   ],
+   "ic_title": "Respawn loadout completed while location inventory was caching",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "inventory-grid-order",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Inventory",
+   "match": {
+    "tag": "Out-of-order ranks in inventory container"
+   },
+   "title": "",
+   "explain": "The game found and fixed sort-order errors in its own cached inventory grid. Items aren't lost.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "disconnect-30016-spawn",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Connection",
+   "match": {
+    "tag": "Channel Disconnected",
+    "regex": "cause=(?P<cause>30016) reason=\"(?P<reason>[^\"]*)\" frame=\\d+ isRemote=1 viewState=(?P<view_state>eCVS_(?!InGame\\b)\\w+)"
+   },
+   "title": "The server dropped you while you were still spawning",
+   "explain": "The server closed the connection before you finished loading in ({view_state}). The game calls it 'player requested', but it came from the server side. In this player's log the next join landed on a different shard and region.",
+   "fixes": [
+    "Join again. Expect to land on a different shard; check the region in the overlay.",
+    "Anything you left loose in the world on the old shard (including in freight elevators) stays there.",
+    "If it happens repeatedly, pick a different region in the launcher for a while."
+   ],
+   "ic_title": "Disconnected during spawn (code 30016, viewState {view_state})",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "disconnect-30016",
+   "kind": "info",
+   "severity": "low",
+   "area": "Connection",
+   "match": {
+    "tag": "Channel Disconnected",
+    "regex": "cause=(?P<cause>30016) reason=\"(?P<reason>[^\"]*)\""
+   },
+   "title": "You left the server",
+   "explain": "Code 30016 is a normal, player-requested disconnect (quit to desktop or exit to menu): \"{reason}\".",
+   "links": [],
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "disconnect-30010",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Connection",
+   "match": {
+    "tag": "Channel Disconnected",
+    "regex": "cause=(?P<cause>30010) reason=\"Nub destroyed\""
+   },
+   "title": "Menu to universe hand-over",
+   "explain": "Code 30010 'Nub destroyed' is the game closing its local menu connection when you join the universe. Normal.",
+   "links": [],
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "loading-long-wait",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Loading",
+   "match": {
+    "tag": "CContextEstablisherTaskLongWait",
+    "regex": "taskname=\"(?P<task>[^\"]+)\" state=(?P<state>\\w+)\\(\\d+\\) status=\"Busy\" runningTime=(?P<seconds>[\\d.]+)"
+   },
+   "title": "Loading got stuck on {task}",
+   "explain": "A loading step ({task}, during {state}) has been running for over a minute. That's usually the server being slow to send data, not your PC.",
+   "fixes": [
+    "Give it another minute or two; it often finishes.",
+    "If you're stuck on the loading screen for more than five minutes, close the game and rejoin.",
+    "Repeated slow loads on the same shard: try another region."
+   ],
+   "ic_title": "Load stuck: {task} running over 60 s in {state}",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "loading-slow-join",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Loading",
+   "match": {
+    "tag": "Context Establisher Done",
+    "regex": "establisher=\"CReplicationModel\" runningTime=(?P<seconds>9\\d|[1-9]\\d{2,})\\.\\d+ map=\"[^\"]*\" gamerules=\"(?!SC_Frontend\")(?P<mode>[^\"]+)\""
+   },
+   "title": "Joining the universe took {seconds} seconds",
+   "explain": "Loading into the universe took over 90 seconds. In this player's logs the usual time is about 30 seconds (median 32, 90th percentile 53).",
+   "fixes": [
+    "A slow load now and then is the server, not your PC.",
+    "If every load is slow, check the game is on an SSD and other downloads aren't running.",
+    "Try another region if one shard is always slow."
+   ],
+   "ic_title": "Slow join to {mode}: {seconds} s",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "services-query-timeout",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Services",
+   "match": {
+    "tag": "QueryServerResult",
+    "regex": "DEADLINE_EXCEEDED\\(\\d+\\): '(?P<what>[^']+)'"
+   },
+   "title": "A backend request timed out",
+   "explain": "The game's backend services didn't answer in time ({what}). Things that depend on them, like inventories, kiosks or contracts, can be slow or fail for a while.",
+   "fixes": [
+    "Wait a minute and retry what you were doing.",
+    "If timeouts keep coming, relog or server hop."
+   ],
+   "ic_title": "Backend query DEADLINE_EXCEEDED: {what}",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "network-socket-buffer",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Network",
+   "match": {
+    "tag": "Socket Send Error (Ignore)",
+    "regex": "socket error: (?P<code>\\d+) (?P<name>WSAENOBUFS)"
+   },
+   "title": "Your PC ran out of network buffer space",
+   "explain": "Windows refused to send game traffic ({name}). That's a problem on this PC, not the server: the network stack is out of buffers.",
+   "fixes": [
+    "Close other programs that use a lot of connections (downloads, torrents, VPN clients).",
+    "Restart the PC; this clears the network buffers.",
+    "Update the network adapter driver if it keeps happening."
+   ],
+   "ic_title": "UDP send fails with WSAENOBUFS on client",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "network-position-divergence",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Network",
+   "match": {
+    "tag": "Actor Position Divergence",
+    "regex": "diverging (?P<metres>\\d+)(?:\\.\\d+)?m \\(threshold [\\d.]+m\\) for over (?P<seconds>\\d+)(?:\\.\\d+)?s"
+   },
+   "title": "Something was badly out of sync with the server",
+   "explain": "The server and your game disagreed on where a character was by {metres} m for {seconds} s. Expect rubber-banding or people popping around.",
+   "fixes": [
+    "Usually it sorts itself out.",
+    "If you keep rubber-banding, check the server FPS on the Now tab; under 10 means the server is struggling and a server hop helps."
+   ],
+   "ic_title": "Actor position divergence {metres} m for {seconds} s",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "crash-exception",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Game",
+   "match": {
+    "regex": "^Exception (?P<exception>EXCEPTION_\\w+)\\((?P<code>0x[0-9A-Fa-f]+)\\) addr=0x[0-9A-Fa-f]+ digest=(?P<digest>[0-9a-f]+)"
+   },
+   "title": "The game crashed ({exception})",
+   "explain": "The game's crash handler caught {exception}. This is a game crash, not a disconnect. The same digest showing up again means it's the same crash.",
+   "fixes": [
+    "Send the crash through the crash reporter when it pops up; it's how CIG groups these.",
+    "Note what you were doing just before it happened.",
+    "If it keeps happening, verify game files in the RSI launcher and make sure the page file isn't disabled.",
+    "There's no reliable player-side fix for most crashes; it needs a patch."
+   ],
+   "ic_title": "Client crash {exception} (digest {digest})",
+   "links": [],
+   "notes": "Untagged line written by the crash handler after the last timestamped line. The parser has to pass it through for this rule to fire.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "crash-out-of-memory",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Game",
+   "match": {
+    "regex": "^Is out of (?P<which>system|video) memory: Yes"
+   },
+   "title": "The game crashed after running out of {which} memory",
+   "explain": "The crash handler says the game ran out of {which} memory.",
+   "fixes": [
+    "Close other programs while playing.",
+    "Make sure Windows has a page file (system managed, on an SSD) of at least 16 GB.",
+    "Lower texture quality if it's video memory."
+   ],
+   "ic_title": "Client crash: out of {which} memory",
+   "links": [],
+   "general_knowledge": true,
+   "notes": "General knowledge: the crash handler prints this flag, but every crash in this corpus had 'No'.",
+   "builds_seen": []
+  },
+  {
+   "id": "crash-gpu",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Game",
+   "match": {
+    "regex": "^Is GPU crash: Yes"
+   },
+   "title": "The game crashed in the graphics driver",
+   "explain": "The crash handler flagged this as a GPU crash.",
+   "fixes": [
+    "Update or clean-reinstall the graphics driver.",
+    "Remove any GPU overclock or undervolt.",
+    "Try the other renderer (Vulkan or DX11) in settings."
+   ],
+   "ic_title": "Client GPU crash",
+   "links": [],
+   "general_knowledge": true,
+   "notes": "General knowledge: the flag exists in the crash block, but every crash in this corpus had 'No'.",
+   "builds_seen": []
+  },
+  {
+   "id": "crash-low-commit",
+   "kind": "info",
+   "severity": "low",
+   "area": "Game",
+   "match": {
+    "regex": "^Process Memory Status: (?P<ws_mb>\\d+)MB working set size, (?P<commit_mb>\\d+)MB commit size \\(\\d+MB peak\\), (?P<left_mb>\\d+)MB left to commit"
+   },
+   "title": "Memory at the time of the crash: {commit_mb} MB committed, {left_mb} MB left",
+   "explain": "Memory use when the game crashed. Under about 2 GB left to commit means Windows was close to its limit (RAM plus page file).",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "audio-queue-overflow",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Audio",
+   "match": {
+    "regex": "^Audio request queue \\[(?P<queue>\\w+)\\] passed \\d+% capacity threshold, now at (?P<pct>\\d{3,})(?:\\.\\d+)?%"
+   },
+   "title": "The audio system fell badly behind",
+   "explain": "The audio request queue was at {pct}% of capacity. In this player's logs it ran into the thousands of percent just before one of the crashes.",
+   "fixes": [
+    "If sound cuts out or the game hitches, relog.",
+    "Note it in any crash report."
+   ],
+   "ic_title": "Audio request queue [{queue}] at {pct}% capacity",
+   "links": [],
+   "notes": "Untagged line; the parser has to pass it through.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "qt-route-failed",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Quantum",
+   "match": {
+    "tag": "Failed to Calculate Route!",
+    "regex": "Obstruction found while calculate route!.*last obstruction entity: (?P<obstruction>\\S+)"
+   },
+   "title": "Quantum route blocked",
+   "explain": "The quantum drive couldn't find a route because something is in the way ({obstruction}).",
+   "fixes": [
+    "Fly clear of the object (often an asteroid base or station) and try again.",
+    "Pick an intermediate point first, then your destination."
+   ],
+   "ic_title": "Quantum route calculation fails, obstruction {obstruction}",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "qt-route-recursion",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Quantum",
+   "match": {
+    "tag": "Calculate Route Search Exceeded Maximum Recursion",
+    "regex": "Failed to Route from (?P<from>.+?) to (?P<to>Quantum Beacon|[^:]+?)(?: Start Position|:)"
+   },
+   "title": "Quantum route search gave up",
+   "explain": "The route search ran out of steps between {from} and {to}, so no route was set.",
+   "fixes": [
+    "Select the destination again.",
+    "Travel to a nearer point first.",
+    "If no destination works, relog."
+   ],
+   "ic_title": "Quantum route search exceeded maximum recursion from {from}",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "qt-drive-no-vehicle",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Quantum",
+   "match": {
+    "tag": "CSCItemQuantumDrive::PrepForQT",
+    "regex": "is prepping for travel, but the vehicle it is attached to does not exist"
+   },
+   "title": "Quantum drive started without its ship",
+   "explain": "A quantum drive began preparing to jump but the game couldn't find the ship it belongs to. Usually a streaming hiccup; the jump may not start.",
+   "fixes": [
+    "Try the jump again.",
+    "If the ship won't spool at all, get out and back in, or store and retrieve it."
+   ],
+   "ic_title": "Quantum drive prepping for travel with no parent vehicle",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "qt-obstructed-note",
+   "kind": "info",
+   "severity": "low",
+   "area": "Quantum",
+   "match": {
+    "tag": "SHUDEvent_OnNotification",
+    "regex": "Added notification \"Quantum Travel: Your destination is obstructed"
+   },
+   "title": "Quantum travel blocked",
+   "explain": "The game told you the destination is obstructed. Move to a clear spot and try again.",
+   "links": [],
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "qt-other-player-state",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Quantum",
+   "match": {
+    "tag": "Trying to QT when not in Idle"
+   },
+   "title": "",
+   "explain": "Another player's quantum drive state got out of step on your client. It's about their ship, not yours.",
+   "links": [],
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "asop-atc-timeout",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Vehicles",
+   "match": {
+    "tag": "CEntityComponentShipInsuranceProvider::OnATCNotification",
+    "regex": "\\[TIMEOUT FAIL\\].*Received ATC notification '(?P<notification>\\w+)'"
+   },
+   "title": "Ship retrieval timed out waiting for a hangar",
+   "explain": "The fleet manager kiosk gave up waiting for air traffic control ({notification}). The ship may not spawn, or may spawn later.",
+   "fixes": [
+    "Wait a minute and check the kiosk again before re-requesting.",
+    "If it's stuck as 'in hangar' or 'retrieving', relog.",
+    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+   ],
+   "ic_title": "Fleet manager: ATC {notification} TIMEOUT FAIL on vehicle retrieval",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "asop-spawn-not-found",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Vehicles",
+   "match": {
+    "tag": "CEntityComponentShipInsuranceProvider::OnVehicleSpawned::<lambda_1>::operator ()",
+    "regex": "\\[NOT FOUND\\]"
+   },
+   "title": "Your ship spawned but the kiosk lost track of it",
+   "explain": "A ship spawned on a landing pad the fleet kiosk wasn't expecting. The kiosk can show the wrong status afterwards.",
+   "fixes": [
+    "Check the hangar or pad for the ship.",
+    "If the kiosk still shows it as stored or retrieving, close and reopen the kiosk, then relog."
+   ],
+   "ic_title": "Fleet manager: vehicle spawned on landing area not in bindings list",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "asop-invalid-vehicle",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Vehicles",
+   "match": {
+    "tag": "CEntityComponentShipInsuranceProvider::HandleComponentEvent",
+    "regex": "ShipSelectorSpawnVehicle - Invalid vehicle id"
+   },
+   "title": "Ship retrieval failed: invalid vehicle",
+   "explain": "The fleet kiosk asked to spawn a ship with an invalid id, so nothing spawned.",
+   "fixes": [
+    "Close the kiosk, reopen it and pick the ship again.",
+    "Relog if the ship list looks wrong."
+   ],
+   "ic_title": "Fleet manager: ShipSelectorSpawnVehicle invalid vehicle id",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "asop-snapshot-failed",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Vehicles",
+   "match": {
+    "tag": "CEntityComponentShipInsuranceProvider::HandleComponentEvent::<lambda_1>::operator ()",
+    "regex": "\\[TakeSnapshot FAILED\\]"
+   },
+   "title": "Storing or retrieving a ship failed",
+   "explain": "The game couldn't take the snapshot it needs to store or move a ship. The ship can end up stuck in limbo for a while.",
+   "fixes": [
+    "Wait a few minutes and check the fleet kiosk again.",
+    "Relog, then retrieve from a different location if it's still stuck.",
+    "File an insurance claim only if it stays missing after a relog."
+   ],
+   "ic_title": "Fleet manager: TakeSnapshot FAILED",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "asop-snapshot-precondition",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Vehicles",
+   "match": {
+    "tag": "TakeSnapshot Failed",
+    "regex": "FAILED_PRECONDITION\\(\\d+\\)"
+   },
+   "title": "A vehicle snapshot was refused by the server",
+   "explain": "The backend refused a vehicle snapshot request (FAILED_PRECONDITION). It goes with the fleet kiosk failing to store or retrieve a ship.",
+   "fixes": [
+    "Wait and retry from the kiosk.",
+    "Relog if the ship stays stuck."
+   ],
+   "ic_title": "TakeSnapshot FAILED_PRECONDITION during vehicle store/retrieve",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "vehicle-bad-spawn",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "Bad Spawn Position",
+    "regex": "is in deep penetration for entity (?P<vehicle>[A-Za-z0-9_]+?)(?:_\\d+)?\\[\\d+\\]"
+   },
+   "title": "Something spawned inside the scenery",
+   "explain": "The game tried to place {vehicle} where it overlaps scenery. Ships spawned like this can get stuck or blow up.",
+   "fixes": [
+    "If it's your ship and it's stuck or damaged, store it and retrieve it again.",
+    "Use a different pad or hangar if it keeps happening."
+   ],
+   "ic_title": "Bad spawn position (deep penetration) for {vehicle}",
+   "links": [],
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "hangar-queue",
+   "kind": "info",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "SHUDEvent_OnNotification",
+    "regex": "Added notification \"Joined hangar queue\\."
+   },
+   "title": "You were queued for a hangar",
+   "explain": "All hangars were busy so you were put in a queue. The wait is in the notification.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "hangar-elevator-no-platform",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Vehicles",
+   "match": {
+    "tag": "CSCLoadingPlatformManager::GetExtendedZoneQueryBoundsLS",
+    "regex": "Loading Platform Manager \\[(?P<manager>[^\\]]+)\\] does not have a loading platform"
+   },
+   "title": "A hangar or freight elevator has no platform",
+   "explain": "An elevator ({manager}) is missing its moving platform, so ships or cargo may not go up or down.",
+   "fixes": [
+    "Use a different hangar or pad.",
+    "Store and re-retrieve your ship.",
+    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+   ],
+   "ic_title": "Loading platform manager {manager} has no loading platform",
+   "links": [],
+   "builds_seen": [
+    "12572603",
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-path-not-found",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Transit",
+   "match": {
+    "tag": "Invalid path",
+    "regex": "\\[TRANSPORT\\] Path \\[\\d+ -> \\d+\\] not found, carriage will not move this update"
+   },
+   "title": "An elevator or tram couldn't find its route",
+   "explain": "A carriage couldn't find its path and didn't move. These come in bursts in about one in six sessions here and usually clear on their own. It only matters if you were actually stuck waiting.",
+   "fixes": [
+    "Call the elevator again or use a different one.",
+    "If you're stuck inside a carriage, wait a minute, then use another exit or relog.",
+    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+   ],
+   "ic_title": "Transit carriage path not found, carriage does not move",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-bad-position",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Transit",
+   "match": {
+    "tag": "Couldn't Teleport - Bad Position",
+    "regex": "\\[TRANSPORT\\] Failed to move carriage along path"
+   },
+   "title": "An elevator or tram couldn't move",
+   "explain": "A carriage tried to move along its path but got no position back. Seen alongside 'No gateway found' on the Orison instance elevators.",
+   "fixes": [
+    "Use a different elevator.",
+    "If you're stuck, relog."
+   ],
+   "ic_title": "Transit carriage failed to move along path, retrieved position empty",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-no-gateway",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Transit",
+   "match": {
+    "tag": "No gateway found",
+    "regex": "Couldn't find Gateway\\[\\d+\\] on network belonging to manager \\d+\\[(?P<manager>[^\\]]+)\\]"
+   },
+   "title": "An elevator stop is missing ({manager})",
+   "explain": "The elevator network {manager} is missing a stop, so calls to it can fail.",
+   "fixes": [
+    "Use a different elevator panel or stop.",
+    "Relog if you can't get where you need to go."
+   ],
+   "ic_title": "Transit: gateway not found on {manager}",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-instance-destinations",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Transit",
+   "match": {
+    "tag": "Permissions Interface Invalid Result",
+    "regex": "\\[TRANSPORT\\] The permissions interface failed to provide the available instanced destinations"
+   },
+   "title": "The elevator couldn't list your instanced destinations",
+   "explain": "Elevators that go to instanced areas (your hangar, mission instances) couldn't get the list of places you can go.",
+   "fixes": [
+    "Close the panel and call the elevator again.",
+    "Leave and re-enter the area.",
+    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+   ],
+   "ic_title": "Elevator: permissions interface failed to provide instanced destinations",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-instance-unauthorised",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Transit",
+   "match": {
+    "tag": "MoveToZoneUnauthorizedInstance",
+    "regex": "but the player does not have access to the owning instance"
+   },
+   "title": "Someone was blocked from entering an instance",
+   "explain": "A player in the elevator didn't have access to the instance it was going to. If it was you, you won't be moved there.",
+   "fixes": [
+    "Make sure you're in the right party or have the right contract for that instance.",
+    "Call the elevator again."
+   ],
+   "ic_title": "Elevator move to instance refused: player has no access to owning instance",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-not-carriage",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Transit",
+   "match": {
+    "tag": "Not on Carriage"
+   },
+   "title": "",
+   "explain": "The game checked a zone that isn't an elevator carriage. Harmless bookkeeping.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-gateway-schedule",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Transit",
+   "match": {
+    "tag": "Gateway Schedule Unretrievable"
+   },
+   "title": "",
+   "explain": "An elevator or tram stop has no timetable on your client. Shows up in many healthy sessions.",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "transit-spline-in-manager",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Transit",
+   "match": {
+    "tag": "Spline In Manager Zone"
+   },
+   "title": "",
+   "explain": "A transit path was set up in an unexpected zone. Seen once, no effect on the player.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "shop-authority-error",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Shops",
+   "match": {
+    "tag": "CEntityComponentShoppingProvider::RmShopFlowResponse",
+    "regex": "result\\[(?P<result>(?!Success\\])\\w+)\\]"
+   },
+   "title": "A purchase failed ({result})",
+   "explain": "The shop's server-side handler refused the purchase. You aren't charged when this happens.",
+   "fixes": [
+    "Close the shop, step away and come back, then buy again.",
+    "If every purchase fails, relog or server hop."
+   ],
+   "ic_title": "Shop purchase fails with {result}",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "shop-transaction-error-note",
+   "kind": "info",
+   "severity": "low",
+   "area": "Shops",
+   "match": {
+    "tag": "SHUDEvent_OnNotification",
+    "regex": "Added notification \"Transaction Error: (?P<reason>[^\"]*?)\\s*\""
+   },
+   "title": "The game showed 'Transaction Error'",
+   "explain": "On-screen transaction error: {reason}. See the shop finding for details.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "commodity-location-missing",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Shops",
+   "match": {
+    "tag": "CEntityComponentCommodityUIProvider::ClSetSelectedPlayerLocationInfo",
+    "regex": "was not found in location data"
+   },
+   "title": "The commodity kiosk lost track of a location",
+   "explain": "The trade kiosk couldn't find the location you picked, so it may show the wrong stock or none.",
+   "fixes": [
+    "Pick the location again, or close and reopen the kiosk."
+   ],
+   "ic_title": "Commodity kiosk: entity not found in location data",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "actor-action-queue-full",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Character",
+   "match": {
+    "tag": "Too many actions",
+    "regex": "Attempting to queue too many actions \\((?P<count>\\d+)\\) on entity '[^']+'"
+   },
+   "title": "A character's action queue overflowed",
+   "explain": "A character tried to queue more actions than the game allows and some were dropped. If it was yours, interactions or animations can stop responding until things settle.",
+   "fixes": [
+    "Stop spamming interact or inventory actions for a few seconds.",
+    "If you can't interact with anything, holster, then relog if it doesn't clear."
+   ],
+   "ic_title": "Character action queue overflow ({count} actions)",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "contract-abandoned",
+   "kind": "info",
+   "severity": "low",
+   "area": "Missions",
+   "match": {
+    "tag": "EndMission",
+    "regex": "CompletionType\\[(?P<result>Abandon)\\] Reason\\[(?P<reason>[^\\]]*)\\]"
+   },
+   "title": "A contract was dropped ({reason})",
+   "explain": "A contract ended without finishing. 'Player left' is what the game logs when you abandon it or leave its server.",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "contract-failed",
+   "kind": "info",
+   "severity": "low",
+   "area": "Missions",
+   "match": {
+    "tag": "EndMission",
+    "regex": "CompletionType\\[(?P<result>Fail)\\] Reason\\[(?P<reason>[^\\]]*)\\]"
+   },
+   "title": "A contract failed",
+   "explain": "The game ended a contract as failed.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "contract-left",
+   "kind": "info",
+   "severity": "low",
+   "area": "Missions",
+   "match": {
+    "tag": "PlayerLeft",
+    "regex": "Received PlayerLeft push message for: mission_id"
+   },
+   "title": "You were removed from a contract",
+   "explain": "The mission service removed you from a contract. In this player's logs it happened on abandon and when leaving the server, and Wikelo contracts had to be accepted again afterwards.",
+   "links": [],
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "player-died",
+   "kind": "info",
+   "severity": "low",
+   "area": "Character",
+   "match": {
+    "tag": "[ActorState] Dead",
+    "regex": "ejected from zone '(?P<zone>[^']+)'"
+   },
+   "title": "You died",
+   "explain": "Your character died (logged when the body was ejected from a destroyed ship).",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "player-incapacitated",
+   "kind": "info",
+   "severity": "low",
+   "area": "Character",
+   "match": {
+    "tag": "SHUDEvent_OnNotification",
+    "regex": "Added notification \"Incapacitated:"
+   },
+   "title": "You were incapacitated",
+   "explain": "You were downed and could be revived before the timer ran out.",
+   "links": [],
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "vehicle-destroyed",
+   "kind": "info",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "FatalCollision",
+    "regex": "Fatal Collision occured for vehicle (?P<vehicle>[A-Za-z0-9_]+?)_\\d+ \\["
+   },
+   "title": "A ship was destroyed in a collision",
+   "explain": "{vehicle} was destroyed by a collision.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "vehicle-impounded",
+   "kind": "info",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "SHUDEvent_OnNotification",
+    "regex": "Added notification \"Vehicle Impounded: (?P<reason>[^\"]*?):?\\s*\""
+   },
+   "title": "A vehicle was impounded",
+   "explain": "Your vehicle was impounded: {reason}.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "align-no-vehicle",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "Cannot Align - No Vehicle"
+   },
+   "title": "",
+   "explain": "A jump drive tried to align after its ship was destroyed. Follows a ship loss; no extra effect.",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-particle-limit",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "CPU Particle Limit reached"
+   },
+   "explain": "The client hit its particle budget and skipped some effects. Purely visual.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-particle-multiview",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Particle Emitter Rendered from multiple views!"
+   },
+   "explain": "A particle effect was drawn in more than one view (e.g. a screen and the world). Visual only.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-particle-max-count",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Max count exceeds limit"
+   },
+   "explain": "A particle effect asked for more particles than allowed and was clamped. Visual only.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-particle-kidnap",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "[Particle System] Kidnapping Child Effect"
+   },
+   "explain": "Effect data warning about shared child effects. Visual only.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-morton-index",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Previous index is larger than current"
+   },
+   "explain": "Internal rendering ordering warning. No visible effect.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-glow-negative",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Glow amount is negative"
+   },
+   "explain": "A light effect got a negative glow value and was ignored. Visual only.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-render-node",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "ModifyRenderNodeParamsFailed"
+   },
+   "explain": "Renderer fell back to a default planet lookup. Happens in many healthy sessions.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-raindrops",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Zone Host Missing Surface Raindrops"
+   },
+   "explain": "A ship interior has no rain-on-glass effect set up. Visual only.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-sdf-texture",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Invalid Physics SDF Texture"
+   },
+   "explain": "A ship part's distance-field texture didn't load. Visual only.",
+   "builds_seen": [
+    "12660092"
+   ]
+  },
+  {
+   "id": "noise-fire-cb",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Invalid Fire Effect Dynamic Room Data - PostEffect"
+   },
+   "explain": "Fire effect buffer missed a frame. Visual only.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-fire-snapshot",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Fire Snapshot Size Mismatch - Output Too Large"
+   },
+   "explain": "Saved fire state for a ship room didn't match its size and was skipped. Visual only.",
+   "builds_seen": [
+    "12660092"
+   ]
+  },
+  {
+   "id": "noise-damage-maps",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "[Damage Maps] Exceeded Max impacts in a single frame"
+   },
+   "explain": "Too many hit decals in one frame; extras were dropped. Visual only.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-effect-code-param",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Linking Invalid Code Parameter"
+   },
+   "explain": "An effect was given a missing parameter. Data warning, no effect on play.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-effect-tag",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Graphics",
+   "match": {
+    "tag": "Enabling Invalid Effect Tag"
+   },
+   "explain": "An effect was given a missing tag. Data warning, no effect on play.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-duplicated-item-ports",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "DuplicatedItemPorts"
+   },
+   "explain": "Two items tried to fit the same slot during a loadout or UI preview; the duplicate is dropped. Every session has these.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-creation-refused",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "CreationRefusedEntity"
+   },
+   "explain": "The game refused to create a duplicate or incomplete entity (usually the duplicated item port case). Routine.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-aggregate-bind",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "AggregateBindParentOutOfSync"
+   },
+   "explain": "Attached items (undersuit parts, eyebrows, magazines) had a parent link out of step. Routine, no visible effect.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-failed-attachment",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "Failed attachment"
+   },
+   "explain": "An item couldn't find the port it was meant to attach to (missing MFD screens and the like). Routine.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-attach-destroy",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "Failed to attach to itemport, destroying entity"
+   },
+   "explain": "A part (often an MFD screen or a missile) couldn't attach and was removed. Routine in healthy sessions.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-port-from-id",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "CAttachableComponent::GetPortFromId"
+   },
+   "explain": "An attachment looked for a parent that hasn't streamed in yet. Routine.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-finalize-parent",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "FinalizeParentNotAvailable"
+   },
+   "explain": "Something spawned before its parent had streamed in; the game retries. Routine.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-spawn-params",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "SpawnParamsValidationFailed"
+   },
+   "explain": "Bar booth tables (Table_Booth_..._Bar) have no entity class and are skipped. Every 4.9 and 4.10 session that loads them.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-local-entity-class",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "SpawningLocalEntityMissingClass"
+   },
+   "explain": "Same bar booth tables as above, skipped at spawn. Harmless.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-serialized-overwrite",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "SerializedOverwrite"
+   },
+   "explain": "Developer warning about initial values; logged in every session.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-replicated-batch-callback",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "ReplicatedCreationBatchNoCallback"
+   },
+   "explain": "Developer warning from the main menu prompt. Every session.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-linked-entity",
+   "kind": "noise",
+   "severity": "low",
+   "area": "AI",
+   "match": {
+    "tag": "Linked entity initializing!"
+   },
+   "explain": "An NPC was linked to a seat or idle spot while still loading. Routine.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-subsumption",
+   "kind": "noise",
+   "severity": "low",
+   "area": "AI",
+   "match": {
+    "tag": "[Subsumption::ErrorReporter]"
+   },
+   "explain": "NPC behaviour script errors logged at startup in every session. Not something you can fix or notice.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-actor-physics",
+   "kind": "noise",
+   "severity": "low",
+   "area": "AI",
+   "match": {
+    "tag": "Actor Physics"
+   },
+   "explain": "Hidden comms and UI preview characters can't be given physics. Every session.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-carryable",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "[Carryable]"
+   },
+   "explain": "An item lacks data for a carry state. Data warning, routine.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-invalid-manager",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Entities",
+   "match": {
+    "tag": "Invalid manager ID"
+   },
+   "explain": "Developer warning during setup. No effect.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-loading-platform-lights",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Cargo",
+   "match": {
+    "tag": "CSCLoadingPlatformManager::TransitionLightGroupState"
+   },
+   "explain": "An elevator platform has no light group linked. The lights don't change; the elevator still works.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-obstruction-bounds-xml",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Cargo",
+   "match": {
+    "tag": "LoadingPlatformUtilities::LoadFromXmlNode",
+    "regex": "ChildNodeName\\[ObstructionCheckBounds\\]"
+   },
+   "explain": "Elevator data has no ObstructionCheckBounds entry. Logged for almost every elevator; they still work.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-obstruction-bounds-entity",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Cargo",
+   "match": {
+    "tag": "CSCLoadingPlatformManager::loadEntityFromXML::<lambda_1>::operator ()",
+    "regex": "Failed to find entity from XML node 'ObstructionCheckBounds'"
+   },
+   "explain": "Same missing ObstructionCheckBounds entry, from the platform manager side. Harmless.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-docking-tube",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "CSCItemDockingTube::AddLocalDockingAnimator"
+   },
+   "explain": "Docking tube data differs from export time. Developer warning.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-fuel-tags",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "CSCItemFuelTank::ApplyFuelTags"
+   },
+   "explain": "A UI preview fuel tank has no controller. Routine.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-dashboard-mfd",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "Dashboard UI"
+   },
+   "explain": "A seat dashboard is missing an MFD screen port. Seen on several ships; the other screens work.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-location-manager-1",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Locations",
+   "match": {
+    "tag": "CEntityComponentLocationManager::PostInitialize::<lambda_1>::operator ()"
+   },
+   "explain": "A station's location manager has no shop link at startup. Shops there still worked in these logs.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-location-manager-2",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Locations",
+   "match": {
+    "tag": "CEntityComponentLocationManager::PostInitialize::<lambda_2>::operator ()"
+   },
+   "explain": "Companion line to the one above. Harmless.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-atc-owner-inventory",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Vehicles",
+   "match": {
+    "tag": "IATCTokenComponent::FindOwnerLocationInventoryId"
+   },
+   "explain": "The client can't query the shard graph (only the server can). Routine.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-warehouse-exit",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Cargo",
+   "match": {
+    "tag": "CWarehouseManager::PlayerExitedLocation"
+   },
+   "explain": "Server-only code called on the client. No effect.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-commodity-ammo-guid",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Shops",
+   "match": {
+    "tag": "CEntityComponentCommodityUIProvider::CreateAmmoResourceContainerEntity"
+   },
+   "explain": "A commodity kiosk saw an unknown commodity record. The rest of the list still works.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-shop-selection",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Shops",
+   "match": {
+    "tag": "CEntityComponentShopUIProvider::ClGetSelectedLocationData"
+   },
+   "explain": "Shop screen opened before an inventory was selected. Routine.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-shop-dropdown",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Shops",
+   "match": {
+    "tag": "CEntityComponentShopUIProvider::ClOnSubLocationsChanged"
+   },
+   "explain": "Shop location dropdown index out of range. Cosmetic.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-inventory-view",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Inventory",
+   "match": {
+    "tag": "SBindings_InventoryView::TryAddItem"
+   },
+   "explain": "Inventory screen tried to add to a view that wasn't open. Cosmetic.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-comms-bindings",
+   "kind": "noise",
+   "severity": "low",
+   "area": "UI",
+   "match": {
+    "tag": "Comms Bindings Init"
+   },
+   "explain": "Mission comms call has no face or stage data. You may get a blank comms window; the mission still works.",
+   "builds_seen": [
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-comms-cleanup",
+   "kind": "noise",
+   "severity": "low",
+   "area": "UI",
+   "match": {
+    "tag": "Comms Stage Clean up"
+   },
+   "explain": "A comms call was cleaned up after it had already stopped. Harmless.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-comms-flow",
+   "kind": "noise",
+   "severity": "low",
+   "area": "UI",
+   "match": {
+    "tag": "Comms Notification Flow"
+   },
+   "explain": "A comms user spawned without a stage. Harmless.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-comms-guid",
+   "kind": "noise",
+   "severity": "low",
+   "area": "UI",
+   "match": {
+    "tag": "SHUDEvent_OnCommsNotification"
+   },
+   "explain": "A comms notification had a missing record. You might miss a voice line, nothing else.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-mission-ui-subobjective",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Missions",
+   "match": {
+    "tag": "MissionUILog"
+   },
+   "explain": "Mission log tried to show a sub-objective before its parent. Display only.",
+   "builds_seen": [
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-objective-databank",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Missions",
+   "match": {
+    "tag": "CObjectiveMarkerComponent::RemoveFromPlayerDataBank"
+   },
+   "explain": "An objective marker was removed for a player who'd already left. Harmless.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-chat-lobby",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Social",
+   "match": {
+    "tag": "Update Chat Lobby Error"
+   },
+   "explain": "Chat tried to update a channel that no longer exists (e.g. after leaving a ship). Harmless.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  },
+  {
+   "id": "noise-subscription-key",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Services",
+   "match": {
+    "tag": "GetSubscriptionKey Failed"
+   },
+   "explain": "An early startup call made before login finished. Logged in about half of sessions, no effect.",
+   "builds_seen": [
+    "12572603",
+    "12660092",
+    "12913470"
+   ]
+  }
+ ]
+}

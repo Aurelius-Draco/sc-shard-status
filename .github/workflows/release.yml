@@ -1,0 +1,37 @@
+name: release
+# Publish a release on GitHub (Releases, Draft a new release, new tag like v3.1)
+# and this builds the download zip, attaches it, and fills in the notes from
+# CHANGELOG.md. Only the release event triggers it: publishing on the website
+# also creates the tag, and two runs at once would race to upload the zip.
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the zip and notes
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VER="${TAG#v}"
+          git archive --format=zip --prefix=SC-Shard-Status/ -o "SC-Shard-Status-${VER}.zip" HEAD
+          awk -v v="## ${VER}" 'index($0, v)==1 {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
+          printf '\n**Install:** download `SC-Shard-Status-%s.zip` below, unzip it anywhere and double-click **Setup.bat**. Full instructions are in the README.\n' "$VER" >> notes.md
+          echo "VER=$VER" >> "$GITHUB_ENV"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          ZIP="SC-Shard-Status-${VER}.zip"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+            if [ -z "$(gh release view "$TAG" --json body -q .body)" ]; then
+              gh release edit "$TAG" --notes-file notes.md
+            fi
+          else
+            gh release create "$TAG" "$ZIP" --title "SC Shard Status ${VER}" --notes-file notes.md
+          fi

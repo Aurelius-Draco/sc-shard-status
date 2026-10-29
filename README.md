@@ -1,0 +1,72 @@
+# SC Shard Status
+
+A free tool for Star Citizen players that tells you, in plain English, how healthy the shard you're on is and what's gone wrong when something breaks.
+
+It reads two things the game already gives you: the debug overlay (`r_displayinfo 3`) and Game.log. From them it works out:
+
+- **Shard health right now.** A 0-100 score with server fps, players on the shard and on your server, ping, packet loss, hitches and server restarts, and a sentence that says what it means for you.
+- **What's gone wrong?** One button. It checks the last half hour of the log against a library of known issues and explains what it finds, with fixes. It joins facts together: if a contract wants an item and the game has just logged a cargo error for that exact item, it tells you that's why the delivery isn't counting.
+- **Issue Council drafts.** Each finding comes with a ready-to-paste report (steps, expected and actual result, game version, shard, log lines) and a folder with your Game.log and screenshots from around that time, ready to attach.
+- **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
+- **My PC.** Your hardware and the game's own CPU and GPU test results from every launch, plus your frame rate by location.
+
+By Aurelius_Draco. Also by me: [SC Inventory Tracker](https://github.com/Aurelius-Draco/sc-inventory-tracker), which keeps track of what you've stored at every station.
+
+## Install (Windows)
+
+1. Download the latest `SC-Shard-Status-x.y.zip` from [Releases](https://github.com/Aurelius-Draco/sc-shard-status/releases) and unzip it anywhere (next to your StarCitizen folder is handy).
+2. Double-click **Setup.bat**. It needs Python 3.12 or 3.13; if you don't have it, Setup tells you the one command to install it.
+3. Start **SC Shard Status** from the shortcut. The dashboard opens in your browser.
+
+If it can't find your game, put the path of your `StarCitizen\LIVE` folder in `data\config.json` as `game_dir`.
+
+## Turn on the game's overlay
+
+The health numbers come from the game's own debug overlay. In game, open the console with `~` and type:
+
+```
+r_displayinfo 3
+```
+
+To have it on every time, use the **Add to USER.cfg** button on the dashboard, or add `r_displayinfo = 3` to `USER.cfg` in your `StarCitizen\LIVE` folder yourself. Levels 2, 3 and 4 show the same block in 4.10.
+
+Without the overlay the app still works from Game.log: sessions, shards, disconnects, contracts, crashes and "What's gone wrong?". You just don't get the live health numbers.
+
+## What the numbers mean
+
+| | Healthy (4.10) | Trouble |
+|---|---|---|
+| Server fps | about 20 | under 10: elevators stall, AI freezes, missions stop updating |
+| Ping | under 80 ms | over 250 ms: probably a server in another region |
+| Packet loss | 0% | 2% or more: rubber-banding, actions that don't go through |
+| Server restarts | 0 | anything above 0: the server node you're on restarted |
+
+Players on shard is everyone on the shard; on your server is the server node handling your area. A shard is made of several server nodes.
+
+## Ground rules
+
+- It only reads your screen (the game's own overlay), Game.log and the game's text file. It never touches the game's memory or network traffic, and never sends mouse or keyboard input.
+- Nothing leaves your PC in this version. The dashboard only answers this PC (127.0.0.1).
+- Anything meant for the future community service is shown to you first, with your handle, other players' names, account and entity numbers, session ids and IP addresses removed.
+- Issue Council reports are drafts. You check them and submit them yourself. Each one ends with a line saying it was compiled by this tool.
+- Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+
+## Known issues library
+
+What the app recognises lives in `scstatus/library/issues.json`: each entry is a log pattern, a plain-English explanation, fixes and a suggested Issue Council title. It's data, not code, so new entries don't need a new version of the app. See [docs/library.md](docs/library.md) to add one, or open an issue with the log lines and what was happening.
+
+## Coming next
+
+The community shard status board: everyone who opts in shares a stripped-down reading every minute or so, and the site shows live health for every shard, which ones to avoid, issues hitting lots of players right now with their Issue Council links, and an admin review queue for errors nobody recognises yet. See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## For developers
+
+```
+python status.py                 live mode with the dashboard
+python status.py --check         what's gone wrong, printed
+python status.py --check --file "logbackups\Game Build(...).log" --minutes 0
+python -m pytest -q tests
+python tools/demo.py "<StarCitizen LIVE folder>"    dashboard on copied logs with made-up readings
+```
+
+MIT licence. See [THIRD_PARTY.md](THIRD_PARTY.md) for the libraries it uses.

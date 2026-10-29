@@ -1,0 +1,14 @@
+# Your data never goes in the repository
+data/
+*.db
+reports/
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+
+# Shortcuts Setup.bat makes on your PC
+*.lnk

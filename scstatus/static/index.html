@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shard status</title>
+<script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0b0e12; --panel: #12161c; --raise: #181d24; --raise2: #1e242c; --well: #0e1115; --thead: #1a1f27;
+  --line: #262d36; --line2: #3a434f; --text: #e7eaee; --muted: #9ea7b3;
+  --amber: #f2a93b; --on-amber: #1a1103; --teal: #4cc4b0; --rust: #ec7a5e; --fresh: #a9c0d8;
+  --amber-bg: rgba(242,169,59,.10); --amber-line: rgba(242,169,59,.55); --teal-bg: rgba(76,196,176,.11); --rust-bg: rgba(236,122,94,.12); --fresh-bg: rgba(169,192,216,.10);
+  --hover: rgba(255,255,255,.045); --zebra: rgba(255,255,255,.018); --sel: rgba(242,169,59,.10); --sel-hover: rgba(242,169,59,.15);
+  --field: #0c0f13; --star: rgba(214,226,240,.32); --limb: rgba(242,169,59,.09); --limb-line: rgba(242,169,59,.42);
+  --shadow: 0 16px 40px rgba(0,0,0,.5); --edge: inset 0 1px 0 rgba(255,255,255,.035);
+  --font: "Bahnschrift", "DIN Alternate", "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  --r: 4px; --r-sm: 3px; --h: 2.25rem; --h-sm: 1.875rem;
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.25rem; --s6: 1.5rem; --s7: 2rem;
+  --rail: 18.5rem; --panelw: min(36rem, 100vw);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #e9ecef; --panel: #f9fafb; --raise: #ffffff; --raise2: #f0f2f5; --well: #f2f4f6; --thead: #eef1f4;
+    --line: #dce0e5; --line2: #b6bec8; --text: #13171c; --muted: #4f5965;
+    --amber: #8c5000; --on-amber: #ffffff; --teal: #0a6b5f; --rust: #a23a22; --fresh: #2c5a84;
+    --amber-bg: rgba(140,80,0,.08); --amber-line: rgba(140,80,0,.5); --teal-bg: rgba(10,107,95,.08); --rust-bg: rgba(162,58,34,.08); --fresh-bg: rgba(44,90,132,.08);
+    --hover: rgba(19,30,45,.045); --zebra: rgba(19,30,45,.022); --sel: rgba(140,80,0,.08); --sel-hover: rgba(140,80,0,.12);
+    --field: #ffffff; --star: transparent; --limb: rgba(140,80,0,.05); --limb-line: rgba(140,80,0,.32);
+    --shadow: 0 14px 34px rgba(20,32,48,.16); --edge: inset 0 1px 0 rgba(255,255,255,.7);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #e9ecef; --panel: #f9fafb; --raise: #ffffff; --raise2: #f0f2f5; --well: #f2f4f6; --thead: #eef1f4;
+  --line: #dce0e5; --line2: #b6bec8; --text: #13171c; --muted: #4f5965;
+  --amber: #8c5000; --on-amber: #ffffff; --teal: #0a6b5f; --rust: #a23a22; --fresh: #2c5a84;
+  --amber-bg: rgba(140,80,0,.08); --amber-line: rgba(140,80,0,.5); --teal-bg: rgba(10,107,95,.08); --rust-bg: rgba(162,58,34,.08); --fresh-bg: rgba(44,90,132,.08);
+  --hover: rgba(19,30,45,.045); --zebra: rgba(19,30,45,.022); --sel: rgba(140,80,0,.08); --sel-hover: rgba(140,80,0,.12);
+  --field: #ffffff; --star: transparent; --limb: rgba(140,80,0,.05); --limb-line: rgba(140,80,0,.32);
+  --shadow: 0 14px 34px rgba(20,32,48,.16); --edge: inset 0 1px 0 rgba(255,255,255,.7);
+}
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+html, body { margin: 0; }
+body { min-height: 100vh; color: var(--text); background: var(--bg); font: 400 .9375rem/1.45 var(--font); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(circle at 37px 61px, var(--star) 0 .7px, transparent 1.3px) 0 0 / 460px 460px,
+    radial-gradient(circle at 211px 143px, var(--star) 0 .6px, transparent 1.2px) 0 0 / 460px 460px,
+    radial-gradient(circle at 389px 297px, var(--star) 0 .8px, transparent 1.4px) 0 0 / 460px 460px,
+    radial-gradient(circle at 121px 402px, var(--star) 0 .5px, transparent 1.1px) 0 0 / 460px 460px,
+    radial-gradient(1100px 520px at 100% -12%, var(--fresh-bg), transparent 62%); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+a { color: var(--teal); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { color: var(--text); }
+h1, h2, h3, h4 { text-wrap: balance; }
+p, li { text-wrap: pretty; }
+code, pre { font: .8125rem var(--mono); }
+.sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden] { display: none !important; }
+.caps, th, .tabbar button, .cell dt, .eyebrow, .sec > h3 { font-stretch: semi-condensed; text-transform: uppercase; letter-spacing: .07em; }
+
+.frame { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--edge); }
+.wrap { max-width: 92rem; margin: 0 auto; padding: 0 var(--s7) 5rem; }
+
+/* Header */
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: var(--s5) 0 0; }
+.brand { display: flex; gap: var(--s3); align-items: center; }
+.mark { color: var(--amber); display: grid; }
+.brand h1 { font-size: 1.1875rem; font-weight: 700; font-stretch: condensed; letter-spacing: .04em; text-transform: uppercase; margin: 0; line-height: 1.1; }
+.brand p { font-size: .75rem; color: var(--muted); margin: 2px 0 0; }
+.pill { display: inline-flex; align-items: center; gap: var(--s2); height: 1.75rem; padding: 0 var(--s3); border: 1px solid var(--line2); border-radius: 99px; font-size: .8125rem; color: var(--muted); background: var(--panel); white-space: nowrap; }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--line2); }
+.pill.on i { background: var(--teal); } .pill.warn i { background: var(--amber); }
+.top .grow { flex: 1; }
+
+/* Tabs */
+.tabbar { position: sticky; top: 0; z-index: 10; display: flex; height: 3rem; margin: var(--s5) calc(-1 * var(--s7)) 0; padding: 0 calc(var(--s7) - var(--s3)); overflow-x: auto; scrollbar-width: none; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tabbar::-webkit-scrollbar { display: none; }
+.tabbar button { position: relative; flex: none; display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s3); background: none; border: 0; color: var(--muted); font-size: .9375rem; font-weight: 700; white-space: nowrap; }
+.tabbar button:hover, .tabbar button[aria-selected="true"] { color: var(--text); }
+.tabbar button[aria-selected="true"]::after { content: ""; position: absolute; left: var(--s3); right: var(--s3); bottom: -1px; height: 2px; background: var(--amber); }
+.tabbar .t2 { margin-left: auto; }
+.count { font-size: .6875rem; line-height: 1.125rem; min-width: 1.375rem; padding: 0 5px; text-align: center; border-radius: 2px; background: var(--raise2); color: var(--muted); font-weight: 700; letter-spacing: 0; }
+.count.rust { color: var(--rust); background: var(--rust-bg); }
+.count:empty { display: none; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); height: var(--h); padding: 0 var(--s4); border: 1px solid var(--amber); border-radius: var(--r-sm); background: var(--amber); color: var(--on-amber); font-weight: 600; white-space: nowrap; text-decoration: none; }
+.btn:hover { filter: brightness(1.08); color: var(--on-amber); }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.btn.ghost { background: var(--raise); color: var(--text); border-color: var(--line2); }
+.btn.ghost:hover { filter: none; background: var(--raise2); border-color: var(--muted); color: var(--text); }
+.btn.sm { height: var(--h-sm); padding: 0 var(--s3); font-size: .8125rem; }
+.btn.big { height: 3rem; padding: 0 var(--s6); font-size: 1.0625rem; }
+.link { background: none; border: 0; padding: 2px 0; color: var(--teal); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.link:hover { color: var(--text); }
+select { background: var(--field); border: 1px solid var(--line2); border-radius: var(--r-sm); padding: 0 var(--s3); color: var(--text); height: var(--h); }
+.inp { background: var(--field); border: 1px solid var(--line2); border-radius: var(--r-sm); padding: 0 var(--s3); color: var(--text); height: var(--h); min-width: 16rem; }
+.inp:focus, select:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+.seg { display: inline-flex; border: 1px solid var(--line2); border-radius: var(--r-sm); overflow: hidden; background: var(--field); }
+.seg button { height: var(--h-sm); background: none; border: 0; border-left: 1px solid var(--line2); padding: 0 var(--s3); color: var(--muted); font-weight: 600; font-size: .8125rem; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--raise2); color: var(--text); box-shadow: inset 0 -2px 0 var(--amber); }
+
+/* Sections and cells */
+.sec { margin-top: var(--s6); }
+.sec > h3 { display: flex; align-items: baseline; gap: var(--s3); margin: 0 0 var(--s3); font-size: .75rem; font-weight: 700; color: var(--muted); }
+.sec > h3 span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.intro { color: var(--muted); max-width: 75ch; margin: var(--s2) 0 0; }
+.sub { color: var(--muted); font-size: .8125rem; }
+.readout { display: flex; flex-wrap: wrap; gap: var(--s4) var(--s7); margin: 0; }
+.cell { min-width: 0; padding-left: var(--s3); border-left: 2px solid var(--line2); }
+.cell.good { border-left-color: var(--teal); } .cell.warn { border-left-color: var(--amber); } .cell.rust { border-left-color: var(--rust); }
+.cell dt { font-size: .6875rem; font-weight: 600; color: var(--muted); }
+.cell dd { margin: 2px 0 0; font-size: 1.375rem; font-weight: 600; line-height: 1.25; white-space: nowrap; }
+.cell dd small { font-size: .8125rem; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.cell .sub { display: block; white-space: normal; }
+
+/* Now: hero */
+.hero { margin-top: var(--s5); padding: var(--s6); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s5) var(--s7); align-items: center; overflow: hidden; background: linear-gradient(180deg, var(--raise), var(--panel) 70%); }
+.hero::before { content: ""; position: absolute; pointer-events: none; width: 44rem; height: 44rem; right: -14rem; top: 62%; border-radius: 50%;
+  background: radial-gradient(circle at 50% 0%, var(--limb), transparent 42%); box-shadow: inset 0 1px 0 var(--limb-line); }
+.dial { position: relative; width: 11rem; height: 11rem; z-index: 1; }
+.dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.dial .val { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.dial .val b { font-size: 3.25rem; font-weight: 700; line-height: 1; font-stretch: semi-condensed; }
+.dial .val span { font-size: .8125rem; color: var(--muted); }
+.hmain { position: relative; z-index: 1; display: grid; gap: var(--s3); min-width: 0; }
+.verdict { display: inline-flex; align-items: center; gap: var(--s2); font-size: .8125rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.verdict i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.v-good { color: var(--teal); } .v-good i { background: var(--teal); }
+.v-ok { color: var(--fresh); } .v-ok i { background: var(--fresh); }
+.v-poor { color: var(--amber); } .v-poor i { background: var(--amber); }
+.v-bad { color: var(--rust); } .v-bad i { background: var(--rust); }
+.summary { font-size: 1.375rem; font-weight: 600; line-height: 1.35; margin: 0; max-width: 60ch; }
+.tips { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s2); }
+.notice { display: flex; gap: var(--s2); align-items: flex-start; margin: 0; padding: var(--s2) var(--s3); border: 1px solid var(--line2); border-left: 2px solid var(--amber); background: var(--raise); border-radius: var(--r-sm); font-size: .875rem; }
+.notice.rust { border-left-color: var(--rust); } .notice.teal { border-left-color: var(--teal); }
+.notice p { margin: 0; flex: 1; }
+.shardline { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: center; font-size: .8125rem; color: var(--muted); }
+.shardline code { color: var(--text); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: var(--s4); }
+.card { padding: var(--s4) var(--s5); }
+.card h4 { margin: 0 0 var(--s1); font-size: .875rem; }
+.chart { position: relative; height: 9rem; margin-top: var(--s2); }
+.chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.chart .grid line { stroke: var(--line); stroke-width: 1; }
+.chart .axis text { fill: var(--muted); font: .6875rem var(--font); }
+.chart .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .hit { fill: transparent; }
+.chart .xh { stroke: var(--line2); stroke-width: 1; }
+.chart .dot { stroke: var(--panel); stroke-width: 2; }
+.tip { position: absolute; pointer-events: none; z-index: 5; padding: 6px 10px; background: var(--raise2); border: 1px solid var(--line2); border-radius: var(--r-sm); font-size: .8125rem; white-space: nowrap; box-shadow: var(--shadow); transform: translate(-50%, -110%); }
+.tip b { display: block; font-size: .75rem; color: var(--muted); font-weight: 500; }
+.nochart { height: 100%; display: grid; place-items: center; color: var(--muted); font-size: .875rem; border: 1px dashed var(--line2); border-radius: var(--r-sm); }
+
+/* Findings */
+.checkbar { margin-top: var(--s5); padding: var(--s5) var(--s6); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); }
+.checkbar p { margin: 0; flex: 1 1 24rem; color: var(--muted); }
+.headline { margin: var(--s5) 0 0; font-size: 1.25rem; font-weight: 600; }
+.finds { display: grid; gap: var(--s3); margin-top: var(--s4); }
+.find { padding: var(--s4) var(--s5); border-left: 3px solid var(--line2); }
+.find.high { border-left-color: var(--rust); } .find.medium { border-left-color: var(--amber); } .find.low { border-left-color: var(--fresh); }
+.fh { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: baseline; }
+.fh h4 { margin: 0; font-size: 1.0625rem; flex: 1 1 24rem; }
+.chip { display: inline-flex; align-items: center; height: 1.25rem; font-size: .6875rem; padding: 0 6px; border-radius: 2px; font-weight: 700; white-space: nowrap; letter-spacing: .05em; text-transform: uppercase; }
+.chip.high { color: var(--rust); background: var(--rust-bg); } .chip.medium { color: var(--amber); background: var(--amber-bg); }
+.chip.low, .chip.info { color: var(--fresh); background: var(--fresh-bg); } .chip.area, .chip.unknown { color: var(--muted); box-shadow: inset 0 0 0 1px var(--line2); }
+.find p { margin: var(--s2) 0 0; max-width: 85ch; }
+.find ul { margin: var(--s2) 0 0; padding-left: 1.2rem; }
+.find li { margin: 2px 0; }
+.fa { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); align-items: center; }
+details.ex { margin-top: var(--s2); }
+details.ex summary { cursor: pointer; color: var(--muted); font-size: .8125rem; }
+pre.lines { margin: var(--s2) 0 0; padding: var(--s3); background: var(--well); border: 1px solid var(--line); border-radius: var(--r-sm); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16rem; overflow-y: auto; color: var(--muted); }
+
+/* Tables */
+.tscroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: .6875rem; font-weight: 700; color: var(--text); padding: var(--s2) var(--s3); background: var(--thead); white-space: nowrap; box-shadow: inset 0 -2px 0 var(--amber); }
+td { padding: 6px var(--s3); border-bottom: 1px solid var(--line); vertical-align: top; }
+tbody tr:nth-child(even) td { background: var(--zebra); }
+tbody tr:hover td { background: var(--hover); }
+.num { text-align: right; white-space: nowrap; }
+td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
+
+/* Drawer */
+.drawer { position: fixed; top: 0; right: 0; z-index: 20; width: min(46rem, 100vw); height: 100vh; overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line2); box-shadow: var(--shadow); transform: translateX(102%); visibility: hidden; transition: transform .2s cubic-bezier(.2,.8,.2,1), visibility 0s linear .2s; }
+.drawer.open { transform: none; visibility: visible; transition: transform .2s cubic-bezier(.2,.8,.2,1); }
+.scrim { position: fixed; inset: 0; z-index: 19; background: rgba(4,6,9,.55); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.scrim.show { opacity: 1; pointer-events: auto; }
+.dh { position: sticky; top: 0; z-index: 2; padding: var(--s5) 3.5rem var(--s4) var(--s6); background: var(--panel); border-bottom: 1px solid var(--line); box-shadow: inset 0 -2px 0 var(--amber); }
+.dh h2 { margin: var(--s1) 0 0; font-size: 1.375rem; font-weight: 700; font-stretch: condensed; line-height: 1.15; }
+.dh .close { position: absolute; top: var(--s3); right: var(--s3); width: var(--h); height: var(--h); background: none; border: 0; color: var(--muted); font-size: 1.25rem; }
+.db { padding: var(--s4) var(--s6) 3rem; display: grid; gap: var(--s4); }
+.db textarea { width: 100%; min-height: 26rem; background: var(--field); border: 1px solid var(--line2); border-radius: var(--r-sm); padding: var(--s3); font: .8125rem/1.5 var(--mono); color: var(--text); resize: vertical; }
+.steps { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--s1); }
+
+/* Library */
+.lib { display: grid; gap: var(--s2); margin-top: var(--s3); }
+.lib details { padding: var(--s3) var(--s4); }
+.lib summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; font-weight: 600; }
+.lib summary span.t { flex: 1 1 20rem; }
+
+/* About */
+.about { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: var(--s5); align-items: start; padding: var(--s5) var(--s6); }
+.about img { width: 9rem; height: 9rem; object-fit: cover; border-radius: var(--r); border: 1px solid var(--line2); }
+.about h2 { margin: 0; font-size: 1.5rem; font-stretch: condensed; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--s3); }
+.tile { padding: var(--s4); display: grid; gap: var(--s1); text-decoration: none; color: var(--text); }
+.tile:hover { border-color: var(--amber-line); color: var(--text); }
+.tile b { font-size: 1rem; } .tile span { color: var(--muted); font-size: .875rem; }
+.tile .go { color: var(--teal); font-weight: 600; font-size: .875rem; }
+.rules { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--s2); max-width: 85ch; }
+.foot { margin-top: var(--s7); color: var(--muted); font-size: .8125rem; display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
+
+.toast { position: fixed; left: 50%; bottom: var(--s5); transform: translateX(-50%); z-index: 30; padding: var(--s3) var(--s5); background: var(--raise2); border: 1px solid var(--line2); border-left: 3px solid var(--teal); border-radius: var(--r-sm); box-shadow: var(--shadow); max-width: min(40rem, 90vw); }
+.toast.err { border-left-color: var(--rust); }
+.empty { margin-top: var(--s4); padding: var(--s7) var(--s6); text-align: center; border: 1px dashed var(--line2); border-radius: var(--r); color: var(--muted); }
+.empty h3 { margin: 0 0 var(--s1); color: var(--text); font-size: 1.0625rem; }
+.empty p { margin: 0 auto; max-width: 60ch; }
+
+@media (max-width: 760px) {
+  .wrap { padding: 0 var(--s4) 4rem; }
+  .tabbar { margin: var(--s4) calc(-1 * var(--s4)) 0; padding: 0 var(--s2); }
+  .hero { grid-template-columns: 1fr; padding: var(--s5); justify-items: start; }
+  .dial { width: 8.5rem; height: 8.5rem; }
+  .summary { font-size: 1.125rem; }
+  .about { grid-template-columns: 1fr; }
+  .grid2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .drawer, .scrim { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="15" cy="15" r="12"/><path d="M5 17h5l3-7 4 12 3-7h5" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
+    <div><h1>Shard status</h1><p>SC Shard Status v__VERSION__ · by Aurelius_Draco</p></div>
+  </div>
+  <span class="grow"></span>
+  <span class="pill" id="shardPill"><i></i><span>No shard yet</span></span>
+  <span class="pill" id="ovPill" title="Reading the game's debug overlay"><i></i><span>Overlay</span></span>
+</header>
+
+<nav class="tabbar" role="tablist" aria-label="Sections">
+  <button role="tab" data-tab="now" aria-selected="true">Now</button>
+  <button role="tab" data-tab="check">What's gone wrong? <span class="count rust" id="findCount"></span></button>
+  <button role="tab" data-tab="history">History</button>
+  <button role="tab" data-tab="pc">My PC</button>
+  <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
+  <button role="tab" data-tab="about" class="t2">About</button>
+</nav>
+
+<main id="view"></main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" role="dialog" aria-labelledby="dTitle">
+  <div class="dh"><div class="eyebrow" id="dEyebrow">Issue Council draft</div><h2 id="dTitle"></h2><button class="close" id="dClose" aria-label="Close">✕</button></div>
+  <div class="db" id="dBody"></div>
+</aside>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const fmt = (v, d = 0) => v === null || v === undefined ? "–" : Number(v).toFixed(d);
+const tm = ts => ts ? new Date(ts * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "";
+const dtm = ts => ts ? new Date(ts * 1000).toLocaleString([], {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"}) : "";
+const ago = ts => { if (!ts) return ""; const s = Date.now() / 1000 - ts; if (s < 90) return "just now"; if (s < 3600) return Math.round(s / 60) + " min ago"; if (s < 86400) return Math.round(s / 3600) + " h ago"; return Math.round(s / 86400) + " days ago"; };
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {headers: {"X-Token": TOKEN}} :
+    {method: "POST", headers: {"X-Token": TOKEN, "Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+function toast(msg, err) {
+  const t = document.createElement("div"); t.className = "toast" + (err ? " err" : ""); t.setAttribute("role", "status"); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 5000);
+}
+
+let tab = "now", nowData = null, lastCheck = null, timer = null;
+try { tab = sessionStorage.getItem("tab") || "now"; } catch (e) {}
+document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => show(b.dataset.tab));
+
+function show(t) {
+  tab = t;
+  try { sessionStorage.setItem("tab", t); } catch (e) {}
+  document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  clearInterval(timer);
+  ({now: renderNow, check: renderCheck, history: renderHistory, pc: renderPC, issues: renderIssues, about: renderAbout}[t] || renderNow)();
+  if (t === "now") timer = setInterval(renderNow, 5000);
+}
+
+/* ---------- header ---------- */
+function header(d) {
+  const sp = $("shardPill"), op = $("ovPill");
+  const sh = d.shard || {};
+  sp.className = "pill" + (sh.id ? " on" : "");
+  sp.querySelector("span").textContent = sh.id ? `${sh.id}  ·  ${sh.region}` : (d.game_found ? "Not in the PU yet" : "Game.log not found");
+  const st = d.overlay_status || "off";
+  op.className = "pill" + (st === "reading" ? " on" : st === "off" ? "" : " warn");
+  op.querySelector("span").textContent = st === "reading" ? "Overlay: reading" : st === "off" ? "Overlay: off" : "Overlay: " + st.split(" (")[0];
+  op.title = st;
+  $("libCount").textContent = d.library && d.library.problem ? d.library.problem : "";
+}
+
+/* ---------- charts ---------- */
+function lineChart(el, pts, key, color, unit, label) {
+  const data = pts.filter(p => p[key] !== null && p[key] !== undefined);
+  if (data.length < 2) { el.innerHTML = `<div class="nochart">Not enough readings yet</div>`; return; }
+  const W = el.clientWidth || 400, H = el.clientHeight || 144, L = 34, R = 8, T = 8, B = 20;
+  const xs = data.map(p => p.ts), ys = data.map(p => p[key]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y1 = Math.max(...ys) * 1.15 || 1; const y0 = 0;
+  const nice = v => { const p = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / p) * p; };
+  y1 = nice(y1);
+  const X = t => L + (W - L - R) * (x1 === x0 ? 0.5 : (t - x0) / (x1 - x0));
+  const Y = v => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+  const ticks = [0, y1 / 2, y1];
+  let path = data.map((p, i) => (i ? "L" : "M") + X(p.ts).toFixed(1) + " " + Y(p[key]).toFixed(1)).join(" ");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)} over the last hour">
+    <g class="grid">${ticks.map(t => `<line x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}"/>`).join("")}</g>
+    <g class="axis">${ticks.map(t => `<text x="${L - 6}" y="${Y(t) + 4}" text-anchor="end">${Math.round(t)}</text>`).join("")}
+      <text x="${L}" y="${H - 4}">${tm(x0)}</text><text x="${W - R}" y="${H - 4}" text-anchor="end">${tm(x1)}</text></g>
+    <path class="ln" d="${path}" stroke="${color}"/>
+    <line class="xh" y1="${T}" y2="${H - B}" visibility="hidden"/><circle class="dot" r="4.5" fill="${color}" visibility="hidden"/>
+    <rect class="hit" x="${L}" y="0" width="${W - L - R}" height="${H}"/></svg><div class="tip" hidden></div>`;
+  const svg = el.querySelector("svg"), xh = svg.querySelector(".xh"), dot = svg.querySelector(".dot"), tip = el.querySelector(".tip");
+  const move = e => {
+    const r = svg.getBoundingClientRect(); const mx = (e.clientX - r.left) * W / r.width;
+    let best = data[0]; for (const p of data) if (Math.abs(X(p.ts) - mx) < Math.abs(X(best.ts) - mx)) best = p;
+    const px = X(best.ts), py = Y(best[key]);
+    xh.setAttribute("x1", px); xh.setAttribute("x2", px); xh.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("visibility", "visible");
+    tip.hidden = false; tip.style.left = (px * r.width / W) + "px"; tip.style.top = (py * r.height / H) + "px";
+    tip.innerHTML = `<b>${tm(best.ts)}</b>${fmt(best[key], key.includes("fps") ? 1 : 0)} ${esc(unit)}`;
+  };
+  svg.querySelector(".hit").addEventListener("pointermove", move);
+  svg.querySelector(".hit").addEventListener("pointerleave", () => { tip.hidden = true; xh.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+}
+
+function barChart(el, rows, key, color, unit) {
+  if (!rows.length) { el.innerHTML = `<div class="nochart">No readings yet</div>`; return; }
+  const W = el.clientWidth || 400, H = el.clientHeight || 144, L = 34, R = 8, T = 8, B = 20;
+  const max = Math.max(...rows.map(r => r[key])) * 1.15 || 1;
+  const bw = (W - L - R) / 24;
+  const Y = v => T + (H - T - B) * (1 - v / max);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Server fps by hour of day">
+    <g class="grid"><line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}"/></g>
+    <g class="axis">${[0, 6, 12, 18].map(h => `<text x="${L + bw * h + bw / 2}" y="${H - 4}" text-anchor="middle">${String(h).padStart(2, "0")}:00</text>`).join("")}
+      <text x="${L - 6}" y="${Y(max / 1.15) + 4}" text-anchor="end">${Math.round(max / 1.15)}</text></g>
+    ${rows.map(r => { const x = L + bw * r.hour + 1, y = Y(r[key]), h = Y(0) - y;
+      return `<path d="M${x} ${Y(0)} V${y + 4} q0 -4 4 -4 H${x + bw - 6} q4 0 4 4 V${Y(0)} Z" fill="${color}"/>
+        <rect class="hit" x="${L + bw * r.hour}" y="${T}" width="${bw}" height="${H - T - B}" data-h="${r.hour}"/>`; }).join("")}
+  </svg><div class="tip" hidden></div>`;
+  const tip = el.querySelector(".tip"), svg = el.querySelector("svg");
+  svg.querySelectorAll(".hit").forEach(h => {
+    h.addEventListener("pointerenter", () => { const r = rows.find(x => x.hour == h.dataset.h), sr = svg.getBoundingClientRect();
+      tip.hidden = false; tip.style.left = ((L + bw * r.hour + bw / 2) * sr.width / W) + "px"; tip.style.top = (Y(r[key]) * sr.height / H) + "px";
+      tip.innerHTML = `<b>${String(r.hour).padStart(2, "0")}:00 to ${String(r.hour + 1).padStart(2, "0")}:00</b>${fmt(r[key], 1)} ${unit} · ${r.readings} readings`; });
+    h.addEventListener("pointerleave", () => tip.hidden = true);
+  });
+}
+
+/* ---------- Now ---------- */
+function cls(v, good, warn) { if (v === null || v === undefined) return ""; return v >= good ? "good" : v >= warn ? "warn" : "rust"; }
+function clsLow(v, good, warn) { if (v === null || v === undefined) return ""; return v <= good ? "good" : v <= warn ? "warn" : "rust"; }
+
+async function renderNow() {
+  let d;
+  try { d = await api("/api/now"); } catch (e) { $("view").innerHTML = `<div class="empty"><h3>Lost contact with the app</h3><p>${esc(e.message)}. Is the SC Shard Status window still open?</p></div>`; return; }
+  nowData = d; header(d);
+  if (tab !== "now") return;
+  const h = d.health, s = d.session || {}, sh = d.shard || {};
+  const score = h.score, circ = 2 * Math.PI * 52, frac = score === null ? 0 : score / 100;
+  const col = {good: "var(--teal)", ok: "var(--fresh)", poor: "var(--amber)", bad: "var(--rust)"}[h.cls] || "var(--line2)";
+  const setup = [];
+  if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game.log not found.</b> Set <code>game_dir</code> in <code>data\\config.json</code> to your StarCitizen\\LIVE folder, then restart.</p></div>`);
+  if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
+    setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on.</p><button class="btn sm ghost" id="addCfg">Add to USER.cfg</button></div>`);
+  const cmp = d.compare;
+  const cmpTxt = cmp ? `${Math.abs(cmp.diff_pct)}% ${cmp.diff_pct >= 0 ? "above" : "below"} your usual ${cmp.your_median} fps on this patch` : "";
+  $("view").innerHTML = `
+  <section class="hero frame">
+    <div class="dial" role="img" aria-label="Shard health ${score ?? "unknown"} out of 100">
+      <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="9"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(circ * frac).toFixed(1)} ${circ.toFixed(1)}"/></svg>
+      <div class="val"><b>${score ?? "–"}</b><span>health / 100</span></div>
+    </div>
+    <div class="hmain">
+      <span class="verdict v-${h.cls}"><i></i>${esc(h.label)}</span>
+      <p class="summary">${esc(h.summary)}</p>
+      ${h.points && h.points.length ? `<ul class="tips">${h.points.map(p => `<li class="notice"><p>${esc(p)}</p></li>`).join("")}</ul>` : ""}
+      <div class="shardline">${sh.id ? `<span>Shard <code>${esc(sh.id)}</code></span><span>${esc(sh.region)}</span>` : ""}
+        ${h.server_name ? `<span>Server <code>${esc(h.server_name.split("-").slice(-2).join("-"))}</code></span>` : ""}
+        ${h.location ? `<span>At <code>${esc(h.location)}</code></span>` : ""}
+        ${h.ts ? `<span>Last reading ${ago(h.ts)}</span>` : ""}${cmpTxt ? `<span>${esc(cmpTxt)}</span>` : ""}</div>
+    </div>
+  </section>
+  ${setup.length ? `<div class="sec" style="display:grid;gap:var(--s2)">${setup.join("")}</div>` : ""}
+  <section class="sec"><h3>Live numbers <span>from the game's overlay, median of the last 5 minutes</span></h3>
+    <dl class="readout">
+      <div class="cell ${cls(h.server_fps, 18, 10)}"><dt>Server fps</dt><dd>${fmt(h.server_fps, 1)}${h.server_fps_low != null ? `<small>low ${fmt(h.server_fps_low, 1)}</small>` : ""}</dd></div>
+      <div class="cell"><dt>Players on shard</dt><dd>${fmt(h.pop_shard)}</dd></div>
+      <div class="cell"><dt>On your server</dt><dd>${fmt(h.pop_srv)}</dd></div>
+      <div class="cell ${clsLow(h.ping_ms, 80, 200)}"><dt>Ping</dt><dd>${fmt(h.ping_ms)}<small>ms</small></dd></div>
+      <div class="cell ${clsLow(h.loss_pct, 0.4, 2)}"><dt>Packet loss</dt><dd>${h.loss_pct == null ? "–" : h.loss_pct + "%"}</dd></div>
+      <div class="cell ${clsLow(h.hitches, 0, 3)}"><dt>Hitches</dt><dd>${fmt(h.hitches)}</dd></div>
+      <div class="cell ${clsLow(h.restarts, 0, 0)}"><dt>Server restarts</dt><dd>${fmt(h.restarts)}</dd></div>
+      <div class="cell"><dt>Your fps</dt><dd>${fmt(h.client_fps)}</dd></div>
+    </dl>
+  </section>
+  <section class="sec grid2">
+    <div class="frame card"><h4>Server fps</h4><span class="sub">Last hour. About 20 is normal on 4.10.</span><div class="chart" id="cFps"></div></div>
+    <div class="frame card"><h4>Players on your server</h4><span class="sub">Last hour. The server node you're on, not the whole shard.</span><div class="chart" id="cPop"></div></div>
+  </section>
+  <section class="sec grid2">
+    <div class="frame card"><h4>This session</h4>
+      <dl class="readout" style="margin-top:var(--s3)">
+        <div class="cell"><dt>Patch</dt><dd style="font-size:1.0625rem">${esc(s.version || "–")}</dd><span class="sub">build ${esc(s.build || "–")}</span></div>
+        <div class="cell"><dt>Started</dt><dd style="font-size:1.0625rem">${tm(s.start) || "–"}</dd><span class="sub">${s.minutes ? Math.round(s.minutes) + " min" : ""}</span></div>
+        <div class="cell"><dt>Load into PU</dt><dd style="font-size:1.0625rem">${s.load_s != null ? s.load_s + " s" : "–"}</dd></div>
+        <div class="cell ${s.bad_disconnects ? "rust" : ""}"><dt>Disconnects</dt><dd style="font-size:1.0625rem">${s.bad_disconnects ?? 0}</dd><span class="sub">not counting normal exits</span></div>
+      </dl></div>
+    <div class="frame card"><h4>Active contracts</h4>
+      ${d.contracts && d.contracts.length ? `<ul class="steps" style="margin-top:var(--s2)">${d.contracts.map(c => `<li><b>${esc(c.name)}</b>${c.times > 1 ? ` <span class="sub">taken ${c.times} times</span>` : ""}${Object.values(c.objectives || {}).length ? `<div class="sub">${Object.values(c.objectives).map(o => esc(o.text) + (o.state === "complete" ? " ✓" : "")).join("<br>")}</div>` : ""}</li>`).join("")}</ul>` : `<p class="sub">None accepted this session.</p>`}
+    </div>
+  </section>
+  <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
+  lineChart($("cFps"), d.spark, "server_fps", "var(--amber)", "fps", "Server fps");
+  lineChart($("cPop"), d.spark, "pop_srv", "var(--teal)", "players", "Players on your server");
+  const b = $("addCfg");
+  if (b) b.onclick = async () => { try { const r = await api("/api/usercfg", {}); toast(r.message); renderNow(); } catch (e) { toast(e.message, true); } };
+}
+
+/* ---------- What's gone wrong ---------- */
+async function renderCheck() {
+  if (!lastCheck) { try { const r = await api("/api/last"); if (r && r.findings) lastCheck = r; } catch (e) {} }
+  const mins = (() => { try { return sessionStorage.getItem("mins") || "30"; } catch (e) { return "30"; } })();
+  $("view").innerHTML = `
+  <section class="checkbar frame">
+    <button class="btn big" id="runCheck">What's gone wrong?</button>
+    <label class="sub">Look back <select id="mins">${[10, 30, 60, 120, 240].map(m => `<option value="${m}" ${m == mins ? "selected" : ""}>${m < 60 ? m + " minutes" : m / 60 + " hour" + (m > 60 ? "s" : "")}</option>`).join("")}</select></label>
+    <p>Reads Game.log and the overlay readings for that period, matches them against the known-issues library and explains what it finds.</p>
+  </section>
+  <div id="checkOut">${lastCheck ? "" : `<div class="empty"><h3>Nothing checked yet</h3><p>Something just went wrong in game? Press the button. You don't need to quit the game first.</p></div>`}</div>`;
+  $("mins").onchange = e => { try { sessionStorage.setItem("mins", e.target.value); } catch (x) {} };
+  $("runCheck").onclick = runCheck;
+  if (lastCheck) drawCheck(lastCheck);
+}
+
+async function runCheck() {
+  const b = $("runCheck"); b.disabled = true; b.textContent = "Checking…";
+  try { lastCheck = await api("/api/diagnose", {minutes: +$("mins").value}); drawCheck(lastCheck); }
+  catch (e) { toast(e.message, true); }
+  b.disabled = false; b.textContent = "What's gone wrong?";
+}
+
+function findCard(f, i, group) {
+  const when = f.first_ts ? (f.first_ts === f.last_ts || !f.last_ts ? tm(f.first_ts) : `${tm(f.first_ts)} to ${tm(f.last_ts)}`) : "";
+  return `<article class="find frame ${group === "unknown" ? "" : esc(f.severity)}">
+    <div class="fh"><h4>${esc(f.title)}</h4>
+      <span class="chip ${group === "unknown" ? "unknown" : esc(f.severity)}">${group === "unknown" ? "unrecognised" : esc(f.severity)}</span>
+      ${f.area && group !== "unknown" ? `<span class="chip area">${esc(f.area)}</span>` : ""}
+      <span class="sub">${f.count > 1 ? f.count + " times, " : ""}${when}</span></div>
+    ${group === "unknown" ? `<p class="sub">Not in the known-issues library yet. It may well be harmless; the game logs plenty of errors in a normal session.</p>` : `<p>${esc(f.explain)}</p>`}
+    ${f.fixes && f.fixes.length ? `<ul>${f.fixes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${f.links && f.links.length ? `<p class="sub">${f.links.map(l => `<a href="${esc(l.url || l)}" target="_blank" rel="noopener">${esc(l.title || l.url || l)}</a>`).join(" · ")}</p>` : ""}
+    ${f.examples && f.examples.length ? `<details class="ex"><summary>Log lines (${f.examples.length})</summary><pre class="lines">${esc(f.examples.join("\n"))}</pre></details>` : ""}
+    <div class="fa">
+      ${group === "unknown" ? `<button class="btn sm ghost" data-review="${i}">Prepare for review</button>` : ""}
+      <button class="btn sm ghost" data-report="${i}" data-group="${group}">Issue Council draft</button>
+    </div></article>`;
+}
+
+function drawCheck(r) {
+  const out = $("checkOut"); if (!out) return;
+  const hi = r.findings.filter(f => f.severity === "high").length;
+  $("findCount").textContent = hi || "";
+  out.innerHTML = `
+    <p class="headline">${esc(r.headline)}</p>
+    <p class="sub">Checked ${r.lines_checked.toLocaleString()} log lines from ${tm(r.since)} (${r.noise_lines.toLocaleString()} were known harmless messages). ${r.session.shard_id ? "Shard " + esc(r.session.shard_id) + "." : ""}</p>
+    ${r.findings.length ? `<div class="finds">${r.findings.map((f, i) => findCard(f, i, "findings")).join("")}</div>` : `<div class="empty"><h3>No known problems</h3><p>Nothing in the library matched. If something still feels wrong, check the server fps on the Now tab: a slow server causes most "nothing works" moments without logging an error.</p></div>`}
+    ${r.unknown.length ? `<section class="sec"><h3>Unrecognised errors <span>${r.unknown.length} kinds. Probably harmless, but if one lines up with your problem, send it for review.</span></h3>
+      <details><summary class="link" style="cursor:pointer">Show them</summary><div class="finds">${r.unknown.slice(0, 40).map((f, i) => findCard(f, i, "unknown")).join("")}</div></details></section>` : ""}`;
+  out.querySelectorAll("[data-report]").forEach(b => b.onclick = () => openReport(b.dataset.group, +b.dataset.report));
+  out.querySelectorAll("[data-review]").forEach(b => b.onclick = () => openReview(+b.dataset.review));
+}
+
+function openDrawer(eyebrow, title, html) {
+  $("dEyebrow").textContent = eyebrow; $("dTitle").textContent = title; $("dBody").innerHTML = html;
+  $("drawer").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("scrim").classList.add("show");
+  $("dClose").focus();
+}
+function closeDrawer() { $("drawer").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); $("scrim").classList.remove("show"); }
+$("dClose").onclick = closeDrawer; $("scrim").onclick = closeDrawer;
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+async function openReport(group, i) {
+  let d;
+  try { d = await api("/api/report", {group, i}); } catch (e) { return toast(e.message, true); }
+  openDrawer("Issue Council draft", d.title, `
+    <ol class="steps">
+      <li>Check the text below and fill in anything in brackets. Add what you were doing in your own words.</li>
+      <li>Search the Issue Council first. If someone has already reported it, add your confirmation there instead of a new report.</li>
+      <li>Make the report folder: it holds this text, your Game.log and screenshots from around that time, ready to attach.</li>
+    </ol>
+    <textarea id="icText" spellcheck="true">${esc(d.body)}</textarea>
+    <div class="fa">
+      <button class="btn" id="icCopy">Copy report</button>
+      <a class="btn ghost" href="${esc(d.url)}" target="_blank" rel="noopener">Open the Issue Council</a>
+      <button class="btn ghost" id="icFolder">Make report folder</button>
+    </div>
+    <p class="sub">This tool never sends anything to CIG. You submit the report yourself. The report includes your own Game.log, which is fine: that's you reporting to them.</p>`);
+  $("icCopy").onclick = async () => { const t = $("icText").value; try { await navigator.clipboard.writeText(t); toast("Copied. Paste it into a new Issue Council report."); } catch (e) { $("icText").select(); document.execCommand("copy"); toast("Copied."); } };
+  $("icFolder").onclick = async () => { try { const r = await api("/api/bundle", {group, i, open: true}); toast(`Report folder made with ${r.screenshots} screenshot${r.screenshots === 1 ? "" : "s"}: ${r.folder}`); } catch (e) { toast(e.message, true); } };
+}
+
+async function openReview(i) {
+  let d;
+  try { d = await api("/api/review", {i}); } catch (e) { return toast(e.message, true); }
+  const p = d.payload;
+  openDrawer("Send for review", "Exactly what would be sent", `
+    <p>When the community service is running, this goes to a review queue. Someone works out what the error means, adds it to the library for everyone, and the app tells you here (ticket <code>${esc(d.ticket)}</code>).</p>
+    <p class="sub">Your handle, other players' names, account and entity numbers, session ids, IP addresses and file paths have been replaced with placeholders like &lt;YOU&gt; and &lt;ID&gt;. ${p.checked_clean ? "A final check found nothing identifying left." : "<b>Warning:</b> the final check still found something; it won't be sent."}</p>
+    <pre class="lines" style="max-height:28rem">${esc(JSON.stringify(p, null, 2))}</pre>
+    <div class="fa"><button class="btn" id="rvSave">Save for review</button><span class="sub">This version keeps it on your PC (in data\\status.db) until the community service exists.</span></div>`);
+  $("rvSave").onclick = async () => { try { await api("/api/review", {i, save: true}); toast("Saved. It'll be sent once the community service is live."); closeDrawer(); } catch (e) { toast(e.message, true); } };
+}
+
+/* ---------- History ---------- */
+async function renderHistory() {
+  const d = await api("/api/history");
+  const sh = d.shards, ss = d.sessions;
+  $("view").innerHTML = `
+  <section class="sec"><h3>Shards you've been on <span>from overlay readings</span></h3>
+    ${sh.length ? `<div class="frame tscroll"><table><thead><tr><th>Shard</th><th class="num">Server fps</th><th class="num">Lowest</th><th class="num">Players</th><th class="num">Ping</th><th class="num">Readings</th><th>Last on it</th></tr></thead><tbody>
+    ${sh.map(r => `<tr><td><code>${esc(r.shard_id)}</code></td><td class="num ${r.server_fps < 10 ? "bad" : ""}">${fmt(r.server_fps, 1)}</td><td class="num">${fmt(r.server_fps_low, 1)}</td><td class="num">${fmt(r.pop_shard)}</td><td class="num">${fmt(r.ping_ms)} ms</td><td class="num">${r.readings}</td><td>${dtm(r.last)}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty"><h3>No overlay readings yet</h3><p>Play with <code>r_displayinfo 3</code> on and this fills in.</p></div>`}
+  </section>
+  <section class="sec"><h3>Server fps by time of day <span>your readings, all shards</span></h3>
+    <div class="frame card"><div class="chart" id="cHour"></div></div></section>
+  <section class="sec"><h3>Sessions <span>${esc(d.import_status)}</span></h3>
+    ${ss.length ? `<div class="frame tscroll"><table><thead><tr><th>Started</th><th class="num">Length</th><th>Patch</th><th>Shard</th><th class="num">Load</th><th class="num">Disconnects</th><th class="num">Errors</th><th>Contracts</th><th>Ended</th></tr></thead><tbody>
+    ${ss.map(r => `<tr><td>${dtm(r.start)}</td><td class="num">${Math.round(r.minutes || 0)} min</td><td>${esc(r.version || "")}</td><td><code>${esc(r.shard_id || "–")}</code></td>
+      <td class="num">${r.load_s != null ? r.load_s + " s" : "–"}</td><td class="num ${r.bad_disconnects ? "bad" : ""}">${r.bad_disconnects}</td><td class="num">${r.errors}</td>
+      <td>${r.contracts.length ? esc(r.contracts.slice(0, 3).map(c => c.name + (c.result === "complete" ? " ✓" : "")).join(", ")) + (r.contracts.length > 3 ? ` +${r.contracts.length - 3}` : "") : ""}</td>
+      <td class="${r.clean_exit ? "" : "bad"}">${r.clean_exit ? "Normal" : "Crash or killed"}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty"><h3>No past sessions yet</h3><p>They're read from the logbackups folder in the background.</p></div>`}
+  </section>`;
+  barChart($("cHour"), d.hourly, "server_fps", "var(--amber)", "fps");
+}
+
+/* ---------- My PC ---------- */
+async function renderPC() {
+  const d = await api("/api/pc"); const hw = d.hardware || {};
+  $("view").innerHTML = `
+  <section class="sec"><h3>Your PC <span>as the game reports it at start-up</span></h3>
+    <div class="frame card"><dl class="readout">
+      <div class="cell"><dt>CPU</dt><dd style="font-size:1.0625rem">${esc(hw.cpu || "–")}</dd><span class="sub">${hw.threads ? hw.threads + " threads" : ""}</span></div>
+      <div class="cell"><dt>Graphics</dt><dd style="font-size:1.0625rem">${esc(hw.gpu || "–")}</dd><span class="sub">${hw.vram_mb ? Math.round(hw.vram_mb / 1024) + " GB video memory" : ""}</span></div>
+      <div class="cell"><dt>Memory</dt><dd style="font-size:1.0625rem">${hw.ram_mb ? Math.round(hw.ram_mb / 1000) + " GB" : "–"}</dd></div>
+      <div class="cell"><dt>Game's CPU test</dt><dd style="font-size:1.0625rem">${fmt(hw.cpu_bench_ms, 1)} <small>ms</small></dd><span class="sub">lower is faster</span></div>
+      <div class="cell"><dt>Game's GPU test</dt><dd style="font-size:1.0625rem">${fmt(hw.gpu_bench_ms, 1)} <small>ms</small></dd><span class="sub">lower is faster</span></div>
+    </dl>
+    <p class="intro">The game runs a quick CPU and GPU test every launch and writes the times to Game.log. Once the community service is running, these let you compare your frame rate with players on similar hardware at the same places.</p></div>
+  </section>
+  <section class="sec"><h3>Your frame rate by location <span>from overlay readings this run</span></h3>
+    ${d.by_location.length ? `<div class="frame tscroll"><table><thead><tr><th>Location</th><th class="num">Your fps</th><th class="num">Readings</th></tr></thead><tbody>
+      ${d.by_location.map(r => `<tr><td><code>${esc(r.location)}</code></td><td class="num">${r.client_fps}</td><td class="num">${r.readings}</td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty"><h3>No readings yet</h3><p>Turn on <code>r_displayinfo 3</code> in game.</p></div>`}
+    ${d.vram_total_mb ? `<p class="sub">Video memory in use: ${d.vram_used_mb} of ${d.vram_total_mb} MB.</p>` : ""}
+  </section>`;
+}
+
+/* ---------- Known issues ---------- */
+async function renderIssues() {
+  const d = await api("/api/issues");
+  const areas = [...new Set(d.rules.map(r => r.area || "Other"))].sort();
+  $("view").innerHTML = `
+  <section class="sec"><h3>Known issues <span>library ${esc(d.version)}, ${d.rules.length} entries (harmless messages hidden)</span></h3>
+    <p class="intro">What the app recognises in Game.log. Each entry is a log pattern with a plain-English explanation and fixes. The library is a data file, so new entries arrive without a new version of the app.</p>
+    <div class="fa"><input class="inp" type="search" id="libQ" placeholder="Search, e.g. elevator, 30k, contract"></div>
+    <div id="libList" class="lib"></div></section>`;
+  const draw = () => {
+    const q = $("libQ").value.toLowerCase();
+    const rows = d.rules.filter(r => !q || (r.title + " " + r.explain + " " + r.area).toLowerCase().includes(q));
+    $("libList").innerHTML = rows.length ? rows.map(r => `<details class="frame"><summary><span class="t">${esc(r.title)}</span>
+      <span class="chip ${esc(r.severity)}">${esc(r.kind === "info" ? "info" : r.severity)}</span><span class="chip area">${esc(r.area)}</span></summary>
+      <p>${esc(r.explain)}</p>${r.fixes.length ? `<ul>${r.fixes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${r.links.length ? `<p class="sub">${r.links.map(l => `<a href="${esc(l.url || l)}" target="_blank" rel="noopener">${esc(l.title || l.url || l)}</a>`).join(" · ")}</p>` : ""}
+      <p class="sub">Seen in builds: ${esc((r.builds_seen || []).join(", ") || "not yet seen in a player log")}</p></details>`).join("")
+      : `<div class="empty"><h3>Nothing matches</h3></div>`;
+  };
+  $("libQ").oninput = draw; draw();
+}
+
+/* ---------- About ---------- */
+async function renderAbout() {
+  const d = await api("/api/about");
+  const theme = document.documentElement.dataset.theme || "";
+  $("view").innerHTML = `
+  <section class="sec frame about">
+    ${d.author.picture ? `<img src="${esc(d.author.picture)}" alt="Aurelius_Draco">` : ""}
+    <div><span class="eyebrow">Made by</span><h2>${esc(d.author.name)}</h2>${d.message.map(m => `<p>${esc(m)}</p>`).join("")}</div>
+  </section>
+  <section class="sec"><h3>Also by Aurelius_Draco</h3><div class="tiles">
+    ${d.also_by.map(a => `<a class="frame tile" href="${esc(a.url)}" target="_blank" rel="noopener"><b>${esc(a.name)}</b><span>${esc(a.about)}</span><span class="go">On GitHub →</span></a>`).join("")}
+  </div></section>
+  <section class="sec"><h3>Say hello</h3><div class="tiles">
+    ${d.links.map(l => `<a class="frame tile" href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b><span>${esc(l.text)}</span><span>${esc(l.about)}</span></a>`).join("")}
+    <a class="frame tile" href="${esc(d.author.repo)}" target="_blank" rel="noopener"><b>This app on GitHub</b><span>Updates, source code, and where to report a problem or suggest an idea.</span></a>
+  </div></section>
+  <section class="sec"><h3>Ground rules</h3><ul class="rules">${d.rules.map(r => `<li>${esc(r)}</li>`).join("")}</ul></section>
+  <section class="sec"><h3>Look</h3><div class="seg" role="radiogroup" aria-label="Theme">
+    ${[["", "Match Windows"], ["dark", "Dark"], ["light", "Light"]].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${theme === v}">${l}</button>`).join("")}</div></section>
+  <p class="foot">SC Shard Status v${esc(d.version)}</p>`;
+  $("view").querySelectorAll("[data-theme]").forEach(x => x.onclick = () => {
+    const t = x.dataset.theme;
+    if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem("theme", t); } catch (e) {}
+    $("view").querySelectorAll("[data-theme]").forEach(y => y.setAttribute("aria-pressed", y === x));
+  });
+}
+
+show(tab);
+api("/api/now").then(header).catch(() => {});
+</script>
+</body>
+</html>

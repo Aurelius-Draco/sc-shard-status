@@ -1,0 +1,25 @@
+<2026-10-28T23:51:03.279Z> BackupNameAttachment=" Build(12913470) 29 Oct 26 (09 50 58)"  -- used by backup system
+<2026-10-28T23:51:03.279Z> Log started on Wed Oct 28 23:51:03 2026
+<2026-10-28T23:51:03.280Z> FileVersion: 4.10.197.2878
+<2026-10-28T23:51:03.280Z> Host CPU: AMD Ryzen 7 9800X3D 8-Core Processor
+<2026-10-28T23:51:03.280Z> Logical CPU Count: 16
+<2026-10-28T23:51:04.000Z> 31653MB physical memory installed, 24767MB available, 21 percent of memory in use
+<2026-10-28T23:51:04.100Z>   - Dedicated video memory: 16191 MB
+<2026-10-28T23:51:04.200Z> GPU benchmark: 24.37 ms (Adapter index: 0)
+<2026-10-28T23:51:04.300Z> CPU benchmark: 27.48 ms (int+mem), 23.41 ms (fp+mem)
+<2026-10-28T23:51:04.400Z> VulkanMetric - Device (AMD Radeon RX 9070) [GPU (Discrete)] ID:30032
+<2026-10-28T23:51:58.736Z> [Notice] <Join PU> address[203.0.113.10] port[64332] shard[pub_ape1a_12881860_090] locationId[1000000000000001] [Team_GameServices][GIM][Matchmaking]
+<2026-10-28T23:52:24.294Z> [Error] <LoadingPlatformUtilities::LoadFromXmlNode> Failed to find child node. ChildNodeName[ObstructionCheckBounds] SourceString[Path: Data/objectcontainers/pu/loc/mod/common/ext_cargo/station_ext_cargo_elevator_base_stanton.socpak] [Team_CoreGameplayFeatures][Cargo]
+<2026-10-28T23:52:28.982Z> [Notice] <Inventory Mgmt Request Handle> Attempting queuing of Request[1] Type[QueryInventory] for 'Test_Pilot'[123456789012]. [Team_CoreGameplayFeatures][Inventory]
+<2026-10-29T00:08:29.139Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Accepted:  Very Hungry: " [25] to queue. New queue size: 3, MissionId: [873ac79a-e664-4752-add1-537f4da77f05], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-10-29T00:08:29.140Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Need 0/1 of Berry Blend Smoothie: " [26] to queue. New queue size: 4, MissionId: [873ac79a-e664-4752-add1-537f4da77f05], ObjectiveId: [x1] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-10-29T00:08:29.141Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Need 0/1 of Ermer Family Farms Fat Free Ice Cream: " [27] to queue. New queue size: 5, MissionId: [873ac79a-e664-4752-add1-537f4da77f05], ObjectiveId: [x2] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-10-29T00:13:54.940Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Accepted:  Very Hungry: " [29] to queue. New queue size: 1, MissionId: [e3463305-e3e0-46e7-95c7-85667f6800d0], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-10-29T00:13:54.941Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Need 0/1 of Berry Blend Smoothie: " [30] to queue. New queue size: 2, MissionId: [e3463305-e3e0-46e7-95c7-85667f6800d0], ObjectiveId: [x1] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-10-29T01:03:21.100Z> [Error] <CargoSystemUtilities::FindBoxSize> Item class [Drink_bottle_smoothie_01_a] does not have a resource container [Team_CoreGameplayFeatures][Cargo]
+<2026-10-29T01:03:21.101Z> [Error] <CargoSystemUtilities::FindBoxSize> Item class [Food_icecream_eff_01_fatfree_a] does not have a resource container [Team_CoreGameplayFeatures][Cargo]
+<2026-10-29T01:05:27.518Z> [Error] <CEntityComponentFreightElevatorUIProvider::FillUnstowRequest> [FreightElevatorKioskUIProvider] EntityId[900000000000777] is not present. [Team_CoreGameplayFeatures][Cargo][Inventory][Missions]
+<2026-10-29T01:16:07.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "Friend Added
+<2026-10-29T01:16:07.000Z>    SomeFriend_99: " [80] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-10-29T01:20:00.000Z> [Notice] <Channel Disconnected> cause=30016 reason="Remote Disconnect - Player requested disconnect" frame=67228 isRemote=1 viewState=eCVS_InGame map="megamap" gamerules="SC_Default" hostType="Replicant" remoteAddr=203.0.113.10 [Team_Network][Network]
+<2026-10-29T01:20:00.500Z> [CIG] CCIGBroker::FastShutdown
