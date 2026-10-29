@@ -47,3 +47,19 @@ jobs:
     uses: ./.github/workflows/installer.yml
     with:
       tag: ${{ github.ref_name }}
+  # Tell the Discord server about the new version (only when the repo has a DISCORD_WEBHOOK secret)
+  discord:
+    needs: installer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          HOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "No DISCORD_WEBHOOK secret; skipping."; exit 0; fi
+          VER="${TAG#v}"
+          jq -n --arg v "$VER" --arg url "https://github.com/${{ github.repository }}/releases/tag/$TAG" '{username: "Verse Shards",
+            allowed_mentions: {parse: []}, embeds: [{title: ("SC Shard Status " + $v + " is out"), url: $url, color: 5031088,
+            description: ("Already have it? The app offers the update on its dashboard. New to it? Download at https://verseshards.com/app\n\nWhat changed: " + $url)}]}' \
+            | curl -fsS -H "content-type: application/json" -d @- "$HOOK"
