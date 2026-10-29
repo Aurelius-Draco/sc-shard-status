@@ -66,6 +66,8 @@ DEFAULT_CONFIG = {
     "offer_user_cfg": True,
     # Check GitHub for a newer version (once at start, then every 6 hours). Nothing installs until you click Update.
     "check_updates": True,
+    # Fetch newer copies of the known-issues library from the community site (a plain download; nothing sent)
+    "library_updates": False,
 }
 
 

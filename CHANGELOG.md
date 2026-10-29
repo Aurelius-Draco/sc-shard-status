@@ -5,7 +5,11 @@
 - A proper Windows installer: download SC-Shard-Status-Setup and run it. No Python, no admin password, Start menu and desktop shortcuts, and an uninstaller that asks whether to keep your history.
 - One-click updates: the dashboard says when a new version is out and Update now installs it and starts the app again, keeping your settings and history. The download is checked against its published SHA-256 before it runs.
 - Used the zip version? The installed app finds it on first start and brings your settings, history and reports across.
-- New set-up question: tell you when there's a new version. If you've already been through set-up, you're asked only the new questions.
+- The known-issues library keeps itself up to date from verseshards.com (new set-up question, a plain download that sends nothing about you). New entries reach everyone without a new version of the app.
+- Send for review now really sends: unrecognised errors go to the review queue on the community site, after you've seen exactly what's in them. Answers show under Your reviews on the "What's gone wrong?" tab.
+- Patch day: when the game build changes, the Now tab says so and explains why servers may be slower for the first day.
+- Your region on the Now tab marks a score from one player as a first look, and won't suggest a server hop on the strength of one.
+- New set-up questions: tell you when there's a new version, and keep the library current. If you've already been through set-up, you're asked only the new ones.
 
 ## 1.0.1
 

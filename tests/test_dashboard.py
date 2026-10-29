@@ -70,7 +70,7 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
             assert e.code == 400
         r = _call(url, token, "/api/setup", {"choices": {"game": "ok", "displayinfo": True, "sessioninfo": False,
                                                           "live": False, "screenshots": False, "board": False,
-                                                          "share": False, "updates": False}})
+                                                          "share": False, "updates": False, "library": False}})
         st = r["settings"]
         assert st["live"] is False and st["screenshots"] is False and st["share"] is False and st["board"] is False
         cfgtxt = (game / "USER.cfg").read_text()
@@ -80,8 +80,8 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
         assert r["settings"]["updates"] is False and now["update"]["current"] == config.VERSION
         # Someone who answered the first set of questions is asked only the ones added since
         app.cfg["setup_version"] = 1
-        assert _call(url, token, "/api/now")["setup_ask"] == ["updates"]
-        r = _call(url, token, "/api/setup", {"choices": {"updates": False}})
+        assert _call(url, token, "/api/now")["setup_ask"] == ["updates", "library"]
+        r = _call(url, token, "/api/setup", {"choices": {"updates": False, "library": False}})
         assert _call(url, token, "/api/now")["setup_needed"] is False
     finally:
         app.stop.set()

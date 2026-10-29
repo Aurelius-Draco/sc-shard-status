@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS reviews (
   id TEXT PRIMARY KEY, created REAL, sig TEXT, status TEXT, data TEXT
 );
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
+CREATE TABLE IF NOT EXISTS review_answers (
+  id TEXT PRIMARY KEY, status TEXT, answer TEXT, rule_id TEXT, answered REAL
+);
 """
 
 
@@ -145,7 +148,7 @@ class Store:
             out.append(d)
         return out
 
-    # -- review queue (kept locally until the community service exists)
+    # -- review queue: saved here, and sent to the community site when the player presses Send
     def add_review(self, rid, sig, data):
         with self.lock:
             self.db.execute("INSERT OR REPLACE INTO reviews VALUES (?,?,?,?,?)",
@@ -154,5 +157,21 @@ class Store:
 
     def reviews(self):
         with self.lock:
-            rows = self.db.execute("SELECT * FROM reviews ORDER BY created DESC").fetchall()
+            rows = self.db.execute("""SELECT r.*, a.status AS answer_status, a.answer, a.rule_id, a.answered
+                                      FROM reviews r LEFT JOIN review_answers a ON a.id = r.id
+                                      ORDER BY r.created DESC""").fetchall()
         return [dict(r, data=json.loads(r["data"])) for r in rows]
+
+    def review(self, rid):
+        return next((r for r in self.reviews() if r["id"] == rid), None)
+
+    def set_review_status(self, rid, status):
+        with self.lock:
+            self.db.execute("UPDATE reviews SET status=? WHERE id=?", (status, rid))
+            self.db.commit()
+
+    def set_review_answer(self, rid, status, answer, rule_id):
+        with self.lock:
+            self.db.execute("INSERT OR REPLACE INTO review_answers VALUES (?,?,?,?,?)",
+                            (rid, status, answer, rule_id, time.time()))
+            self.db.commit()

@@ -627,7 +627,9 @@ async function renderCheck() {
     <label class="sub">Look back <select id="mins">${[10, 30, 60, 120, 240].map(m => `<option value="${m}" ${m == mins ? "selected" : ""}>${m < 60 ? m + " minutes" : m / 60 + " hour" + (m > 60 ? "s" : "")}</option>`).join("")}</select></label>
     <p>Reads Game.log and the overlay readings for that period, matches them against the known-issues library and explains what it finds.</p>
   </section>
-  <div id="checkOut">${lastCheck ? "" : `<div class="empty"><h3>Nothing checked yet</h3><p>Something just went wrong in game? Press the button. You don't need to quit the game first.</p></div>`}</div>`;
+  <div id="checkOut">${lastCheck ? "" : `<div class="empty"><h3>Nothing checked yet</h3><p>Something just went wrong in game? Press the button. You don't need to quit the game first.</p></div>`}</div>
+  <div id="myReviews"></div>`;
+  drawMyReviews();
   $("mins").onchange = e => { try { sessionStorage.setItem("mins", e.target.value); } catch (x) {} };
   $("runCheck").onclick = runCheck;
   if (lastCheck) drawCheck(lastCheck);
@@ -752,11 +754,33 @@ async function openReview(i) {
   try { d = await api("/api/review", {i}); } catch (e) { return toast(e.message, true); }
   const p = d.payload;
   openDrawer("Send for review", "Exactly what would be sent", `
-    <p>When the community service is running, this goes to a review queue. Someone works out what the error means, adds it to the library for everyone, and the app tells you here (ticket <code>${esc(d.ticket)}</code>).</p>
-    <p class="sub">Your handle, other players' names, account and entity numbers, session ids, IP addresses and file paths have been replaced with placeholders like &lt;YOU&gt; and &lt;ID&gt;. ${p.checked_clean ? "A final check found nothing identifying left." : "<b>Warning:</b> the final check still found something identifying, so this one can't be saved for review."}</p>
+    <p>This goes to the review queue on the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community site</a>. Someone works out what the error means, adds it to the known-issues library for everyone, and the answer shows up here under <b>Your reviews</b> (ticket <code>${esc(d.ticket)}</code>).</p>
+    <p class="sub">Your handle, other players' names, account and entity numbers, session ids, IP addresses and file paths have been replaced with placeholders like &lt;YOU&gt; and &lt;ID&gt;. ${p.checked_clean ? "A final check found nothing identifying left." : "<b>Warning:</b> the final check still found something identifying, so this one can't be sent or kept."}</p>
     <pre class="lines" style="max-height:28rem">${esc(JSON.stringify(p, null, 2))}</pre>
-    <div class="fa"><button class="btn" id="rvSave" ${p.checked_clean ? "" : "disabled"}>Save for review</button><span class="sub">This version keeps it on your PC (in data\\status.db) until the community service exists.</span></div>`);
-  $("rvSave").onclick = async () => { try { await api("/api/review", {i, save: true}); toast("Saved. It'll be sent once the community service is live."); closeDrawer(); } catch (e) { toast(e.message, true); } };
+    <div class="fa"><button class="btn" id="rvSend" ${p.checked_clean ? "" : "disabled"}>Send for review</button><button class="btn ghost" id="rvSave" ${p.checked_clean ? "" : "disabled"}>Keep it on my PC for now</button></div>`);
+  $("rvSend").onclick = async () => {
+    $("rvSend").disabled = true;
+    try { const r = await api("/api/review", {i, send: true}); toast(r.answer ? "Sent, and it already has an answer: see Your reviews." : "Sent. The answer shows under Your reviews when there is one."); closeDrawer(); drawMyReviews(); }
+    catch (e) { toast("Couldn't send: " + e.message + ". It's kept on your PC; try Send again later.", true); $("rvSend").disabled = false; drawMyReviews(); }
+  };
+  $("rvSave").onclick = async () => { try { await api("/api/review", {i, save: true}); toast("Kept on your PC. Send it from Your reviews whenever you like."); closeDrawer(); drawMyReviews(); } catch (e) { toast(e.message, true); } };
+}
+
+const RV_LABEL = {identified: "Identified", harmless: "Harmless", "need-more": "Need more info"};
+async function drawMyReviews() {
+  const el = $("myReviews"); if (!el) return;
+  let rows; try { rows = await api("/api/reviews"); } catch (e) { return; }
+  if (!rows.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<section class="sec"><h3>Your reviews <span>unrecognised errors you kept or sent; answers are checked every 6 hours</span></h3>
+    <div class="frame" style="overflow-x:auto"><table class="rvt"><thead><tr><th>Error</th><th>Status</th><th>Answer</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td><code>${esc(r.sig)}</code><span class="sub" style="display:block">ticket ${esc(r.id)}, ${dtm(r.created)}</span></td>
+      <td>${r.answer_status ? `<span class="chip area">${esc(RV_LABEL[r.answer_status] || r.answer_status)}</span>` : r.status === "sent" ? "Sent, waiting" : `Kept on this PC <button class="btn sm" data-rvsend="${esc(r.id)}">Send</button>`}</td>
+      <td>${r.answer ? esc(r.answer) : ""}${r.rule_id ? ` <a href="${esc(COMMUNITY_SITE)}/issues/${esc(r.rule_id)}" target="_blank" rel="noopener">Known issue page</a>` : ""}</td></tr>`).join("")}
+    </tbody></table></div></section>`;
+  el.querySelectorAll("[data-rvsend]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { const r = await api("/api/review/send", {ticket: b.dataset.rvsend}); toast(r.message); drawMyReviews(); } catch (e) { toast("Couldn't send: " + e.message, true); b.disabled = false; }
+  });
 }
 
 /* ---------- History ---------- */
@@ -921,6 +945,12 @@ async function renderSetup() {
     <div class="swlist" id="updToggles"></div>
     <div id="updState" style="display:grid;gap:var(--s2);margin-top:var(--s3)"></div>
   </section>
+  <section class="sec frame setcard" id="libCard">
+    <h4>Known-issues library</h4>
+    <p>The library is what "What's gone wrong?" checks Game.log against. New entries are added as players send errors for review and patches change things. With updates on, the app fetches the newest copy from the community site a minute and a half after it starts and every 6 hours. It's a plain download; nothing is sent about you.</p>
+    <div class="swlist" id="libToggles"></div>
+    <div id="libState" style="margin-top:var(--s3)"></div>
+  </section>
   <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. Before each change the app saves the file as it was to USER.cfg.bak. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
   $("gdSave").onclick = async () => {
     try { const r = await api("/api/gamedir", {path: $("gdPath").value}); toast(r.message); nowData = await api("/api/now"); renderSetup(); }
@@ -968,6 +998,17 @@ async function renderSetup() {
       <button class="btn sm ghost" data-upd="check">Check now</button></div>${u.error && u.state !== "failed" ? `<p class="sub">${esc(u.error)}</p>` : ""}${updNotice(u)}`;
   };
   drawUpd();
+  const drawLib = async () => {
+    if (!$("libToggles")) return;
+    const st = await api("/api/settings"), L = st.library_sync || {};
+    $("libToggles").innerHTML = swRow("library", "Keep the library up to date", st.library,
+      st.library ? (L.checked_at ? `On. Last checked ${ago(L.checked_at)}.` : "On. First check a minute and a half after the app starts.") : "Off. Using the library that came with this version of the app.");
+    bindRows($("libToggles"), drawLib);
+    $("libState").innerHTML = `<div class="fa"><span>Library <b>${esc(L.version)}</b>${L.updated_at ? `, updated ${ago(L.updated_at)}` : ""}.</span><button class="btn sm ghost" id="libCheck">Check now</button></div>
+      ${L.error ? `<p class="sub">${esc(L.error)}</p>` : L.note ? `<p class="sub">${esc(L.note)}</p>` : ""}`;
+    $("libCheck").onclick = async () => { $("libCheck").disabled = true; try { const r = await api("/api/library/check", {}); toast(r.error || r.note || "Already up to date."); } catch (e) { toast(e.message, true); } drawLib(); };
+  };
+  drawLib();
   $("redoWiz").onclick = () => openWizard(true);
   $("view").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => {
     try { const r = await api("/api/usercfg", {name: b.dataset.cfg, on: b.dataset.on === "1"}); toast(r.message); nowData = null; nowData = await api("/api/now"); renderSetup(); }
@@ -1041,6 +1082,9 @@ async function openWizard(all) {
     ["updates", "This app", "Tell you when there's a new version?",
       `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. Nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,
       yn("updates", "Yes, tell me", "No, I'll check myself") + now(st.updates)],
+    ["library", "This app", "Keep the known-issues library up to date?",
+      `"What's gone wrong?" checks your Game.log against a library of known issues. New entries are added as players send errors for review and patches change things. Yes fetches the newest copy from the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community site</a> every 6 hours. It's a plain download; nothing is sent about you.`,
+      yn("library", "Yes, keep it current", "No, use the one that came with the app") + now(st.library)],
   ].filter(([k]) => !ask || ask.includes(k));
   if (!qs.length) return;
   const isNew = ask && ask.length && !ask.includes("game");

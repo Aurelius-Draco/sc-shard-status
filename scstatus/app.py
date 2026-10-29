@@ -38,6 +38,8 @@ class App:
         self.community = community.Community(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
         from .updater import Updater
         self.updater = Updater(self)
+        from .libsync import LibrarySync
+        self.libsync = LibrarySync(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
         self.quitting = False
 
     # -- parts that load slowly
@@ -67,6 +69,7 @@ class App:
         threading.Thread(target=self.import_backups, daemon=True).start()
         threading.Thread(target=self.community.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.updater.run, args=(self.stop,), daemon=True).start()
+        threading.Thread(target=self.libsync.run, args=(self.stop,), daemon=True).start()
         if not self.game_found:
             threading.Thread(target=self._watch_for_game, daemon=True).start()
 
@@ -311,19 +314,34 @@ class App:
         folder, n = report.bundle(f, self.last_result, d, self.game_dir)
         return {"folder": str(folder), "screenshots": n}
 
-    def review(self, i, save=False):
+    def review(self, i, save=False, send=False):
+        """Prepare an unrecognised error for review (shown to the player first), keep it, and send it if asked."""
         f = self._finding("unknown", i)
         red = community.make_redactor(self.game_dir / "Game.log")
         sess = dict(self.last_result["session"])
         sess["region"] = _region(sess.get("shard_id"))
         contracts = [c["name"] for c in (self.session.contracts.values() if self.session else [])]
         rid, payload = community.review_request(f, sess, red, self.store.install_id(), contracts)
-        if save:
+        if (save or send) and not payload.get("checked_clean"):
+            raise ValueError("Something identifying was still in it, so it can't be kept or sent.")
+        if save or send:
             self.store.add_review(rid, payload["sig"], payload)
-        return {"ticket": rid, "payload": payload, "saved": save}
+        sent = None
+        if send:
+            sent = self.libsync.send_review(rid, payload)
+        return {"ticket": rid, "payload": payload, "saved": bool(save or send), "sent": bool(sent),
+                "status": (sent or {}).get("status"), "answer": (sent or {}).get("answer")}
+
+    def send_saved_review(self, rid):
+        r = self.store.review(rid)
+        if not r:
+            raise ValueError("No such review.")
+        if not r["data"].get("checked_clean"):
+            raise ValueError("Something identifying was still in it, so it can't be sent.")
+        return self.libsync.send_review(rid, r["data"])
 
     # -- the game's USER.cfg
-    def save_settings(self, live=None, screenshots=None, share=None, board=None, updates=None):
+    def save_settings(self, live=None, screenshots=None, share=None, board=None, updates=None, library=None):
         """Change settings. Saved to data\\config.json. Reading changes take effect on the next start;
         the community switches take effect straight away."""
         from .config import save_setting
@@ -357,13 +375,20 @@ class App:
             if updates and not self.updater.checked_at:
                 threading.Thread(target=self.updater.check, daemon=True).start()
             msg.append("Checking for new versions." if updates else "Not checking for new versions.")
+        if library is not None:
+            self.cfg["library_updates"] = bool(library)
+            save_setting("library_updates", self.cfg["library_updates"])
+            if library and not self.libsync.checked_at:
+                threading.Thread(target=self.libsync.update_library, daemon=True).start()
+            msg.append("Keeping the known-issues library up to date." if library
+                       else "Using the known-issues library that came with the app.")
         return " ".join(msg) or "Saved."
 
     # -- first-run questions: every setting is a yes/no the player has to answer once
     # Each question and the set-up version it arrived in. Raise SETUP_VERSION when adding one: players who have
     # already been through set-up are asked only the new ones.
     QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 1,
-                 "updates": 2}
+                 "updates": 2, "library": 2}
     SETUP_VERSION = max(QUESTIONS.values())
 
     @property
@@ -399,7 +424,7 @@ class App:
                 self.cfg["pending_user_cfg"] = cfg_wanted
                 save_setting("pending_user_cfg", cfg_wanted)
                 notes.append("The USER.cfg choices will be saved once the game folder is found.")
-        self.save_settings(**{k: bool(given[k]) for k in ("live", "screenshots", "share", "board", "updates")
+        self.save_settings(**{k: bool(given[k]) for k in ("live", "screenshots", "share", "board", "updates", "library")
                               if k in given})
         self.cfg["setup_version"] = self.SETUP_VERSION
         save_setting("setup_version", self.SETUP_VERSION)
@@ -414,7 +439,8 @@ class App:
                 "share_status": c.share_status, "sent": c.sent, "sent_at": c.sent_at if c.sent else None,
                 "last_payload": c.last_payload,
                 "board_url": c.url, "board_error": c.board_error,
-                "updates": bool(self.cfg.get("check_updates", True)), "update": self.updater.info()}
+                "updates": bool(self.cfg.get("check_updates", True)), "update": self.updater.info(),
+                "library": bool(self.cfg.get("library_updates")), "library_sync": self.libsync.info()}
 
     # Settings the app can put in USER.cfg: name -> value to set
     CFG_SETTINGS = {"r_displayinfo": 3, "r_DisplaySessionInfo": 1}
