@@ -64,3 +64,25 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
     finally:
         app.stop.set()
         server.shutdown()
+
+
+def test_set_game_dir_accepts_close_enough_paths(tmp_path, monkeypatch):
+    from scstatus import app as appmod, config
+    monkeypatch.setattr(config, "DATA", tmp_path / "data")
+    (tmp_path / "data").mkdir()
+    live = tmp_path / "RSI" / "StarCitizen" / "LIVE"
+    (live / "Bin64").mkdir(parents=True)
+    (live / "Game.log").write_text("x")
+    app = appmod.App.__new__(appmod.App)
+    app.cfg, app.game_dir, app.shots, app._names = {"game_dir": ""}, tmp_path, None, None
+    app.tail = type("T", (), {"path": None, "ident": None})()
+    app.import_backups = lambda: None
+    for given in (live, live / "Bin64", live / "Game.log", tmp_path / "RSI", tmp_path / "RSI" / "StarCitizen"):
+        app.set_game_dir(str(given))
+        assert app.cfg["game_dir"] == str(live)
+    try:
+        app.set_game_dir(str(tmp_path / "nowhere"))
+        raise AssertionError("bad folder accepted")
+    except ValueError:
+        pass
+    assert '"game_dir"' in (tmp_path / "data" / "config.json").read_text()

@@ -68,6 +68,46 @@ class App:
             self.shots.poll()           # note what's already there; only new screenshots are read
             threading.Thread(target=self.shots.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.import_backups, daemon=True).start()
+        if not self.game_found:
+            threading.Thread(target=self._watch_for_game, daemon=True).start()
+
+    def _watch_for_game(self):
+        """No game folder yet: when Star Citizen starts, take its folder from the running game."""
+        from .config import running_game_dir
+        while not self.stop.is_set() and not self.game_found:
+            found = running_game_dir()
+            if found:
+                self.set_game_dir(str(found), source="the running game")
+                return
+            self.stop.wait(10)
+
+    def set_game_dir(self, path, source="you"):
+        """Point the app at a StarCitizen\\LIVE folder (saved to data\\config.json)."""
+        from .config import game_dir_ok, save_setting
+        path = (path or "").strip().strip('"')
+        p = Path(path)
+        if p.name.lower() == "game.log":
+            p = p.parent
+        if p.name.lower() == "bin64":
+            p = p.parent
+        if not game_dir_ok(p) and game_dir_ok(p / "LIVE"):
+            p = p / "LIVE"
+        if not game_dir_ok(p) and game_dir_ok(p / "StarCitizen" / "LIVE"):
+            p = p / "StarCitizen" / "LIVE"
+        if not game_dir_ok(p):
+            raise ValueError(f"No Game.log or Data.p4k in {p}. Pick the StarCitizen\\LIVE folder (the one with "
+                             "Bin64 and Game.log in it).")
+        self.cfg["game_dir"] = str(p)
+        save_setting("game_dir", str(p))
+        self.game_dir = p
+        self.tail.path = p / "Game.log"
+        self.tail.ident = None          # read it fresh
+        if self.shots:
+            self.shots.folder = p / "screenshots"
+        self._names = None
+        threading.Thread(target=self.import_backups, daemon=True).start()
+        say(f"Game folder set to {p} (from {source}).")
+        return f"Game folder set to {p}."
 
     def on_reading(self, snap):
         # Game.log is the authority on which shard you're on; small text at 1080p can misread a digit

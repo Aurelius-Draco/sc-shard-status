@@ -59,22 +59,84 @@ def _is_game_dir(p):
     return (p / "Game.log").exists() or (p / "Data.p4k").exists()
 
 
-def find_game_dir():
-    """Look for the StarCitizen\\LIVE folder in the usual places."""
-    cands = [HERE.parent / "StarCitizen" / "LIVE", HERE.parent / "LIVE", HERE.parent]
-    tails = [r"Program Files\Roberts Space Industries\StarCitizen\LIVE",
-             r"Roberts Space Industries\StarCitizen\LIVE",
-             r"Games\Roberts Space Industries\StarCitizen\LIVE",
-             r"StarCitizen\LIVE", r"Games\StarCitizen\LIVE", r"Games\StarCitizen\StarCitizen\LIVE"]
+CHANNELS = ("LIVE", "PTU", "EPTU", "TECH-PREVIEW", "HOTFIX")
+
+
+def find_game_dir(channel="LIVE"):
+    """Look for the StarCitizen\\LIVE folder: next to this app, the usual install places on every drive, then one
+    and two folders deep on each drive (custom library folders like D:\\Games\\RSI\\StarCitizen\\LIVE)."""
+    cands = [HERE.parent / "StarCitizen" / channel, HERE.parent / channel, HERE.parent]
+    tails = [rf"Program Files\Roberts Space Industries\StarCitizen\{channel}",
+             rf"Roberts Space Industries\StarCitizen\{channel}",
+             rf"Games\Roberts Space Industries\StarCitizen\{channel}",
+             rf"StarCitizen\{channel}", rf"Games\StarCitizen\{channel}", rf"Games\StarCitizen\StarCitizen\{channel}"]
+    roots = []
     if os.name == "nt":
         for d in string.ascii_uppercase[2:]:
             root = Path(f"{d}:\\")
-            if root.exists():
-                cands += [root / t for t in tails]
+            try:
+                if root.exists():
+                    roots.append(root)
+            except OSError:
+                continue
+        cands += [r / t for r in roots for t in tails]
     for c in cands:
-        if _is_game_dir(c):
-            return c
+        try:
+            if _is_game_dir(c):
+                return c
+        except OSError:
+            continue
+    for r in roots:
+        for pattern in (f"*/StarCitizen/{channel}", f"*/*/StarCitizen/{channel}"):
+            try:
+                for c in r.glob(pattern):
+                    if _is_game_dir(c):
+                        return c
+            except OSError:
+                continue
     return None
+
+
+def running_game_dir():
+    """The folder of a running StarCitizen.exe (Windows), e.g. ...\\StarCitizen\\LIVE. None if it isn't running."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+        psapi, kernel32 = ctypes.windll.psapi, ctypes.windll.kernel32
+        arr = (wintypes.DWORD * 4096)()
+        needed = wintypes.DWORD()
+        if not psapi.EnumProcesses(ctypes.byref(arr), ctypes.sizeof(arr), ctypes.byref(needed)):
+            return None
+        for pid in arr[:needed.value // ctypes.sizeof(wintypes.DWORD)]:
+            h = kernel32.OpenProcess(0x1000, False, pid)
+            if not h:
+                continue
+            try:
+                buf = ctypes.create_unicode_buffer(1024)
+                size = wintypes.DWORD(1024)
+                if kernel32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
+                    exe = Path(buf.value)
+                    if exe.name.lower() == "starcitizen.exe":
+                        live = exe.parent.parent         # ...\\LIVE\\Bin64\\StarCitizen.exe
+                        return live if _is_game_dir(live) else None
+            finally:
+                kernel32.CloseHandle(h)
+    except Exception:
+        return None
+    return None
+
+
+def save_setting(key, value):
+    """Change one setting in data\\config.json, keeping the rest."""
+    path = DATA / "config.json"
+    try:
+        cfg = _lenient_json(path.read_text(encoding="utf-8-sig")) if path.exists() else {}
+    except Exception:
+        cfg = {}
+    cfg[key] = value
+    path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
 
 def _lenient_json(text):

@@ -18,7 +18,7 @@ By Aurelius_Draco. Also by me: [SC Inventory Tracker](https://github.com/Aureliu
 2. Double-click **Setup.bat**. It needs Python 3.12 or 3.13; if you don't have it, Setup tells you the one command to install it.
 3. Start **SC Shard Status** from the shortcut. The dashboard opens in your browser.
 
-If it can't find your game, put the path of your `StarCitizen\LIVE` folder in `data\config.json` as `game_dir`.
+It finds the game by itself in most cases: it checks next to its own folder, the usual install places on every drive, and folders one or two levels deep (like `D:\Games\RSI\StarCitizen\LIVE`). If your install is somewhere unusual, start Star Citizen and the app picks the folder up from the running game, or paste the folder on the **Set up** tab. It's the `StarCitizen\LIVE` folder, the one with `Bin64` and `Game.log` in it.
 
 ## Turn on the game's information
 

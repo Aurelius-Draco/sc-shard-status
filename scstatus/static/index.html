@@ -717,6 +717,14 @@ async function renderSetup() {
     <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
     Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
   <section class="sec frame setcard">
+    <h4>Game folder</h4>
+    ${u.game_found === false
+      ? `<p><b>Not found yet.</b> The app looks in the usual install places on every drive. If yours is somewhere else, just start Star Citizen: the app picks the folder up from the running game within a few seconds. Or paste it here: it's the <code>StarCitizen\\LIVE</code> folder, the one with <code>Bin64</code> and <code>Game.log</code> in it. In the RSI Launcher, Settings, Games shows the library folder it's inside.</p>`
+      : `<p>Reading <code>${esc(d.game_dir)}</code>. Wrong one (say you play on the PTU)? Paste the right folder below.</p>`}
+    <div class="fa"><input class="inp" id="gdPath" placeholder="e.g. D:\\Games\\Roberts Space Industries\\StarCitizen\\LIVE" style="flex:1 1 26rem">
+      <button class="btn sm" id="gdSave">Use this folder</button></div>
+  </section>
+  <section class="sec frame setcard">
     <h4>Quick switches</h4>
     <p>Neither has to stay on. Switch them on when you want readings or you're about to report a bug, and off again when you don't. In game it takes effect straight away; the start-up setting is what the game does each time it launches.</p>
     <div class="tscroll"><table class="switches"><thead><tr><th>What</th><th>Switch on now</th><th>Switch off now</th><th>When the game starts</th></tr></thead><tbody>
@@ -765,6 +773,10 @@ async function renderSetup() {
     <div class="fa" id="setToggles"></div>
   </section>
   <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. Before each change the app saves the file as it was to USER.cfg.bak. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
+  $("gdSave").onclick = async () => {
+    try { const r = await api("/api/gamedir", {path: $("gdPath").value}); toast(r.message); nowData = await api("/api/now"); renderSetup(); }
+    catch (e) { toast(e.message, true); }
+  };
   const drawToggles = async () => {
     const st = await api("/api/settings");
     $("setToggles").innerHTML = `
