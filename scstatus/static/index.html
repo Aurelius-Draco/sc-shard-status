@@ -546,7 +546,7 @@ function drawCheck(r) {
   $("findCount").textContent = hi || "";
   out.innerHTML = `
     <p class="headline">${esc(r.headline)}</p>
-    <p class="sub">Checked ${r.lines_checked.toLocaleString()} log lines from ${tm(r.since)} (${r.noise_lines.toLocaleString()} were known harmless messages). ${r.session.shard_id ? "Shard " + esc(r.session.shard_id) + "." : ""}</p>
+    <p class="sub">Checked ${r.lines_checked.toLocaleString()} log lines${r.logs && r.logs.length > 1 ? ` across ${r.logs.length} game sessions` : ""} from ${tm(r.since)} (${r.noise_lines.toLocaleString()} were known harmless messages). ${r.session.shard_id ? "Shard " + esc(r.session.shard_id) + "." : ""}</p>
     ${r.findings.length ? `<div class="finds">${r.findings.map((f, i) => findCard(f, i, "findings")).join("")}</div>` : `<div class="empty"><h3>No known problems</h3><p>Nothing in the library matched. If something still feels wrong, check the server fps on the Now tab: a slow server causes most "nothing works" moments without logging an error.</p></div>`}
     ${r.unknown.length ? `<section class="sec"><h3>Unrecognised errors <span>${r.unknown.length} kinds. Probably harmless, but if one lines up with your problem, send it for review.</span></h3>
       <details><summary class="link" style="cursor:pointer">Show them</summary><div class="finds">${r.unknown.slice(0, 40).map((f, i) => findCard(f, i, "unknown")).join("")}</div></details></section>` : ""}`;

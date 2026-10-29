@@ -52,15 +52,21 @@ def diagnose(log_path, library, names=None, snapshots=None, lookback_min=30, now
              session=None):
     now = now or time.time()
     since = now - lookback_min * 60
-    lines = read_window(log_path, since)
-    if session is None:
-        session = Session(Path(log_path).name)
+    # Earlier sessions inside the window live in logbackups (the game starts a new Game.log every launch)
+    earlier = []
+    if backups_dir:
         try:
-            with open(log_path, encoding="utf-8", errors="replace") as f:
-                for raw in _joined_lines(f):
-                    session.add(parse_line(raw))
+            earlier = sorted((p for p in Path(backups_dir).glob("*.log") if p.stat().st_mtime >= since),
+                             key=lambda p: p.stat().st_mtime)
         except OSError:
-            pass
+            earlier = []
+    lines = []
+    for p in earlier:
+        lines += read_window(p, since)
+    lines += read_window(log_path, since)
+    if session is None:
+        session = _parse(log_path)
+    sessions = [(p, _parse(p)) for p in earlier] + [(Path(log_path), session)]
 
     hits = OrderedDict()        # (rule id, key fields) -> finding
     unknown = OrderedDict()     # sig -> finding
@@ -104,26 +110,62 @@ def diagnose(log_path, library, names=None, snapshots=None, lookback_min=30, now
 
     findings = [f for f in hits.values() if f["kind"] == "problem"]
     infos = [f for f in hits.values() if f["kind"] == "info"]
-    findings += _disconnects(session, since, library)
-    findings += _contracts(session, since, findings, names, now)
+    item_findings = list(findings)
+    for p, sess in sessions:
+        findings += _disconnects(sess, since, library)
+        findings += _contracts(sess, since, item_findings, names, now)
     if session.crash:
         findings += crash_findings(log_path, library, session)
+    for p, sess in sessions[:-1]:
+        findings += _ended_badly(p, sess, library)
     findings += _overlay(snapshots or [], since)
     if backups_dir and session.start and session.start >= since - 600:
-        findings += _last_session_crash(backups_dir, session.start, library)
+        prev = _last_session_crash(backups_dir, session.start, library)
+        findings += [f for f in prev if f["fields"].get("log") not in {p.name for p in earlier}]
 
     findings.sort(key=lambda f: (SEVERITY_ORDER.get(f["severity"], 3), f["rank"], -(f["count"] or 0)))
     unk = sorted(unknown.values(), key=lambda f: -f["count"])
     sid = session.shard_id
     return {
         "generated": now, "since": since, "lookback_min": lookback_min,
-        "lines_checked": len(lines), "noise_lines": noise,
+        "lines_checked": len(lines), "noise_lines": noise, "logs": [p.name for p, _ in sessions],
         "findings": findings, "info": infos, "unknown": unk,
         "session": {"build": session.build, "version": session.version, "shard_id": sid,
                     "region": region_name(session.joins[-1]["region"]) if session.joins else None,
                     "started": session.start, "clean_exit": session.clean_exit},
         "headline": headline(findings, unk),
     }
+
+
+def _parse(path):
+    sess = Session(Path(path).name)
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for raw in _joined_lines(f):
+                sess.add(parse_line(raw))
+    except OSError:
+        pass
+    return sess
+
+
+def _ended_badly(path, sess, library):
+    """An earlier session in the window that crashed, or stopped without a normal shutdown."""
+    when = dt.datetime.fromtimestamp(sess.end).strftime("%H:%M") if sess.end else "?"
+    if sess.crash:
+        out = crash_findings(path, library, sess)
+        for f in out:
+            f["title"] = f"Session ending {when}: " + f["title"][0].lower() + f["title"][1:]
+            f["fields"]["log"] = Path(path).name
+        return out
+    if sess.clean_exit:
+        return []
+    return [_finding(severity="high", area="Game", title=f"The session ending {when} stopped without a normal shutdown",
+                     explain="That log stops without the lines the game writes when it closes properly, and without "
+                             "a crash report. That points to a freeze you had to kill, or a power or PC problem.",
+                     fixes=["Repeated freezes: verify the game files in the RSI launcher.",
+                            "Note what you were doing when it happened for the Issue Council report."],
+                     ic_title="Client froze (game closed without normal shutdown)",
+                     fields={"log": Path(path).name}, first_ts=sess.end, last_ts=sess.end)]
 
 
 def headline(findings, unknown):

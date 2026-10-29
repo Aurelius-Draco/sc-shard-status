@@ -140,3 +140,19 @@ def test_shipped_library_is_valid():
     assert len(ids) == len(set(ids)), "duplicate rule ids"
     blob = path.read_text(encoding="utf-8")
     assert "Aurelius" not in blob and not leaks(blob.replace("12913470", "").replace("12660092", "").replace("12572603", ""), [])
+
+
+def test_check_reaches_back_into_earlier_sessions(tmp_path):
+    import os
+    import shutil
+    (tmp_path / "logbackups").mkdir()
+    old = tmp_path / "logbackups" / "Game Build(12913470) 29 Oct 26 (09 50 58).log"
+    shutil.copy2(LOG, old)
+    s_old = parse_file(old)
+    os.utime(old, (s_old.end, s_old.end))
+    cur = tmp_path / "Game.log"
+    cur.write_text('<2026-10-29T04:00:23.725Z> BackupNameAttachment=" Build(12913470) 29 Oct 26 (14 00 18)"\n'
+                   '<2026-10-29T04:05:03.449Z> [CIG] CCIGBroker::FastShutdown\n')
+    s = parse_file(cur)
+    r = diagnose(cur, LIB, Names(GAME), lookback_min=240, now=s.end + 60, backups_dir=tmp_path / "logbackups", session=s)
+    assert len(r["logs"]) == 2 and r["findings"][0]["title"] == '"Very Hungry": deliveries never counted'
