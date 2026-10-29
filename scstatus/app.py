@@ -19,7 +19,7 @@ from .store import Store
 class App:
     def __init__(self, cfg):
         self.cfg = cfg
-        DATA.mkdir(exist_ok=True)
+        DATA.mkdir(parents=True, exist_ok=True)
         self.store = Store(DATA / "status.db")
         self.library = Library()
         self.game_dir = Path(cfg.get("game_dir") or ".")
@@ -36,6 +36,9 @@ class App:
         self.import_status = "not started"
         from .config import COMMUNITY_URL, VERSION
         self.community = community.Community(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
+        from .updater import Updater
+        self.updater = Updater(self)
+        self.quitting = False
 
     # -- parts that load slowly
     @property
@@ -63,6 +66,7 @@ class App:
             self._start_shots()
         threading.Thread(target=self.import_backups, daemon=True).start()
         threading.Thread(target=self.community.run, args=(self.stop,), daemon=True).start()
+        threading.Thread(target=self.updater.run, args=(self.stop,), daemon=True).start()
         if not self.game_found:
             threading.Thread(target=self._watch_for_game, daemon=True).start()
 
@@ -206,8 +210,23 @@ class App:
             "library": {"version": self.library.version, **self.library.counts()},
             "community": self.community.region_view(shard, _region(shard)) if self.cfg.get("community_board") else None,
             "sharing": self.community.share_status if self.cfg.get("share_readings") else "off",
-            "setup_needed": self.setup_needed,
+            "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
+            "update": self.updater.info(),
+            "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
         }
+
+    def quit(self):
+        """Close the app (the updater calls this once the new installer is running)."""
+        self.quitting = True
+        self.stop.set()
+
+    def dismiss(self, what):
+        from .config import save_setting
+        if what == "migrated":
+            self.cfg["migrated_notice"] = False
+            save_setting("migrated_notice", False)
+            return "OK."
+        raise ValueError("Unknown notice.")
 
     def run_diagnosis(self, minutes=None):
         minutes = int(minutes or self.cfg.get("lookback_minutes", 30))
@@ -282,7 +301,7 @@ class App:
         return {"ticket": rid, "payload": payload, "saved": save}
 
     # -- the game's USER.cfg
-    def save_settings(self, live=None, screenshots=None, share=None, board=None):
+    def save_settings(self, live=None, screenshots=None, share=None, board=None, updates=None):
         """Change settings. Saved to data\\config.json. Reading changes take effect on the next start;
         the community switches take effect straight away."""
         from .config import save_setting
@@ -310,37 +329,56 @@ class App:
             if board:
                 self.community.board_at = 0          # fetch now
             msg.append("Community board on." if board else "Community board off.")
+        if updates is not None:
+            self.cfg["check_updates"] = bool(updates)
+            save_setting("check_updates", self.cfg["check_updates"])
+            if updates and not self.updater.checked_at:
+                threading.Thread(target=self.updater.check, daemon=True).start()
+            msg.append("Checking for new versions." if updates else "Not checking for new versions.")
         return " ".join(msg) or "Saved."
 
     # -- first-run questions: every setting is a yes/no the player has to answer once
-    SETUP_VERSION = 1           # raise when a new question is added, so everyone is asked the new one
+    # Each question and the set-up version it arrived in. Raise SETUP_VERSION when adding one: players who have
+    # already been through set-up are asked only the new ones.
+    QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 1,
+                 "updates": 2}
+    SETUP_VERSION = max(QUESTIONS.values())
 
     @property
     def setup_needed(self):
         return int(self.cfg.get("setup_version") or 0) < self.SETUP_VERSION
 
+    @property
+    def setup_ask(self):
+        """The questions this player still has to answer (all of them on a first start)."""
+        done = int(self.cfg.get("setup_version") or 0)
+        return [k for k, since in self.QUESTIONS.items() if since > done]
+
     def apply_setup(self, c):
-        """c: {game: "ok"|"later"|<path>, displayinfo, sessioninfo, live, screenshots, board, share} (booleans)."""
+        """c: {game: "ok"|"later"|<path>, displayinfo, sessioninfo, live, screenshots, board, share, updates}
+        (booleans). Only the questions still to answer are required; any others given are applied too."""
         from .config import save_setting
-        need = ("game", "displayinfo", "sessioninfo", "live", "screenshots", "board", "share")
-        missing = [k for k in need if c.get(k) is None or c.get(k) == ""]
+        given = {k: v for k, v in c.items() if k in self.QUESTIONS and v is not None and v != ""}
+        missing = [k for k in self.setup_ask if k not in given]
         if missing:
             raise ValueError("Answer every question first (" + ", ".join(missing) + ").")
         notes = []
-        g = c["game"]
-        if g not in ("ok", "later"):
+        g = given.get("game")
+        if g not in (None, "ok", "later"):
             self.set_game_dir(g)
-        cfg_wanted = {"r_displayinfo": bool(c["displayinfo"]), "r_DisplaySessionInfo": bool(c["sessioninfo"])}
-        if self.game_found:
-            for name, on in cfg_wanted.items():
-                self.set_user_cfg(name, on)
-        else:
-            # Applied when the game folder turns up (set_game_dir)
-            self.cfg["pending_user_cfg"] = cfg_wanted
-            save_setting("pending_user_cfg", cfg_wanted)
-            notes.append("The USER.cfg choices will be saved once the game folder is found.")
-        self.save_settings(live=bool(c["live"]), screenshots=bool(c["screenshots"]),
-                           share=bool(c["share"]), board=bool(c["board"]))
+        cfg_wanted = {name: bool(given[k]) for k, name in (("displayinfo", "r_displayinfo"),
+                                                         ("sessioninfo", "r_DisplaySessionInfo")) if k in given}
+        if cfg_wanted:
+            if self.game_found:
+                for name, on in cfg_wanted.items():
+                    self.set_user_cfg(name, on)
+            else:
+                # Applied when the game folder turns up (set_game_dir)
+                self.cfg["pending_user_cfg"] = cfg_wanted
+                save_setting("pending_user_cfg", cfg_wanted)
+                notes.append("The USER.cfg choices will be saved once the game folder is found.")
+        self.save_settings(**{k: bool(given[k]) for k in ("live", "screenshots", "share", "board", "updates")
+                              if k in given})
         self.cfg["setup_version"] = self.SETUP_VERSION
         save_setting("setup_version", self.SETUP_VERSION)
         return " ".join(["All set. You can change any of these on the Set up tab."] + notes)
@@ -353,7 +391,8 @@ class App:
                 "share": bool(self.cfg.get("share_readings")), "board": bool(self.cfg.get("community_board")),
                 "share_status": c.share_status, "sent": c.sent, "sent_at": c.sent_at if c.sent else None,
                 "last_payload": c.last_payload,
-                "board_url": c.url, "board_error": c.board_error}
+                "board_url": c.url, "board_error": c.board_error,
+                "updates": bool(self.cfg.get("check_updates", True)), "update": self.updater.info()}
 
     # Settings the app can put in USER.cfg: name -> value to set
     CFG_SETTINGS = {"r_displayinfo": 3, "r_DisplaySessionInfo": 1}

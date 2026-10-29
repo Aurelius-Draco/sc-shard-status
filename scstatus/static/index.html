@@ -83,6 +83,11 @@ a.pill.plink { text-decoration: none; color: var(--text); border-color: var(--am
 a.pill.plink:hover { background: var(--amber-bg); }
 a.pill.plink.comm { border-color: var(--teal); }
 a.pill.plink.comm:hover { background: var(--teal-bg); }
+button.pill.upd { font: inherit; cursor: pointer; background: var(--amber-bg); border-color: var(--amber); color: var(--text); font-weight: 600; }
+button.pill.upd:hover { background: var(--amber); color: var(--on-amber, #1a1208); }
+.upbar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: var(--s2); }
+.upbar i { display: block; height: 100%; background: var(--amber); }
+.relnotes { white-space: pre-wrap; font-size: .8125rem; color: var(--muted); max-height: 14rem; overflow: auto; margin: var(--s2) 0 0; }
 
 /* Tabs */
 .tabbar { position: sticky; top: 0; z-index: 10; display: flex; height: 3rem; margin: var(--s5) calc(-1 * var(--s7)) 0; padding: 0 calc(var(--s7) - var(--s3)); overflow-x: auto; scrollbar-width: none; background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -157,7 +162,7 @@ select { background: var(--field); border: 1px solid var(--line2); border-radius
 .tips { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s2); }
 .notice { display: flex; gap: var(--s2); align-items: flex-start; margin: 0; padding: var(--s2) var(--s3); border: 1px solid var(--line2); border-left: 2px solid var(--amber); background: var(--raise); border-radius: var(--r-sm); font-size: .875rem; }
 .notice.rust { border-left-color: var(--rust); } .notice.teal { border-left-color: var(--teal); }
-.notice p { margin: 0; flex: 1; }
+.notice p, .notice .nt { margin: 0; flex: 1; }
 .shardline { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: center; font-size: .8125rem; color: var(--muted); }
 .shardline code { color: var(--text); }
 
@@ -332,6 +337,7 @@ table.switches td:last-child { white-space: nowrap; }
   <span class="grow"></span>
   <a class="pill plink comm" href="https://verseshards.com" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">Community site: verseshards.com</a>
   <a class="pill plink" href="https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest" target="_blank" rel="noopener" title="Free download on GitHub">Get SC Inventory Tracker</a>
+  <button type="button" class="pill plink upd" id="updPill" hidden></button>
   <span class="pill" id="shardPill"><i></i><span>No shard yet</span></span>
   <span class="pill" id="ovPill" title="Reading the game's debug overlay"><i></i><span>Overlay</span></span>
 </header>
@@ -407,8 +413,47 @@ function header(d) {
   op.querySelector("span").textContent = st === "reading" ? "Overlay: reading" : st === "off" ? "Overlay: off" : "Overlay: " + st.split(" (")[0];
   op.title = st;
   $("libCount").textContent = d.library && d.library.problem ? d.library.problem : "";
+  const u = d.update || {}, up = $("updPill");
+  up.hidden = !u.available;
+  if (u.available) up.textContent = u.state === "idle" || u.state === "failed" ? `Version ${u.latest} is out` : "Updating…";
+  if (u.state === "starting installer") waitForRestart();
   const dot = $("setupDot"); dot.hidden = !!d.game_found; dot.title = d.game_found ? "" : "Game folder not found";
 }
+
+/* ---------- updates ---------- */
+// The installed app updates itself in one click; a copy unzipped by hand is sent to the download page
+function updNotice(u) {
+  if (!u || !u.available) return "";
+  const busy = {downloading: `Downloading version ${esc(u.latest)}… ${Math.round((u.progress || 0) * 100)}%`,
+    verifying: "Checking the download…", "starting installer": "Installing. The app closes and starts again by itself; this page reloads when it's back."}[u.state];
+  if (busy) return `<div class="notice"><div class="nt"><b>${busy}</b>${u.state === "downloading" ? `<div class="upbar"><i style="width:${Math.round((u.progress || 0) * 100)}%"></i></div>` : ""}</div></div>`;
+  const notes = u.notes ? `<details class="ex" id="updNotes" ${notesOpen ? "open" : ""}><summary>What's new in ${esc(u.latest)}</summary><pre class="relnotes">${esc(u.notes)}</pre></details>` : "";
+  const err = u.state === "failed" && u.error ? `<br><span class="sub">${esc(u.error)}</span>` : "";
+  return u.can_install
+    ? `<div class="notice"><div class="nt"><b>Version ${esc(u.latest)} is out</b> (you have ${esc(u.current)}). Update now and the app closes, installs it and starts again in about a minute. Your settings and history stay as they are.${err}${notes}</div><button class="btn sm" data-upd="install">Update now</button></div>`
+    : `<div class="notice"><p><b>Version ${esc(u.latest)} is out</b> (you have ${esc(u.current)}). ${u.installed_app ? "" : "From this version on there's a proper installer that keeps itself up to date. Download it once and it brings your settings across from this folder by itself."}${err}${notes}</div><a class="btn sm" href="${esc(u.installed_app ? u.url : u.download_page)}" target="_blank" rel="noopener">${u.installed_app ? "Open the release" : "Get the installer"}</a></div>`;
+}
+let restartWatch = null, notesOpen = false;
+document.addEventListener("toggle", e => { if (e.target.id === "updNotes") notesOpen = e.target.open; }, true);
+function waitForRestart() {
+  if (restartWatch) return;
+  // The page is served with a new token each start, so a page without ours means the new version is up
+  restartWatch = setInterval(async () => {
+    try { const t = await (await fetch("/", {cache: "no-store"})).text(); if (!t.includes(TOKEN)) location.reload(); } catch (e) {}
+  }, 2000);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-upd],[data-dismiss],#updPill");
+  if (!b) return;
+  try {
+    if (b.id === "updPill") { show("setup"); setTimeout(() => $("updCard") && $("updCard").scrollIntoView({behavior: "smooth", block: "start"}), 150); return; }
+    if (b.dataset.dismiss) { await api("/api/dismiss", {what: b.dataset.dismiss}); b.closest(".notice").remove(); return; }
+    b.disabled = true;
+    if (b.dataset.upd === "install") { const u = await api("/api/update/install", {}); toast(`Downloading version ${u.latest}.`); }
+    if (b.dataset.upd === "check") { const u = await api("/api/update/check", {}); toast(u.error || (u.available ? `Version ${u.latest} is out.` : `You have the latest version (${u.current}).`), !!u.error); }
+    nowData = await api("/api/now"); header(nowData); if (tab === "now") renderNow(); else if (tab === "setup") renderSetup();
+  } catch (err) { toast(err.message, true); b.disabled = false; }
+});
 
 /* ---------- charts ---------- */
 function lineChart(el, pts, key, color, unit, label) {
@@ -481,6 +526,9 @@ async function renderNow() {
   const score = h.score, circ = 2 * Math.PI * 52, frac = score === null ? 0 : score / 100;
   const col = {good: "var(--teal)", ok: "var(--fresh)", poor: "var(--amber)", bad: "var(--rust)"}[h.cls] || "var(--line2)";
   const setup = [];
+  const un = updNotice(d.update);
+  if (un) setup.push(un);
+  if (d.migrated_from) setup.push(`<div class="notice teal"><p><b>Your settings and history came across</b> from the copy you unzipped before, in <code>${esc(d.migrated_from)}</code>. That folder isn't used any more, so delete it when you're ready.</p><button class="btn sm ghost" data-dismiss="migrated">Got it</button></div>`);
   if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game folder not found yet.</b> Start Star Citizen and the app picks it up by itself, or paste the folder on the Set up tab.</p><button class="btn sm" id="goSetup3">Set up</button></div>`);
   if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
     setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on. The Set up tab explains both settings.</p><button class="btn sm ghost" id="addCfg">Add to USER.cfg</button><button class="btn sm ghost" id="goSetup">Set up</button></div>`);
@@ -865,6 +913,12 @@ async function renderSetup() {
     <div class="swlist" id="commToggles"></div>
     <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
   </section>
+  <section class="sec frame setcard" id="updCard">
+    <h4>Updates</h4>
+    <p>The app asks GitHub whether there's a newer version a minute after it starts and every 6 hours after that. It only asks; nothing is sent about you, and nothing installs until you click Update now. The installed app then updates itself and starts again, keeping your settings and history.</p>
+    <div class="swlist" id="updToggles"></div>
+    <div id="updState" style="display:grid;gap:var(--s2);margin-top:var(--s3)"></div>
+  </section>
   <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. Before each change the app saves the file as it was to USER.cfg.bak. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
   $("gdSave").onclick = async () => {
     try { const r = await api("/api/gamedir", {path: $("gdPath").value}); toast(r.message); nowData = await api("/api/now"); renderSetup(); }
@@ -902,7 +956,17 @@ async function renderSetup() {
     clearTimeout(window.__commT); window.__commT = setTimeout(() => { if (tab === "setup") drawComm(); }, 15000);
   };
   drawComm();
-  $("redoWiz").onclick = openWizard;
+  const drawUpd = async () => {
+    if (!$("updToggles")) return;
+    const st = await api("/api/settings"), u = st.update || {};
+    $("updToggles").innerHTML = swRow("updates", "Check for new versions", st.updates,
+      st.updates ? (u.checked_at ? `On. Last checked ${ago(u.checked_at)}.` : "On. First check a minute after the app starts.") : "Off. You'll need to look on the site for new versions.");
+    bindRows($("updToggles"), drawUpd);
+    $("updState").innerHTML = `<div class="fa"><span>You have version <b>${esc(u.current)}</b>${u.installed_app ? "" : " (unzipped copy)"}${u.available ? `. Version <b>${esc(u.latest)}</b> is out.` : u.latest ? ", the latest." : "."}</span>
+      <button class="btn sm ghost" data-upd="check">Check now</button></div>${u.error && u.state !== "failed" ? `<p class="sub">${esc(u.error)}</p>` : ""}${updNotice(u)}`;
+  };
+  drawUpd();
+  $("redoWiz").onclick = () => openWizard(true);
   $("view").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => {
     try { const r = await api("/api/usercfg", {name: b.dataset.cfg, on: b.dataset.on === "1"}); toast(r.message); nowData = null; nowData = await api("/api/now"); renderSetup(); }
     catch (e) { toast(e.message, true); }
@@ -940,8 +1004,9 @@ async function renderAbout() {
 
 
 /* ---------- First-run questions: every setting is a yes or no the player answers once ---------- */
-async function openWizard() {
+async function openWizard(all) {
   const d = await api("/api/now"); const st = await api("/api/settings"); const u = d.user_cfg || {};
+  const ask = all ? null : d.setup_ask;
   const A = {};
   const yn = (key, yes = "Yes", no = "No") => `<div class="ans" data-q="${key}"><button type="button" data-v="1">${yes}</button><button type="button" data-v="0">${no}</button></div>`;
   const now = v => v === null || v === undefined ? "" : `<span class="now">Right now: ${v ? "on" : "off"}</span>`;
@@ -971,17 +1036,23 @@ async function openWizard() {
     ["share", "Community board", "Share your readings with the community board?",
       `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
       yn("share", "Yes, share", "No, don't share") + now(st.share)],
-  ];
+    ["updates", "This app", "Tell you when there's a new version?",
+      `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. Nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,
+      yn("updates", "Yes, tell me", "No, I'll check myself") + now(st.updates)],
+  ].filter(([k]) => !ask || ask.includes(k));
+  if (!qs.length) return;
+  const isNew = ask && ask.length && !ask.includes("game");
   const w = document.createElement("div");
   w.className = "wiz"; w.id = "wiz"; w.setAttribute("role", "dialog"); w.setAttribute("aria-modal", "true"); w.setAttribute("aria-labelledby", "wzTitle");
-  w.innerHTML = `<div class="box"><header><h2 id="wzTitle">Before you start: ${qs.length} quick questions</h2>
-    <p>Each one needs a yes or a no, so nothing gets missed. You can change any of them later on the Set up tab.</p></header>
+  const many = qs.length === 1 ? "1 new question" : `${qs.length} ${isNew ? "new " : ""}questions`;
+  w.innerHTML = `<div class="box"><header><h2 id="wzTitle">${isNew ? `This version brings ${many}` : `Before you start: ${qs.length} quick questions`}</h2>
+    <p>${isNew ? "Your earlier answers are kept. " : ""}Each one needs a yes or a no, so nothing gets missed. You can change any of them later on the Set up tab.</p></header>
     ${qs.map(([k, eb, h, p, a], i) => `<section class="wq" id="wq-${k}"><span class="qn">${i + 1} of ${qs.length} · ${eb}</span><h3>${h}</h3><p>${p}</p>${a}</section>`).join("")}
     <footer><span class="sub" id="wzLeft"></span><span class="grow"></span><button class="btn big" id="wzDone" disabled>Save and start</button></footer></div>`;
   document.body.appendChild(w);
   document.body.style.overflow = "hidden";
   const update = () => {
-    const pathOk = A.game !== "other" || ($("wzPath").value.trim().length > 2);
+    const pathOk = A.game !== "other" || ($("wzPath") && $("wzPath").value.trim().length > 2);
     const left = qs.filter(([k]) => A[k] === undefined || (k === "game" && !pathOk)).length;
     $("wzLeft").textContent = left ? `${left} still to answer` : "All answered.";
     $("wzDone").disabled = !!left;
@@ -994,7 +1065,7 @@ async function openWizard() {
     if (k === "game") { $("wzPathRow").hidden = A.game !== "other"; if (A.game === "other") $("wzPath").focus(); }
     update();
   }));
-  $("wzPath").oninput = update;
+  if ($("wzPath")) $("wzPath").oninput = update;
   $("wzDone").onclick = async () => {
     const choices = {...A, game: A.game === "other" ? $("wzPath").value.trim() : A.game};
     $("wzDone").disabled = true;

@@ -1,0 +1,100 @@
+name: installer
+# Builds the Windows installer (SC-Shard-Status-Setup-<version>.exe), tests it on a clean Windows machine,
+# and keeps it as a download on the run's page. The release workflow calls this too and attaches the result.
+on:
+  push:
+    branches: [next]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to attach the installer to"
+        type: string
+        required: true
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Version
+        run: |
+          $v = (Select-String -Path scstatus\config.py -Pattern '^VERSION = "(.+)"').Matches[0].Groups[1].Value
+          if ("${{ inputs.tag }}" -and "${{ inputs.tag }}".TrimStart("v") -ne $v) { throw "Tag ${{ inputs.tag }} doesn't match VERSION $v in config.py" }
+          "VER=$v" | Out-File -Append $env:GITHUB_ENV
+          Write-Host "Building $v"
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller pytest
+      - name: Tests (on Windows; the tests workflow is the one that has to pass)
+        continue-on-error: true
+        run: python -m pytest -q tests
+      - name: Download the OCR models so they're bundled
+        run: python -c "from rapidocr import RapidOCR; RapidOCR(); print('OCR ready')"
+      - name: Build the app folder
+        run: |
+          python installer\make_version_info.py $env:VER
+          pyinstaller --noconfirm --log-level WARN installer\sc-shard-status.spec
+      - name: Check the build reads the overlay
+        env:
+          SCSTATUS_DATA: ${{ runner.temp }}\selftest
+        run: |
+          & "dist\SC Shard Status\SC Shard Status.exe" --selftest tests\fixtures\overlay_4k_1.jpg
+          if ($LASTEXITCODE -ne 0) { throw "selftest failed" }
+      - name: Build the installer
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            $p = "${env:ProgramFiles(x86)}\Inno Setup 6"
+            if (-not (Test-Path "$p\ISCC.exe")) { choco install innosetup -y --no-progress | Out-Null }
+            $env:PATH = "$p;$env:PATH"
+          }
+          iscc /Qp "/DAppVersion=$env:VER" installer\sc-shard-status.iss
+          $exe = "dist\SC-Shard-Status-Setup-$env:VER.exe"
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  SC-Shard-Status-Setup-$env:VER.exe" | Out-File -Encoding ascii -NoNewline "$exe.sha256"
+          Get-Item $exe | Select-Object Name, Length
+      - name: Install it, start it, open the dashboard, uninstall it
+        env:
+          SCSTATUS_DATA: ${{ runner.temp }}\installtest
+        run: |
+          $dir = "$env:RUNNER_TEMP\SCSS"
+          Start-Process "dist\SC-Shard-Status-Setup-$env:VER.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/NOLAUNCH","/DIR=$dir" -Wait
+          if (-not (Test-Path "$dir\SC Shard Status.exe")) { throw "not installed" }
+          & "$dir\SC Shard Status.exe" --version
+          $p = Start-Process "$dir\SC Shard Status.exe" -ArgumentList "--no-browser","--no-overlay" -PassThru
+          $ok = $false
+          foreach ($i in 1..60) {
+            Start-Sleep 2
+            try { $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8775/ -TimeoutSec 5; if ($r.Content -match 'const TOKEN = "') { $ok = $true; break } } catch {}
+          }
+          Stop-Process -Id $p.Id -Force
+          if (-not $ok) { Get-Content "$env:SCSTATUS_DATA\status.log" -ErrorAction SilentlyContinue; throw "dashboard didn't come up" }
+          Write-Host "Dashboard came up."
+          Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait
+          # The uninstaller hands over to a copy of itself and returns straight away, so give it time to finish
+          foreach ($i in 1..30) { if (-not (Test-Path "$dir\SC Shard Status.exe")) { break }; Start-Sleep 1 }
+          if (Test-Path "$dir\SC Shard Status.exe") { throw "uninstall left the app behind" }
+          Write-Host "Uninstalled cleanly."
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SC-Shard-Status-Setup-${{ env.VER }}
+          path: |
+            dist/SC-Shard-Status-Setup-*.exe
+            dist/SC-Shard-Status-Setup-*.exe.sha256
+          retention-days: 14
+      - name: Attach to the release
+        if: ${{ inputs.tag }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ inputs.tag }}" "dist\SC-Shard-Status-Setup-$env:VER.exe" "dist\SC-Shard-Status-Setup-$env:VER.exe.sha256" --clobber

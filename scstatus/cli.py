@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-from .config import APP_NAME, VERSION, load_config, say
+from .config import APP_NAME, DATA, FROZEN, VERSION, load_config, say
 
 HELP = """
 Examples:
@@ -25,13 +25,30 @@ def main(argv=None):
     ap.add_argument("--check", action="store_true", help="print what's gone wrong and exit")
     ap.add_argument("--file", help="log file for --check (default: the current Game.log)")
     ap.add_argument("--minutes", type=int, help="how far back --check looks (0 = the whole log)")
+    ap.add_argument("--wait", action="store_true", help="wait for Enter before closing (the Start menu shortcuts)")
+    ap.add_argument("--after-update", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--selftest", metavar="IMAGE", help=argparse.SUPPRESS)
+    ap.add_argument("--version", action="version", version=f"{APP_NAME} {VERSION}")
     args = ap.parse_args(argv)
+    if args.selftest:
+        return selftest(args.selftest)
     cfg = load_config()
     if not cfg.get("game_dir"):
-        say("Couldn't find the StarCitizen\\LIVE folder. Put its path in data\\config.json (game_dir).")
+        say("Couldn't find the StarCitizen\\LIVE folder yet. Start the game and the app picks it up, or paste it on "
+            "the dashboard's Set up tab.")
     if args.check:
-        return check(cfg, args.file, args.minutes)
-    return live(cfg, overlay=not args.no_overlay, browser=cfg.get("open_browser", True) and not args.no_browser)
+        code = check(cfg, args.file, args.minutes)
+        if args.wait:
+            try:
+                input("\nPress Enter to close.")
+            except EOFError:
+                pass
+        return code
+    if args.after_update:
+        say(f"Updated to {VERSION}.")
+    # After an update the dashboard tab that's already open reloads itself, so don't open another one
+    browser = cfg.get("open_browser", True) and not args.no_browser and not args.after_update
+    return live(cfg, overlay=not args.no_overlay, browser=browser, after_update=args.after_update)
 
 
 def check(cfg, file=None, minutes=None):
@@ -68,11 +85,43 @@ def check(cfg, file=None, minutes=None):
     return 0
 
 
-def live(cfg, overlay=True, browser=True):
+def selftest(image):
+    """Checks a build has everything it needs: the OCR engine reads an overlay crop (from tests/fixtures), the known
+    issues library loads and the dashboard page is there. Used by the installer build before it ships."""
+    import json
+    import cv2
+    import numpy as np
+    from .dashboard import STATIC
+    from .issues import Library
+    from .overlay import OverlayReader
+    crop = cv2.imread(image)
+    if crop is None:
+        print(f"Can't open {image}")
+        return 2
+    frame = np.full((2160, 3840, 3), 18, np.uint8)
+    frame[0:crop.shape[0], 3840 - crop.shape[1]:3840] = crop
+    snap = OverlayReader().read(frame)
+    lib = Library()
+    out = {"version": VERSION, "frozen": FROZEN, "data": str(DATA), "shard_id": snap.get("shard_id"),
+           "server_fps": snap.get("server_fps"), "library": lib.version, "rules": len(lib.listing()),
+           "dashboard": (STATIC / "index.html").is_file()}
+    print(json.dumps(out, indent=2))
+    ok = out["shard_id"] and out["server_fps"] is not None and out["rules"] > 0 and out["dashboard"]
+    print("SELFTEST OK" if ok else "SELFTEST FAILED")
+    return 0 if ok else 1
+
+
+def live(cfg, overlay=True, browser=True, after_update=False):
     import webbrowser
     from .app import App
     from .dashboard import already_running, start_server
     url = already_running(int(cfg.get("dashboard_port", 8775)))
+    # Started by the installer straight after an update: give the old copy a moment to finish closing
+    for _ in range(15 if after_update else 0):
+        if not url:
+            break
+        time.sleep(1)
+        url = already_running(int(cfg.get("dashboard_port", 8775)))
     if url:
         say(f"SC Shard Status is already running. Opening its dashboard: {url}")
         webbrowser.open(url)
@@ -91,8 +140,8 @@ def live(cfg, overlay=True, browser=True):
     say("Close this window (or press Ctrl+C) to stop.")
     last = 0
     try:
-        while True:
-            time.sleep(5)
+        while not app.stop.is_set():
+            app.stop.wait(5)
             if time.time() - last >= 60:
                 last = time.time()
                 a = score.assess(list(app.snaps))
@@ -104,5 +153,5 @@ def live(cfg, overlay=True, browser=True):
         pass
     app.stop.set()
     server.shutdown()
-    say("Stopped.")
+    say("Closed for the update." if app.quitting else "Stopped.")
     return 0

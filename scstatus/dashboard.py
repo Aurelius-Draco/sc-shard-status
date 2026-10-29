@@ -163,15 +163,22 @@ def handle_post(app, path, body):
     if path == "/api/gamedir":
         return {"message": app.set_game_dir(body.get("path", "")), "game_dir": app.cfg["game_dir"]}
     if path == "/api/settings":
-        return {"message": app.save_settings(body.get("live"), body.get("screenshots"), body.get("share"), body.get("board")),
+        return {"message": app.save_settings(body.get("live"), body.get("screenshots"), body.get("share"), body.get("board"),
+                                             body.get("updates")),
                 "settings": app.settings()}
+    if path == "/api/update/check":
+        return app.updater.check()
+    if path == "/api/update/install":
+        return app.updater.install(app.quit)
+    if path == "/api/dismiss":
+        return {"message": app.dismiss(body.get("what", ""))}
     if path == "/api/open":
         from .app import open_folder
         from .config import DATA
         target = {"data": DATA, "reports": DATA / "reports"}.get(body.get("what"))
         if target is None:
             raise ValueError("unknown folder")
-        target.mkdir(exist_ok=True)
+        target.mkdir(parents=True, exist_ok=True)
         open_folder(target)
         return {"ok": True}
     raise ValueError("unknown action")

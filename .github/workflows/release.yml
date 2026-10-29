@@ -25,7 +25,7 @@ jobs:
           VER="${TAG#v}"
           git archive --format=zip --prefix=SC-Shard-Status/ -o "SC-Shard-Status-${VER}.zip" HEAD
           awk -v v="## ${VER}" 'index($0, v)==1 {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
-          printf '\n**Install:** download `SC-Shard-Status-%s.zip` below, unzip it anywhere and double-click **Setup.bat**. Full instructions are in the README.\n' "$VER" >> notes.md
+          printf '\n**Install:** download `SC-Shard-Status-Setup-%s.exe` below and run it. Windows may say it protected your PC the first time: click **More info**, then **Run anyway**. Already have it? The app offers the update itself.\n\nPrefer to run it from source? `SC-Shard-Status-%s.zip` is the same app for Python 3.12 or 3.13: unzip it and double-click **Setup.bat**.\n' "$VER" "$VER" >> notes.md
           echo "VER=$VER" >> "$GITHUB_ENV"
       - name: Publish
         env:
@@ -41,3 +41,9 @@ jobs:
           else
             gh release create "$TAG" "$ZIP" --title "SC Shard Status ${VER}" --notes-file notes.md
           fi
+  # The Windows installer, built and tested on a clean Windows machine, then attached to the same release
+  installer:
+    needs: release
+    uses: ./.github/workflows/installer.yml
+    with:
+      tag: ${{ github.ref_name }}

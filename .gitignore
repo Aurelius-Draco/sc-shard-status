@@ -12,3 +12,4 @@ dist/
 
 # Shortcuts Setup.bat makes on your PC
 *.lnk
+installer/version_info.txt

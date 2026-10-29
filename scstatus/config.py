@@ -5,6 +5,7 @@ import json
 import os
 import re
 import string
+import sys
 from pathlib import Path
 
 VERSION = "1.0.1"
@@ -14,9 +15,26 @@ APP_NAME = "SC Shard Status"
 AUTHOR = "Aurelius_Draco"
 REPO = "https://github.com/Aurelius-Draco/sc-shard-status"
 
-# The tool's own folder (where status.py lives) and its data folder
-HERE = Path(__file__).resolve().parent.parent
-DATA = HERE / "data"
+# Running from the Windows installer's build (PyInstaller) rather than from the source folder
+FROZEN = bool(getattr(sys, "frozen", False))
+# The tool's own folder (where status.py or SC Shard Status.exe lives)
+HERE = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent.parent
+
+
+def _data_dir():
+    """Where settings, the database and reports live. The source copy keeps them in its own data folder. The installed
+    app keeps them in %LOCALAPPDATA%\\SC Shard Status, outside the program folder, so updating or reinstalling
+    never touches them. SCSTATUS_DATA overrides both (tests, and the installer's build check)."""
+    env = os.environ.get("SCSTATUS_DATA")
+    if env:
+        return Path(env)
+    if FROZEN:
+        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        return Path(base) / APP_NAME
+    return HERE / "data"
+
+
+DATA = _data_dir()
 LIBRARY = Path(__file__).resolve().parent / "library" / "issues.json"
 
 DEFAULT_CONFIG = {
@@ -46,6 +64,8 @@ DEFAULT_CONFIG = {
     "open_browser": True,
     # Add r_displayinfo to the game's USER.cfg when it's missing (asks first)
     "offer_user_cfg": True,
+    # Check GitHub for a newer version (once at start, then every 6 hours). Nothing installs until you click Update.
+    "check_updates": True,
 }
 
 
@@ -54,7 +74,7 @@ def say(msg):
     line = f"[{dt.datetime.now():%H:%M:%S}] {msg}"
     print(line, flush=True)
     try:
-        DATA.mkdir(exist_ok=True)
+        DATA.mkdir(parents=True, exist_ok=True)
         log = DATA / "status.log"
         if log.exists() and log.stat().st_size > 2_000_000:
             log.replace(DATA / "status.old.log")
@@ -164,11 +184,15 @@ def _lenient_json(text):
 
 def load_config():
     try:
-        DATA.mkdir(exist_ok=True)
+        DATA.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         raise SystemExit(f"Can't write to {DATA} ({e}). Move the SC Shard Status folder somewhere you can write to, "
                          "such as next to your StarCitizen folder or in Documents, and run Setup.bat again.")
     cfg_path = DATA / "config.json"
+    if FROZEN and not cfg_path.exists():
+        # First start of the installed app: bring settings and history across from a zip copy, if there is one
+        from .migrate import migrate_old_install
+        migrate_old_install(DATA)
     cfg = json.loads(json.dumps(DEFAULT_CONFIG))
     broken = False
     if cfg_path.exists():
@@ -176,7 +200,7 @@ def load_config():
             cfg.update(_lenient_json(cfg_path.read_text(encoding="utf-8-sig")))
         except Exception as e:
             broken = True
-            say(f"Couldn't read data\\config.json ({e}). Using the defaults for now; your file is left as it is. "
+            say(f"Couldn't read {cfg_path} ({e}). Using the defaults for now; your file is left as it is. "
                 "Check for a missing comma or quote.")
     if not broken:
         try:
@@ -185,7 +209,7 @@ def load_config():
             pass
     if not cfg.get("game_dir") or not _is_game_dir(cfg["game_dir"]):
         if cfg.get("game_dir"):
-            say(f"No Game.log in {cfg['game_dir']} (game_dir in data\\config.json). Looking in the usual places.")
+            say(f"No Game.log in {cfg['game_dir']} (game_dir in {cfg_path}). Looking in the usual places.")
         found = find_game_dir()
         cfg["game_dir"] = str(found) if found else ""
     return cfg
