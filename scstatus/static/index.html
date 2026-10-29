@@ -81,6 +81,8 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3)
 .top .grow { flex: 1; }
 a.pill.plink { text-decoration: none; color: var(--text); border-color: var(--amber-line); }
 a.pill.plink:hover { background: var(--amber-bg); }
+a.pill.plink.comm { border-color: var(--teal); }
+a.pill.plink.comm:hover { background: var(--teal-bg); }
 
 /* Tabs */
 .tabbar { position: sticky; top: 0; z-index: 10; display: flex; height: 3rem; margin: var(--s5) calc(-1 * var(--s7)) 0; padding: 0 calc(var(--s7) - var(--s3)); overflow-x: auto; scrollbar-width: none; background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -318,6 +320,7 @@ table.switches td:last-child { white-space: nowrap; }
     <div><h1>Shard status</h1><p>SC Shard Status v__VERSION__ · by Aurelius_Draco</p></div>
   </div>
   <span class="grow"></span>
+  <a class="pill plink comm" href="https://verseshards.com" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">Community site: verseshards.com</a>
   <a class="pill plink" href="https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest" target="_blank" rel="noopener" title="Free download on GitHub">Get SC Inventory Tracker</a>
   <span class="pill" id="shardPill"><i></i><span>No shard yet</span></span>
   <span class="pill" id="ovPill" title="Reading the game's debug overlay"><i></i><span>Overlay</span></span>
@@ -745,7 +748,7 @@ async function renderPC() {
 
 /* ---------- Known issues ---------- */
 // Library text has blanks the app fills from the log line ({item_name}); in the list, show them as plain words
-const COMMUNITY_SITE = "https://sc-shard-status.aurelius-draco.workers.dev";
+const COMMUNITY_SITE = "https://verseshards.com";
 const BLANKS = {item_name: "an item", vehicle: "a ship", task: "a step", which: "", seconds: "N", metres: "N",
   pct: "N", commit_mb: "N", left_mb: "N", from: "one point", to: "another", manager: "", reason: "the reason given"};
 function generic(t) {

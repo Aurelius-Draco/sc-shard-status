@@ -10,7 +10,7 @@ It reads two things the game already gives you: the debug overlay (`r_displayinf
 - **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
 - **My PC.** Your hardware and the game's own CPU and GPU test results from every launch, plus your frame rate by location.
 
-**Live community board:** https://sc-shard-status.aurelius-draco.workers.dev shows the health of every shard players are reporting from, and a page for every known issue with Issue Council links, workarounds and votes.
+**Live community board:** https://verseshards.com shows the health of every shard players are reporting from, and a page for every known issue with Issue Council links, workarounds and votes.
 
 By Aurelius_Draco. Also by me: [SC Inventory Tracker](https://github.com/Aurelius-Draco/sc-inventory-tracker), which keeps track of what you've stored at every station.
 
@@ -117,7 +117,7 @@ What the app recognises lives in `scstatus/library/issues.json`: each entry is a
 
 ## Community board
 
-https://sc-shard-status.aurelius-draco.workers.dev
+https://verseshards.com
 
 - **Shard board:** live health for every shard players are reporting from, best first in each region, so you know where to server hop.
 - **Known issues:** a page for each issue the app recognises. Press "I had this too", add the Issue Council report so others can upvote it, and post workarounds that others mark as worked or didn't work. The app's "What's gone wrong?" links each finding to its page.

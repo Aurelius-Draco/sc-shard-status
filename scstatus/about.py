@@ -7,6 +7,9 @@ AUTHOR = {
 }
 
 LINKS = [
+    {"icon": "citizen", "title": "Community site", "text": "verseshards.com",
+     "url": "https://verseshards.com",
+     "about": "Live shard board, a page for every known issue, Issue Council links to upvote and workarounds that worked."},
     {"icon": "citizen", "title": "Citizen page", "text": "Aurelius_Draco on RSI",
      "url": "https://robertsspaceindustries.com/en/citizens/Aurelius_Draco",
      "about": "Add me as a friend or send me a message in game."},

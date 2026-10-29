@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- The community site has its own address: https://verseshards.com. Linked from the top of every page in the app, the About tab and each finding in "What's gone wrong?".
+
 ## 1.0
 
 First release.
