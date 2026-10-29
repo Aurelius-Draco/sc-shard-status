@@ -75,18 +75,22 @@ class Library:
 
     @staticmethod
     def _pick():
+        """The shipped library, unless data\\issues.json is a newer dated version (YYYY-MM-DD.n)."""
         local = DATA / "issues.json"
-        if local.exists() and not LIBRARY.exists():
+        if not local.exists():
+            return LIBRARY
+        if not LIBRARY.exists():
             return local
-        if local.exists():
+
+        def ver(p):
             try:
-                lv = json.loads(local.read_text(encoding="utf-8")).get("version", "")
-                sv = json.loads(LIBRARY.read_text(encoding="utf-8")).get("version", "")
-                if lv >= sv:
-                    return local
+                v = json.loads(p.read_text(encoding="utf-8")).get("version", "")
             except Exception:
-                pass
-        return LIBRARY
+                return None
+            m = re.fullmatch(r"(\d{4}-\d\d-\d\d)(?:\.(\d+))?", v or "")
+            return (m.group(1), int(m.group(2) or 0)) if m else None
+        lv, sv = ver(local), ver(LIBRARY)
+        return local if lv and (not sv or lv > sv) else LIBRARY
 
     def match(self, level, tag, msg):
         """First rule that matches this line: (rule, fields) or (None, None)."""

@@ -13,23 +13,56 @@ from collections import Counter
 
 GUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 HEX32 = re.compile(r"\b[0-9a-fA-F]{32}\b")
-IP = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b")
+IP = re.compile(r"\b(?!0\.0\.0\.0\b|127\.0\.0\.1\b)\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b")
+IPV6 = re.compile(r"\[?\b(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{0,4}(?:%\w+)?\]?(?:/\d+)?")
 LONG_NUM = re.compile(r"\b\d{6,}\b")
 URL = re.compile(r"https?://\S+")
-WIN_PATH = re.compile(r"[A-Za-z]:\\[^\s\"']+")
+WIN_PATH = re.compile(r"[A-Za-z]:[\\/][^\s\"']+")
+USERS_DIR = re.compile(r"([\\/]Users[\\/])[^\\/\s\"']+", re.I)
+HOSTNAME = re.compile(r"(<Hostname>\s*Name:\s*)[^,]+(,\s*Hostname:\s*)\S+")
+WINUSER_FORMS = [re.compile(r"(for user ')[^']+(')"), re.compile(r"(\busername )\S+()")]
+COMPUTER = re.compile(r"\b(Computer ?Name|Hostname|Machine ?Name|Host ?Name)(\s*[:=]\s*)\S+", re.I)
 
-# Places a name sits in a log line
+_N = r"([A-Za-z0-9_\-]{3,40})"
+# Places a handle sits in a log line (own and other players'), from 76 real logs (docs/log-findings.md)
 NAME_FORMS = [
-    re.compile(r"'([A-Za-z0-9_\-]{3,32})'\s*\[\d+\]"),
-    re.compile(r"\b(?:Player|player|Owner|owner|nickname|Nickname|Handle|handle|"
-               r"AccountName|accountName)\s*[\[=:]\s*'?([A-Za-z0-9_\-]{3,32})"),
-    re.compile(r"CommunicationFinished\[([A-Za-z0-9_\-]{3,32})\]"),
-    re.compile(r"channel '[^':]*: ?([A-Za-z0-9_\-]{3,32})'"),
-    re.compile(r"\bfrom ([A-Za-z0-9_\-]{3,32}) \["),
+    re.compile(r"'" + _N + r"'\s*\[\d+\]"),
+    re.compile(r'nickname="' + _N + '"'),
+    re.compile(r"\bHandle\[" + _N + r"\]"),
+    re.compile(r"\b(?:Player|player|User|Owner|owner|AccountName|accountName)\s*[\[=:]\s*'?" + _N),
+    re.compile(r"\b(?:Player|player) \[" + _N + r"\]"),
+    re.compile(r"\bfor '" + _N + r"'"),
+    re.compile(r"\bActor '" + _N + r"'"),
+    re.compile(r"\bActor: " + _N + r" \(Non-Authoritative CLIENT: " + _N + r"\)"),
+    re.compile(r"\blocalClient \[" + _N + r"\]"),
+    re.compile(r"\b(?:on entity|owned by) '" + _N + r"'"),
+    re.compile(r'entityName="' + _N + '"'),
+    re.compile(r"^" + _N + r"\[\d+\] - CSCLocalPlayer"),
+    re.compile(r"LandingArea: " + _N + r"'s"),
+    re.compile(r"\bPlayer: " + _N + r" ?\["),
+    re.compile(r"- name " + _N + r" - state"),
+    re.compile(r"\bPlayer " + _N + r"\[\d+\] (?:entered|exited|triggered)"),
+    re.compile(r"\b(?:User|Client): " + _N + r","),
+    re.compile(r"CommunicationFinished\[" + _N + r"\]"),
+    re.compile(r"channel '[^':]*: ?" + _N + r"'"),
+    re.compile(r"\bfrom " + _N + r" \["),
+    # notification text (other players)
+    re.compile(r"New Member Joined\W+" + _N + r" has joined"),
+    re.compile(r"Member Left\W+" + _N + r" has left"),
+    re.compile(r"^\W*" + _N + r"\W+Party Invite Received", re.M),
+    re.compile(r"^\W*" + _N + r"\W+Friend Request", re.M),
+    re.compile(r"Friend Added\W+" + _N),
+    re.compile(r"New Party Leader\W+" + _N + r" is now party leader"),
+    re.compile(r"Invitation Declined\W+" + _N + r" has declined"),
+    re.compile(_N + r" wants to send you [\d,]+ UEC"),
+    re.compile(_N + r" has sent you"),
+    re.compile(r"You sent " + _N),
+    re.compile(r"Quantum Travel Calibration (?:Started|Complete) By " + _N),
+    re.compile(_N + r" has started to QT to your current location"),
 ]
 NOT_NAMES = {"NULL", "null", "INVALID", "None", "none", "Unknown", "unknown", "local", "Default", "Local"}
 # Entity and system names that sit in the same spots as handles
-NOT_NAME_RX = re.compile(r"(_\d{3,}$|^\d|^(Team_|ui_|PU_|ATC_|ORIG_|AEGS_|ANVL_|DRAK_|MISC_|RSI_|CRUS_|ARGO_|"
+NOT_NAME_RX = re.compile(r"(_\d{6,}$|^\d|^(Team_|ui_|PU_|ATC_|ORIG_|AEGS_|ANVL_|DRAK_|MISC_|RSI_|CRUS_|ARGO_|"
                          r"Shared_|Default_|Vehicle_|Loadout|Entity|Object|Item_|Inventory|Container|Location))", re.I)
 
 
@@ -44,10 +77,18 @@ def find_handles(lines):
     for line in lines:
         for rx in NAME_FORMS:
             for m in rx.finditer(line):
-                n = m.group(1)
-                if _is_name(n):
-                    c[n] += 1
+                for n in m.groups():
+                    if n and _is_name(n):
+                        c[n] += 1
     return [n for n, _ in c.most_common()]
+
+
+def _blank_names(m):
+    out = m.group(0)
+    for n in m.groups():
+        if n and _is_name(n) and not n.startswith("<"):
+            out = re.sub(r"(?<![A-Za-z0-9_<])" + re.escape(n) + r"(?![A-Za-z0-9_>])", "<PLAYER>", out)
+    return out
 
 
 class Redactor:
@@ -62,23 +103,35 @@ class Redactor:
 
     @classmethod
     def from_lines(cls, lines, own_handle=None):
+        """own_handle may be one name or a list (players can rename; the log keeps both)."""
         found = find_handles(lines)
-        if own_handle:
-            found = [own_handle] + [h for h in found if h != own_handle]
-        return cls(found)
+        own = [own_handle] if isinstance(own_handle, str) else list(own_handle or [])
+        if not own:
+            own = [m.group(1) for line in lines for m in re.finditer(r"\bHandle\[([^\]]+)\]", line)]
+        own = list(dict.fromkeys(own))
+        rest = [h for h in found if h not in own]
+        r = cls(own + rest)
+        for h in own[1:]:
+            r.names[h] = "<YOU>"
+        return r
 
     def line(self, s):
         if not s:
             return s
         s = URL.sub("<URL>", s)
+        s = HOSTNAME.sub(r"\1<PC>\2<PC>", s)
+        s = COMPUTER.sub(r"\1\2<PC>", s)
+        s = USERS_DIR.sub(r"\1<WINUSER>", s)
+        for rx in WINUSER_FORMS:
+            s = rx.sub(r"\1<WINUSER>\2", s)
         s = WIN_PATH.sub("<PATH>", s)
         if self._rx:
             s = self._rx.sub(lambda m: self.names.get(m.group(1), "<PLAYER>"), s)
         for rx in NAME_FORMS:      # names not in the list (seen for the first time)
-            s = rx.sub(lambda m: m.group(0).replace(m.group(1), "<PLAYER>")
-                       if _is_name(m.group(1)) and not m.group(1).startswith("<") else m.group(0), s)
+            s = rx.sub(_blank_names, s)
         s = GUID.sub("<GUID>", s)
         s = HEX32.sub("<HEX>", s)
+        s = IPV6.sub("<IP>", s)
         s = IP.sub("<IP>", s)
         s = LONG_NUM.sub("<ID>", s)
         return s
@@ -93,7 +146,7 @@ def leaks(text, handles):
     for h in handles:
         if h and re.search(r"(?<![A-Za-z0-9_])" + re.escape(h) + r"(?![A-Za-z0-9_])", text):
             out.append(f"handle {h}")
-    for rx, what in ((GUID, "guid"), (IP, "ip address"), (LONG_NUM, "long number")):
+    for rx, what in ((GUID, "guid"), (IP, "ip address"), (LONG_NUM, "long number"), (USERS_DIR, "windows user")):
         if rx.search(text):
             out.append(what)
     return out

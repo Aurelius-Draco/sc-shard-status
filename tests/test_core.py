@@ -25,6 +25,11 @@ def test_session_basics():
     assert d["load_s"] == 55 and d["clean_exit"] and d["bad_disconnects"] == 0
     names = [c["name"] for c in d["contracts"]]
     assert names.count("Very Hungry") == 2
+    vh = [c for c in d["contracts"] if c["name"] == "Very Hungry"]
+    assert vh[0]["result"] == "abandoned" and vh[1]["result"] == "active"
+    arrive = next(c for c in d["contracts"] if c["name"].startswith("Wikelo Arrive"))
+    assert arrive["objectives"]["dropoff_x_0"]["state"] == "complete"     # joined multi-line notification
+    assert d["freight_cycles"] == 2 and d["quit"]["exit_code"] == 0 and d["crash"] is None
 
 
 def test_nested_tag_and_team_strip():
@@ -44,9 +49,13 @@ def test_diagnose_links_contract_to_cargo_error():
     s = parse_file(LOG)
     r = diagnose(LOG, LIB, Names(GAME), lookback_min=300, now=s.end + 1, session=s)
     top = r["findings"][0]
-    assert top["severity"] == "high" and "Very Hungry" in top["title"]
-    assert "Berry Blend Smoothie" in top["title"] and top["examples"]
+    assert top["severity"] == "high" and top["title"] == '"Very Hungry": deliveries never counted'
+    assert "Berry Blend Smoothie" in top["explain"] and "isn't the cause" in top["explain"] and top["examples"]
+    assert top["fields"]["elevator_cycles"] == 2 and top["fields"]["times_accepted"] == 2
     assert r["noise_lines"] == 1
+    # the [SPAM n] line is read too
+    cargo = next(f for f in r["findings"] if f["rule_id"] == "cargo-no-resource-container" and f["fields"].get("item_name") == "Berry Blend Smoothie")
+    assert cargo["count"] == 2
     assert any(u["area"] == "CEntityComponentFreightElevatorUIProvider::FillUnstowRequest" for u in r["unknown"])
 
 
@@ -55,7 +64,10 @@ def test_report_has_disclaimer_and_steps():
     r = diagnose(LOG, LIB, Names(GAME), lookback_min=300, now=s.end + 1, session=s)
     d = report.draft(r["findings"][0], r, {"server_fps": 21.8, "pop_shard": 435, "pop_srv": 34, "ping_ms": 24})
     assert "Aurelius_Draco" in d["body"] and "Reviewed and submitted by the player" in d["body"]
-    assert "Accept the contract \"Very Hungry\"" in d["body"] and len(d["title"]) <= 120
+    assert "1. Accept the contract \"Very Hungry\"" in d["body"] and len(d["title"]) <= 120
+    secs = {x["key"]: x for x in d["sections"]}
+    assert secs["steps"]["steps"][0] == "Accept the contract \"Very Hungry\"." and len(secs["steps"]["steps"]) == 4
+    assert secs["summary"]["text"].endswith("Reviewed and submitted by the player.")
 
 
 def test_redaction_removes_names_ids_ips():

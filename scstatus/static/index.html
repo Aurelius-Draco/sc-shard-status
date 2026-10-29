@@ -79,6 +79,8 @@ header.top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3)
 .pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--line2); }
 .pill.on i { background: var(--teal); } .pill.warn i { background: var(--amber); }
 .top .grow { flex: 1; }
+a.pill.plink { text-decoration: none; color: var(--text); border-color: var(--amber-line); }
+a.pill.plink:hover { background: var(--amber-bg); }
 
 /* Tabs */
 .tabbar { position: sticky; top: 0; z-index: 10; display: flex; height: 3rem; margin: var(--s5) calc(-1 * var(--s7)) 0; padding: 0 calc(var(--s7) - var(--s3)); overflow-x: auto; scrollbar-width: none; background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -203,6 +205,18 @@ td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
 .db { padding: var(--s4) var(--s6) 3rem; display: grid; gap: var(--s4); }
 .db textarea { width: 100%; min-height: 26rem; background: var(--field); border: 1px solid var(--line2); border-radius: var(--r-sm); padding: var(--s3); font: .8125rem/1.5 var(--mono); color: var(--text); resize: vertical; }
 .steps { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--s1); }
+.rsec { display: grid; gap: var(--s2); padding-top: var(--s3); border-top: 1px solid var(--line); }
+.rhd { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.rhd h4 { margin: 0; font-size: .75rem; font-weight: 700; color: var(--muted); font-stretch: semi-condensed; text-transform: uppercase; letter-spacing: .07em; }
+.db textarea.rta { min-height: 4.5rem; resize: vertical; font: .875rem/1.5 var(--font); overflow: hidden; }
+.db textarea.rta.one { min-height: 0; font-weight: 600; }
+.steps-ed { display: grid; gap: var(--s2); }
+.rsec > .link { justify-self: start; }
+.steprow { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto auto; gap: var(--s2); align-items: center; }
+.steprow .sn { width: 1.75rem; height: 1.75rem; display: grid; place-items: center; border-radius: 50%; background: var(--raise2); color: var(--amber); font-weight: 700; font-size: .8125rem; }
+.steprow .inp { min-width: 0; width: 100%; }
+.iconx { width: var(--h-sm); height: var(--h-sm); background: none; border: 0; color: var(--muted); border-radius: var(--r-sm); }
+.iconx:hover { color: var(--rust); background: var(--hover); }
 
 /* Library */
 .lib { display: grid; gap: var(--s2); margin-top: var(--s3); }
@@ -219,9 +233,27 @@ td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
 .tile:hover { border-color: var(--amber-line); color: var(--text); }
 .tile b { font-size: 1rem; } .tile span { color: var(--muted); font-size: .875rem; }
 .tile .go { color: var(--teal); font-weight: 600; font-size: .875rem; }
+.promo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--s5); align-items: center; padding: var(--s4) var(--s5); text-decoration: none; color: var(--text); }
+.promo:hover { border-color: var(--amber-line); color: var(--text); }
+.promo b { font-size: 1.0625rem; } .promo > span:not(.btn) { grid-column: 1; color: var(--muted); font-size: .875rem; }
+.promo .eyebrow { color: var(--amber); }
+.promo .btn { grid-column: 2; grid-row: 1 / span 3; }
+.setcard { padding: var(--s5); display: grid; gap: var(--s3); }
+.setcard h4 { margin: 0; font-size: 1.0625rem; }
+.setcard p { margin: 0; max-width: 80ch; }
+.cmd { display: inline-flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); background: var(--well); border: 1px solid var(--line2); border-radius: var(--r-sm); font: 1rem var(--mono); color: var(--text); justify-self: start; }
+.state { display: inline-flex; align-items: center; gap: var(--s2); font-size: .875rem; font-weight: 600; }
+.state i { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); }
+.state.on { color: var(--teal); } .state.on i { background: var(--teal); }
 .rules { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--s2); max-width: 85ch; }
 .foot { margin-top: var(--s7); color: var(--muted); font-size: .8125rem; display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
 
+.chipt { display: inline-flex; align-items: center; gap: var(--s2); height: var(--h); padding: 0 var(--s3) 0 var(--s2); border: 1px solid var(--line2); border-radius: var(--r-sm); background: var(--field); font-size: .875rem; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
+.chipt:hover { color: var(--text); border-color: var(--muted); }
+.chipt input { appearance: none; -webkit-appearance: none; flex: none; width: 14px; height: 14px; margin: 0; border: 1.5px solid var(--line2); border-radius: 2px; background: var(--field); }
+.chipt input:checked { background: var(--amber); border-color: var(--amber); box-shadow: inset 0 0 0 2px var(--field); }
+.chipt:has(input:checked) { color: var(--text); border-color: var(--amber-line); }
+.chipt:has(input:focus-visible) { outline: 2px solid var(--amber); outline-offset: 2px; }
 .toast { position: fixed; left: 50%; bottom: var(--s5); transform: translateX(-50%); z-index: 30; padding: var(--s3) var(--s5); background: var(--raise2); border: 1px solid var(--line2); border-left: 3px solid var(--teal); border-radius: var(--r-sm); box-shadow: var(--shadow); max-width: min(40rem, 90vw); }
 .toast.err { border-left-color: var(--rust); }
 .empty { margin-top: var(--s4); padding: var(--s7) var(--s6); text-align: center; border: 1px dashed var(--line2); border-radius: var(--r); color: var(--muted); }
@@ -248,6 +280,7 @@ td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
     <div><h1>Shard status</h1><p>SC Shard Status v__VERSION__ · by Aurelius_Draco</p></div>
   </div>
   <span class="grow"></span>
+  <a class="pill plink" href="https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest" target="_blank" rel="noopener" title="Free download on GitHub">Get SC Inventory Tracker</a>
   <span class="pill" id="shardPill"><i></i><span>No shard yet</span></span>
   <span class="pill" id="ovPill" title="Reading the game's debug overlay"><i></i><span>Overlay</span></span>
 </header>
@@ -258,7 +291,8 @@ td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
   <button role="tab" data-tab="history">History</button>
   <button role="tab" data-tab="pc">My PC</button>
   <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
-  <button role="tab" data-tab="about" class="t2">About</button>
+  <button role="tab" data-tab="setup" class="t2">Set up</button>
+  <button role="tab" data-tab="about">About</button>
 </nav>
 
 <main id="view"></main>
@@ -300,7 +334,7 @@ function show(t) {
   try { sessionStorage.setItem("tab", t); } catch (e) {}
   document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
   clearInterval(timer);
-  ({now: renderNow, check: renderCheck, history: renderHistory, pc: renderPC, issues: renderIssues, about: renderAbout}[t] || renderNow)();
+  ({now: renderNow, check: renderCheck, history: renderHistory, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow)();
   if (t === "now") timer = setInterval(renderNow, 5000);
 }
 
@@ -390,7 +424,7 @@ async function renderNow() {
   const setup = [];
   if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game.log not found.</b> Set <code>game_dir</code> in <code>data\\config.json</code> to your StarCitizen\\LIVE folder, then restart.</p></div>`);
   if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
-    setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on.</p><button class="btn sm ghost" id="addCfg">Add to USER.cfg</button></div>`);
+    setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on. The Set up tab explains both settings.</p><button class="btn sm ghost" id="addCfg">Add to USER.cfg</button><button class="btn sm ghost" id="goSetup">Set up</button></div>`);
   const cmp = d.compare;
   const cmpTxt = cmp ? `${Math.abs(cmp.diff_pct)}% ${cmp.diff_pct >= 0 ? "above" : "below"} your usual ${cmp.your_median} fps on this patch` : "";
   $("view").innerHTML = `
@@ -439,11 +473,16 @@ async function renderNow() {
       ${d.contracts && d.contracts.length ? `<ul class="steps" style="margin-top:var(--s2)">${d.contracts.map(c => `<li><b>${esc(c.name)}</b>${c.times > 1 ? ` <span class="sub">taken ${c.times} times</span>` : ""}${Object.values(c.objectives || {}).length ? `<div class="sub">${Object.values(c.objectives).map(o => esc(o.text) + (o.state === "complete" ? " ✓" : "")).join("<br>")}</div>` : ""}</li>`).join("")}</ul>` : `<p class="sub">None accepted this session.</p>`}
     </div>
   </section>
+  <section class="sec"><a class="frame promo" href="https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest" target="_blank" rel="noopener">
+    <span class="eyebrow">Also by Aurelius_Draco</span><b>SC Inventory Tracker</b>
+    <span>Keeps track of what you've stored at every station: scans the storage kiosk, follows Game.log, wish lists with where to buy or craft, ship fittings. Free.</span>
+    <span class="btn sm">Download from GitHub</span></a></section>
   <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
   lineChart($("cFps"), d.spark, "server_fps", "var(--amber)", "fps", "Server fps");
   lineChart($("cPop"), d.spark, "pop_srv", "var(--teal)", "players", "Players on your server");
   const b = $("addCfg");
-  if (b) b.onclick = async () => { try { const r = await api("/api/usercfg", {}); toast(r.message); renderNow(); } catch (e) { toast(e.message, true); } };
+  if (b) b.onclick = async () => { try { const r = await api("/api/usercfg", {name: "r_displayinfo"}); toast(r.message); renderNow(); } catch (e) { toast(e.message, true); } };
+  if ($("goSetup")) $("goSetup").onclick = () => show("setup");
 }
 
 /* ---------- What's gone wrong ---------- */
@@ -509,24 +548,65 @@ function closeDrawer() { $("drawer").classList.remove("open"); $("drawer").setAt
 $("dClose").onclick = closeDrawer; $("scrim").onclick = closeDrawer;
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
 
+async function copyText(t, what) {
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  toast(`${what} copied. Paste it into the matching box on the Issue Council.`);
+}
+const grow = el => { el.style.height = "auto"; el.style.height = (el.scrollHeight + 2) + "px"; };
+
+function reportText() {
+  const out = [];
+  $("dBody").querySelectorAll("[data-sec]").forEach(sec => {
+    const label = sec.dataset.label.toUpperCase();
+    if (sec.dataset.sec === "steps") {
+      const steps = [...sec.querySelectorAll("input.step")].map(x => x.value.trim()).filter(Boolean);
+      out.push(label + "\n" + steps.map((x, n) => `${n + 1}. ${x}`).join("\n"));
+    } else out.push(label + "\n" + sec.querySelector("textarea").value.trim());
+  });
+  return out.join("\n\n") + "\n\nATTACHMENTS\nGame.log from this session, plus screenshots if I took any.\n";
+}
+
+function stepRow(text, n) {
+  return `<div class="steprow"><span class="sn">${n}</span><input class="inp step" value="${esc(text)}" aria-label="Step ${n}">
+    <button class="btn sm ghost" data-copystep title="Copy step ${n}">Copy</button><button class="iconx" data-delstep aria-label="Remove step ${n}">✕</button></div>`;
+}
+
 async function openReport(group, i) {
   let d;
   try { d = await api("/api/report", {group, i}); } catch (e) { return toast(e.message, true); }
+  const secHtml = d.sections.map(sec => sec.key === "steps"
+    ? `<section class="rsec" data-sec="steps" data-label="${esc(sec.label)}"><div class="rhd"><h4>${esc(sec.label)}</h4>
+        <button class="btn sm" data-copyall>Copy all steps</button></div>
+        <p class="sub">The Issue Council takes one step per box. Copy each one into its own box.</p>
+        <div class="steps-ed">${sec.steps.map((x, n) => stepRow(x, n + 1)).join("")}</div>
+        <button class="link" data-addstep>Add a step</button></section>`
+    : `<section class="rsec" data-sec="${esc(sec.key)}" data-label="${esc(sec.label)}"><div class="rhd"><h4>${esc(sec.label)}</h4>
+        <button class="btn sm" data-copy>Copy</button></div>
+        <textarea class="rta${sec.key === "title" ? " one" : ""}" spellcheck="true" aria-label="${esc(sec.label)}">${esc(sec.text)}</textarea></section>`).join("");
   openDrawer("Issue Council draft", d.title, `
     <ol class="steps">
-      <li>Check the text below and fill in anything in brackets. Add what you were doing in your own words.</li>
       <li>Search the Issue Council first. If someone has already reported it, add your confirmation there instead of a new report.</li>
-      <li>Make the report folder: it holds this text, your Game.log and screenshots from around that time, ready to attach.</li>
+      <li>Check each part below and fill in anything in brackets. Edits here go into the copies and the report folder.</li>
+      <li>Copy each part into the matching box on the Issue Council, then attach the files from the report folder.</li>
     </ol>
-    <textarea id="icText" spellcheck="true">${esc(d.body)}</textarea>
-    <div class="fa">
-      <button class="btn" id="icCopy">Copy report</button>
-      <a class="btn ghost" href="${esc(d.url)}" target="_blank" rel="noopener">Open the Issue Council</a>
-      <button class="btn ghost" id="icFolder">Make report folder</button>
-    </div>
-    <p class="sub">This tool never sends anything to CIG. You submit the report yourself. The report includes your own Game.log, which is fine: that's you reporting to them.</p>`);
-  $("icCopy").onclick = async () => { const t = $("icText").value; try { await navigator.clipboard.writeText(t); toast("Copied. Paste it into a new Issue Council report."); } catch (e) { $("icText").select(); document.execCommand("copy"); toast("Copied."); } };
-  $("icFolder").onclick = async () => { try { const r = await api("/api/bundle", {group, i, open: true}); toast(`Report folder made with ${r.screenshots} screenshot${r.screenshots === 1 ? "" : "s"}: ${r.folder}`); } catch (e) { toast(e.message, true); } };
+    <div class="fa"><a class="btn ghost" href="${esc(d.url)}" target="_blank" rel="noopener">Open the Issue Council</a>
+      <button class="btn ghost" id="icFolder">Make report folder</button><button class="btn ghost" id="icAll">Copy whole report</button></div>
+    ${secHtml}
+    <p class="sub">This tool never sends anything to CIG. You submit the report yourself. The summary ends with a line saying this tool compiled the data, so CIG knows where it came from. The report folder includes your own Game.log, which is fine: that's you reporting to them.</p>`);
+  const body = $("dBody");
+  body.querySelectorAll("textarea.rta").forEach(t => { grow(t); t.addEventListener("input", () => grow(t)); });
+  const renumber = () => body.querySelectorAll(".steprow").forEach((r, n) => { r.querySelector(".sn").textContent = n + 1; });
+  body.addEventListener("click", e => {
+    const t = e.target, sec = t.closest("[data-sec]");
+    if (t.matches("[data-copy]")) copyText(sec.querySelector("textarea").value.trim(), sec.dataset.label);
+    else if (t.matches("[data-copystep]")) { const r = t.closest(".steprow"); copyText(r.querySelector("input").value.trim(), "Step " + r.querySelector(".sn").textContent); }
+    else if (t.matches("[data-copyall]")) copyText([...sec.querySelectorAll("input.step")].map(x => x.value.trim()).filter(Boolean).map((x, n) => `${n + 1}. ${x}`).join("\n"), "All steps");
+    else if (t.matches("[data-delstep]")) { t.closest(".steprow").remove(); renumber(); }
+    else if (t.matches("[data-addstep]")) { const box = sec.querySelector(".steps-ed"); box.insertAdjacentHTML("beforeend", stepRow("", box.children.length + 1)); box.lastElementChild.querySelector("input").focus(); }
+  });
+  $("icAll").onclick = () => copyText(reportText(), "Whole report");
+  $("icFolder").onclick = async () => { try { const r = await api("/api/bundle", {group, i, open: true, text: reportText()}); toast(`Report folder made with ${r.screenshots} screenshot${r.screenshots === 1 ? "" : "s"}: ${r.folder}`); } catch (e) { toast(e.message, true); } };
 }
 
 async function openReview(i) {
@@ -608,6 +688,67 @@ async function renderIssues() {
   $("libQ").oninput = draw; draw();
 }
 
+/* ---------- Set up ---------- */
+async function renderSetup() {
+  const d = nowData || await api("/api/now"); const u = d.user_cfg || {};
+  const st = (on, yes, no) => `<span class="state ${on ? "on" : ""}"><i></i>${on ? yes : no}</span>`;
+  $("view").innerHTML = `
+  <section class="sec"><h3>Turn on the game's information <span>two console settings, both from CIG, both safe to leave on</span></h3>
+    <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
+    Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
+  <section class="sec frame setcard">
+    <h4>1. The performance overlay (needed for the live health numbers)</h4>
+    <span class="cmd">r_displayinfo 3</span>
+    <p>Shows a block of small text in the top right: server fps, players on the shard and on your server, ping, packet loss, hitches, server restarts, your own fps and where you are. The app reads this off the screen every few seconds while the game is in front. Levels 2, 3 and 4 show the same block in 4.10; <code>r_displayinfo 0</code> turns it off.</p>
+    <div class="fa">${st(u.has_displayinfo, "On in USER.cfg", "Not in USER.cfg")}
+      <button class="btn sm ${u.has_displayinfo ? "ghost" : ""}" data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
+  </section>
+  <section class="sec frame setcard">
+    <h4>2. The session QR code (recommended for Issue Council reports)</h4>
+    <span class="cmd">r_DisplaySessionInfo 1</span>
+    <p>Puts a small QR code in the top right corner. It holds your session id, shard and the exact time, which is what CIG's QA team uses to find your session on their side, so any screenshot you take becomes far more useful in a bug report. The Star Citizen wiki's bug reporting guide recommends it. You can also switch it on in the game's Graphics settings. The app copes with it: the overlay block moves left to make room and is still read.</p>
+    <p class="sub">The QR code identifies your session, so blur it in screenshots you post publicly (Spectrum, Discord, Reddit). It's fine in Issue Council reports, which go to CIG.</p>
+    <div class="fa">${st(u.has_sessioninfo, "On in USER.cfg", "Not in USER.cfg")}
+      <button class="btn sm ${u.has_sessioninfo ? "ghost" : ""}" data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
+  </section>
+  <section class="sec frame setcard">
+    <h4>3. Screenshots</h4>
+    <p>Press <kbd>Print Screen</kbd> in game. The game saves them in <code>StarCitizen\\LIVE\\screenshots</code>. Any screenshot with the overlay on it becomes a reading, and the app picks up screenshots taken around the time of a problem when it makes an Issue Council report folder.</p>
+  </section>
+  <section class="sec frame setcard">
+    <h4>Tips for clean readings</h4>
+    <ul class="rules">
+      <li><b>Dark behind the text reads best.</b> The overlay is thin light text. Over the sun, a bright planet, snow, lights or a white wall it washes out and the reading is skipped. Face something dark (space, a ship interior, a dark wall or floor) when you want a reading.</li>
+      <li><b>Quickest trick for screenshots:</b> press <kbd>Esc</kbd> first. The game menu darkens the whole screen behind the overlay, then press <kbd>Print Screen</kbd>. The game keeps running while the menu is open.</li>
+      <li><b>Keep the top right corner clear.</b> Move other overlays (Discord, Steam, NVIDIA or AMD performance counters, RivaTuner) to another corner so they don't sit on top of the game's text.</li>
+      <li><b>Turn off Chromatic Aberration and Film Grain</b> in the game's Graphics settings. Both blur small text.</li>
+      <li><b>1440p or higher reads every value reliably.</b> At 1080p the text is tiny; the main numbers still read, but the odd small value can be misread. The app takes the middle value over a few minutes, so one bad reading doesn't change the score.</li>
+      <li><b>Play on your main monitor,</b> or set <code>monitor</code> in <code>data\\config.json</code> to the screen the game is on.</li>
+      <li>Live reading skips anything it can't read and tries again 5 seconds later, so a bright moment just means a gap, not a wrong number.</li>
+    </ul>
+  </section>
+  <section class="sec frame setcard">
+    <h4>How readings are taken</h4>
+    <p><b>Live</b> reads the overlay corner of your screen every 5 seconds while the game is in front. That gives the health score, the charts and warnings when the server slows down. <b>Screenshots</b> reads only the screenshots you take, so nothing watches your screen; you get a reading each time you press <kbd>Print Screen</kbd>, but no live score.</p>
+    <div class="fa" id="setToggles"></div>
+  </section>
+  <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. The app keeps a copy of the original as USER.cfg.bak the first time it changes it. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
+  const drawToggles = async () => {
+    const st = await api("/api/settings");
+    $("setToggles").innerHTML = `
+      <label class="chipt"><input type="checkbox" id="tgLive" ${st.live ? "checked" : ""}> Live screen reading</label>
+      <label class="chipt"><input type="checkbox" id="tgShots" ${st.screenshots ? "checked" : ""}> Read my screenshots</label>
+      <span class="sub">${st.live !== st.live_running ? "Restart the app to apply." : st.screenshot_readings ? st.screenshot_readings + " readings from screenshots this run." : ""}</span>`;
+    const save = async () => { try { const r = await api("/api/settings", {live: $("tgLive").checked, screenshots: $("tgShots").checked}); toast(r.message); drawToggles(); } catch (e) { toast(e.message, true); } };
+    $("tgLive").onchange = save; $("tgShots").onchange = save;
+  };
+  drawToggles();
+  $("view").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => {
+    try { const r = await api("/api/usercfg", {name: b.dataset.cfg, on: b.dataset.on === "1"}); toast(r.message); nowData = null; nowData = await api("/api/now"); renderSetup(); }
+    catch (e) { toast(e.message, true); }
+  });
+}
+
 /* ---------- About ---------- */
 async function renderAbout() {
   const d = await api("/api/about");
@@ -618,7 +759,7 @@ async function renderAbout() {
     <div><span class="eyebrow">Made by</span><h2>${esc(d.author.name)}</h2>${d.message.map(m => `<p>${esc(m)}</p>`).join("")}</div>
   </section>
   <section class="sec"><h3>Also by Aurelius_Draco</h3><div class="tiles">
-    ${d.also_by.map(a => `<a class="frame tile" href="${esc(a.url)}" target="_blank" rel="noopener"><b>${esc(a.name)}</b><span>${esc(a.about)}</span><span class="go">On GitHub →</span></a>`).join("")}
+    ${d.also_by.map(a => `<a class="frame tile" href="${esc(a.download || a.url)}" target="_blank" rel="noopener"><b>${esc(a.name)}</b><span>${esc(a.about)}</span><span class="go">Download from GitHub →</span></a>`).join("")}
   </div></section>
   <section class="sec"><h3>Say hello</h3><div class="tiles">
     ${d.links.map(l => `<a class="frame tile" href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b><span>${esc(l.text)}</span><span>${esc(l.about)}</span></a>`).join("")}

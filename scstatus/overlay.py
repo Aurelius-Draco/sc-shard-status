@@ -53,12 +53,12 @@ LIMITS = {
 # the usual OCR slips (e/3, I/l/1, missing or doubled spaces, odd punctuation).
 # --------------------------------------------------------------------------
 
-_SERVER = r"s\s?[e3c]\s?r\s?v\s?[e3c]\s?r"
+_SERVER = r"[s5]\s?[e3c]\s?r\s?v\s?[e3c]\s?r"
 LABELS = [
-    ("session", r"s\s?[e3c]\s?s\s?s?\s?[i1l|!]\s?[o0]\s?n\b\s*[:;.,]?"),
-    ("shard", r"s\s?h\s?a\s?r\s?d\s?[i1l|!]\s?[dD]\s*[:;.,]?"),
-    ("server_fps", _SERVER + r"\s*f\s?p\s?s"),
-    ("server_time", _SERVER + r"\s*t\s?[i1l|!]\s?m\s?[e3c]\s*[:;.,]?"),
+    ("session", r"[s5]\s?[e3c]\s?[s5]\s?[s5]?\s?[i1l|!]\s?[o0]\s?n\b\s*[:;.,]?"),
+    ("shard", r"[s5]\s?h\s?a\s?r\s?d\s?[i1l|!]\s?[dD]\s*[:;.,]?"),
+    ("server_fps", _SERVER + r"\s*f\s?p\s?[s5]"),
+    ("server_time", _SERVER + r"\s*t\s?[i1l|!]\s?[mn]\s?[e3c]\s*[:;.,]?"),
     ("server", _SERVER + r"(?:\s*[:;.,]|\s+(?=p[uv]b|ptu|eptu|tech))"),
     ("net", r"n\s?[e3c]\s?t\s*(?:[:;.,]|(?=p\s?[i1l|]\s?n))"),
     ("rl", r"r\s?[l1i|]\s*(?:[:;.,]\s*|\s+)(?=[e3c]\s?n)"),
@@ -68,7 +68,7 @@ LABELS = [
                  r"(?:\s?y\s?[e3c]?\s?r\s*(?:[l1i|]\s?[o0]\s?c\s?a\s?t\s?[i1l|]\s?[o0]\s?n)?)?"
                  r"|p\s?[l1i|]\s?a\s?y\s?[e3c]\s?r\s*[l1i|]\s?[o0]\s?c\s?a\s?t\s?[i1l|]\s?[o0]\s?n)"
                  r"\s*[:;.,]?"),
-    ("fps", r"f\s?p\s?s(?=\s*[\dOo])"),
+    ("fps", r"f\s?p\s?[s5](?=\s*[\dOo])"),
 ]
 LABELS = [(k, re.compile(r"^[^A-Za-z0-9]{0,3}" + p, re.I)) for k, p in LABELS]
 
@@ -109,7 +109,7 @@ def fix_digits(s):
     def repl(m):
         tok = m.group(0)
         core = tok.rstrip(".,")
-        nxt = s[m.end():m.end() + 1]
+        nxt = s[m.start() + len(core):m.start() + len(core) + 1]
         if any(c.isdigit() for c in core):
             pass
         elif core and all(c in "Oo0.," for c in core) and not nxt.isalpha():
@@ -192,10 +192,8 @@ def _assign(out, rest, slots):
     vals, exact = fit_numbers(num_tokens(rest), [d for _, d, _ in slots])
     for (field, dp, kw), v in zip(slots, vals):
         if not exact and kw:
-            kv = _kw_number(rest, kw, dp)
-            if kv is not None:
-                v = kv
-        if out.get(field) is None:
+            v = _kw_number(rest, kw, dp)     # positions can't be trusted; go by the keyword
+        if field and out.get(field) is None:
             out[field] = v
 
 
@@ -206,7 +204,7 @@ def _assign(out, rest, slots):
 def _p_fps(out, rest):
     # "106.3 [72..144], - 10.3ms [7.1ms]"
     _assign(out, rest, [("client_fps", 1, None), ("client_fps_min", 0, None),
-                        ("client_fps_max", 0, None), ("client_ms", 1, None)])
+                        ("client_fps_max", 0, None), ("client_ms", 1, None), (None, 1, None)])
 
 
 def _p_server_fps(out, rest):
@@ -254,6 +252,9 @@ def _p_server(out, rest):
                         ("pop_srv", 0, r"s\s?r\s?v")])
 
 
+_NAME_WORDS = ("pub", "ptu", "eptu", "tech", "alpha", "game", "hub")
+
+
 def norm_server_name(s):
     s = re.sub(r"\s+", "", s.translate(_PUNCT)).strip(",.;:[]()").replace("_", "-").lower()
     s = re.sub(r"-{2,}", "-", s)
@@ -261,6 +262,11 @@ def norm_server_name(s):
     for seg in s.split("-"):
         if sum(c.isdigit() for c in seg) * 2 >= len(seg):      # mostly digits: fix O/l
             seg = seg.translate(str.maketrans("oDdqil|!", "00001111"))
+        elif seg not in _NAME_WORDS:                            # "gane" -> "game"
+            for w in _NAME_WORDS:
+                if len(w) == len(seg) >= 3 and sum(x != y for x, y in zip(w, seg)) == 1:
+                    seg = w
+                    break
         segs.append(seg)
     s = "-".join(segs)
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+){3,}", s):
@@ -404,11 +410,13 @@ def _parse(lines):
         key, rest = classify(line)
         if key is None or key == "session":
             continue                    # never parse or keep the Session line
+        before = sum(v is not None for v in out.values())
         try:
             PARSERS[key](out, rest)
-            seen.add(key)
         except Exception:
-            pass
+            continue
+        if sum(v is not None for v in out.values()) > before:
+            seen.add(key)               # the line gave us at least one value
     _sanity(out)
     out["ok"] = bool(out["server_fps"] is not None and (
         out["pop_shard"] is not None or out["pop_srv"] is not None or out["ping_ms"] is not None))
@@ -432,6 +440,7 @@ DET_SCALE = 0.6         # detector runs at this scale of a 4K frame (text ~10 px
 WANTED = ("fps", "shard", "server_fps", "server", "net", "rl", "server_time", "vram", "location")
 ANCHORS = set(WANTED) | {"session"}
 REUSE_MAX = 10          # re-read an unchanged line at least every this many reads
+LINE_SQUEEZE = 0.85      # horizontal squeeze of line crops before OCR
 
 
 def _box_rects(boxes, scale, ox, oy):
@@ -551,16 +560,18 @@ class OverlayReader:
             return out
 
     @staticmethod
-    def _crop(img, x0, y0, x1, y1, pitch):
+    def _line_crop(img, x0, cy, x1, pitch):
+        """One overlay line, ready for the recogniser. The monospaced font is
+        wide, so the crop is squeezed a little sideways: the recogniser's cost
+        grows with width and it reads this font just as well (measured)."""
         H, W = img.shape[:2]
-        c = img[max(0, int(y0)):min(H, int(np.ceil(y1))), max(0, int(x0)):min(W, int(np.ceil(x1)))]
-        if c.size and pitch < 16:          # small text (1080p etc.): upscale for the recogniser
-            f = min(3.0, 19.0 / max(pitch, 1.0))
-            c = cv2.resize(c, None, fx=f, fy=f, interpolation=cv2.INTER_CUBIC)
-        return c
-
-    def _line_crop(self, img, x0, cy, x1, pitch):
-        return self._crop(img, x0 - 0.4 * pitch, cy - 0.7 * pitch, x1, cy + 0.7 * pitch, pitch)
+        c = img[max(0, int(cy - 0.7 * pitch)):min(H, int(np.ceil(cy + 0.7 * pitch))),
+                max(0, int(x0 - 0.4 * pitch)):min(W, int(np.ceil(x1)))]
+        if c.size == 0:
+            return c
+        f = min(3.0, 24.0 / pitch) if pitch < 16 else 1.0     # small text (1080p): upscale
+        return cv2.resize(c, None, fx=f * LINE_SQUEEZE, fy=f,
+                          interpolation=cv2.INTER_CUBIC if f > 1 else cv2.INTER_AREA)
 
     # ---- search -----------------------------------------------------------
 
@@ -574,7 +585,7 @@ class OverlayReader:
         else:
             rw, rh = int(min(W, 1500 * s)), int(min(H, 800 * s))
         ox = W - rw
-        ds = float(np.clip(DET_SCALE / s, 0.25, 1.0))
+        ds = float(np.clip(DET_SCALE / s, 0.25, 2.0))
         rects = self._det(img[0:rh, ox:W], ds, ox, 0)
         if len(rects) < 3:
             return None
@@ -612,7 +623,7 @@ class OverlayReader:
                 min(float(W), right + 1.5 * pitch), min(float(H), max(ys) + 1.2 * pitch))
         return {
             "shape": img.shape[:2], "rect": rect, "right": right, "pitch": pitch,
-            "ds": float(np.clip(DET_SCALE * REF_PITCH / pitch, 0.25, 1.0)),
+            "ds": float(np.clip(DET_SCALE * REF_PITCH / pitch, 0.25, 2.0)),
             "rows": rows,
         }
 
@@ -633,7 +644,8 @@ class OverlayReader:
 
     def _read_rows(self, img, blk, rows):
         """rows: [(key, x0, cy)]. OCR each line (or reuse the last text if its
-        pixels are unchanged) and parse."""
+        pixels are unchanged) and parse. Returns (snapshot, every line OCR'd
+        this time still starts with the label expected at its position)."""
         p, right = blk["pitch"], blk["right"]
         texts, todo, masks = {}, [], {}
         for key, x0, cy in rows:
@@ -648,15 +660,17 @@ class OverlayReader:
             else:
                 todo.append((key, x0, cy))
         got = self._rec([self._line_crop(img, x0, cy, right + 0.6 * p, p) for _, x0, cy in todo])
+        labels_ok = True
         for (key, _, _), t in zip(todo, got):
             texts[key] = t
+            labels_ok = labels_ok and classify(t)[0] == key
         snap, seen = _parse([texts[k] for k, _, _ in rows])
         for key, _, _ in todo:
             if key in seen:
                 self._seen[key] = (masks[key], texts[key], 0)
             else:
                 self._seen.pop(key, None)
-        return snap, seen
+        return snap, labels_ok
 
     def _fast(self, img, blk):
         p = blk["pitch"]
@@ -673,11 +687,14 @@ class OverlayReader:
             if best is None:
                 return None
             # a line cut off at the edge of the crop means the block has moved
-            if best[0] < x0 + 0.6 * p or best[2] > x1 - 0.4 * p:
+            if best[0] < x0 + 0.6 * p or (x1 < img.shape[1] - 1 and best[2] > x1 - 0.4 * p):
                 return None
             use.append((key, best[0], cy))
-        snap, seen = self._read_rows(img, blk, use)
-        if not seen >= {r[0] for r in blk["rows"]} or not snap["ok"]:
+        snap, labels_ok = self._read_rows(img, blk, use)
+        # Every line must still be the line we expect there; if not, the block
+        # has changed shape and we search again. A line that is in place but
+        # misread this time just leaves its fields empty.
+        if not labels_ok or not snap["ok"]:
             return None
         return snap
 
@@ -697,6 +714,8 @@ class OverlayReader:
     def read(self, img_bgr, ts=None):
         """Read one frame. Returns a Snapshot dict (with 'ts')."""
         t0 = time.perf_counter()
+        if img_bgr is not None and getattr(img_bgr, "ndim", 0) == 3 and img_bgr.shape[2] == 4:
+            img_bgr = cv2.cvtColor(img_bgr, cv2.COLOR_BGRA2BGR)      # mss / dxcam give BGRA
         with self._lock:
             snap, path = None, None
             if img_bgr is not None and getattr(img_bgr, "ndim", 0) == 3 and img_bgr.shape[0] >= 200:

@@ -60,7 +60,7 @@ class OverlayWatcher:
 
     def _setup(self):
         from .overlay import OverlayReader
-        self.reader = OverlayReader()
+        self.reader = OverlayReader(threads=2)     # leave the CPU to the game
         self.grab = make_grabber(self.monitor)
 
     def place(self, crop, full_size):
@@ -86,7 +86,8 @@ class OverlayWatcher:
         else:
             self.misses += 1
             if self.misses >= 3:
-                self.status = "no overlay on screen (type r_displayinfo 3 in the game console)"
+                self.status = ("can't read the overlay (is r_displayinfo 3 on? bright scenery behind the text "
+                               "also stops it; see Set up for tips)")
         return snap
 
     def run(self, stop):

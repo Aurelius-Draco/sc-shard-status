@@ -53,47 +53,36 @@ def draft(finding, result, snapshot=None, location_hint=None):
 
     steps = steps_for(finding)
     excerpt = "\n".join(x[:400] for x in finding.get("examples", [])[:5]) or "(no log lines; see attached Game.log)"
-    body = f"""TITLE
-{title}
-
-SUMMARY
-{finding.get('explain', '').strip()}
-
-STEPS TO REPRODUCE
-{steps}
-
-EXPECTED RESULT
-{expected_for(finding)}
-
-ACTUAL RESULT
-{finding['title']}.
-
-ENVIRONMENT
-""" + "\n".join(env) + f"""
-
-LOG LINES (from Game.log)
-{excerpt}
-
-ATTACHMENTS
-Game.log from this session, plus screenshots if I took any.
-
----
-{DISCLAIMER}
-"""
-    return {"title": title, "body": body}
+    summary = finding.get("explain", "").strip() + "\n\n" + DISCLAIMER
+    sections = [
+        {"key": "title", "label": "Title", "text": title},
+        {"key": "summary", "label": "Summary", "text": summary},
+        {"key": "steps", "label": "Steps to reproduce", "steps": steps, "text": "\n".join(steps)},
+        {"key": "expected", "label": "Expected result", "text": expected_for(finding)},
+        {"key": "actual", "label": "Actual result", "text": finding["title"].rstrip(".") + "."},
+        {"key": "environment", "label": "Environment", "text": "\n".join(env)},
+        {"key": "logs", "label": "Log lines (from Game.log)", "text": excerpt},
+    ]
+    numbered = "\n".join(f"{i}. {x}" for i, x in enumerate(steps, 1))
+    body = "\n\n".join(
+        f"{sec['label'].upper()}\n{numbered if sec['key'] == 'steps' else sec['text']}" for sec in sections
+    ) + "\n\nATTACHMENTS\nGame.log from this session, plus screenshots if I took any.\n"
+    return {"title": title, "sections": sections, "body": body}
 
 
 def steps_for(f):
+    """Steps as a list, one per Issue Council step box."""
     c = f.get("fields", {}).get("contract")
     items = f.get("fields", {}).get("items") or ([f["fields"]["item_name"]] if f.get("fields", {}).get("item_name") else [])
     if c and items:
-        return (f"1. Accept the contract \"{c}\".\n2. Collect the required item(s): {', '.join(items)}.\n"
-                "3. Deliver them as the contract asks (freight elevator).\n4. The objective does not progress.")
+        return [f"Accept the contract \"{c}\".", f"Collect the required item(s): {', '.join(items)}.",
+                "Deliver them as the contract asks (freight elevator).", "The objective does not progress."]
     if items:
-        return f"1. Send {', '.join(items)} through the freight elevator or cargo system.\n2. See the error below."
+        return [f"Send {', '.join(items)} through the freight elevator or cargo system.",
+                "The items are not handled (see the log lines)."]
     if f.get("area") == "Connection":
-        return "1. Play normally on the shard listed below.\n2. The connection drops (details below)."
-    return "1. (Describe what you were doing.)\n2. (What you did just before it went wrong.)\n3. (What happened.)"
+        return ["Play normally on the shard listed in Environment.", "The connection drops (see the log lines)."]
+    return ["(Describe what you were doing.)", "(What you did just before it went wrong.)", "(What happened.)"]
 
 
 def expected_for(f):

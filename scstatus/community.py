@@ -56,9 +56,11 @@ def review_request(finding, session, redactor, install_id, contracts=()):
 
 
 def make_redactor(log_path):
+    """A redactor that knows every handle in this log (own, renamed, friends, party members)."""
+    from .logparse import records
     try:
         with open(log_path, encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()
+            recs = list(records(f))
     except OSError:
-        lines = []
-    return Redactor.from_lines(lines)
+        recs = []
+    return Redactor.from_lines(recs)

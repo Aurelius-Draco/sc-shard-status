@@ -105,12 +105,12 @@ def diagnose(log_path, library, names=None, snapshots=None, lookback_min=30, now
     findings = [f for f in hits.values() if f["kind"] == "problem"]
     infos = [f for f in hits.values() if f["kind"] == "info"]
     findings += _disconnects(session, since, library)
-    findings += _contracts(session, since, findings, names)
+    findings += _contracts(session, since, findings, names, now)
+    if session.crash:
+        findings += crash_findings(log_path, library, session)
     findings += _overlay(snapshots or [], since)
     if backups_dir and session.start and session.start >= since - 600:
-        crash = _last_session_crash(backups_dir, session.start)
-        if crash:
-            findings.append(crash)
+        findings += _last_session_crash(backups_dir, session.start, library)
 
     findings.sort(key=lambda f: (SEVERITY_ORDER.get(f["severity"], 3), f["rank"], -(f["count"] or 0)))
     unk = sorted(unknown.values(), key=lambda f: -f["count"])
@@ -158,55 +158,100 @@ def _words(s):
     return {w for w in re.findall(r"[a-z]{3,}", (s or "").lower())} - {"the", "and", "need", "with", "for"}
 
 
-def _contracts(session, since, findings, names):
+def _contracts(session, since, findings, names, now=None):
+    """Contracts that aren't progressing, joined with freight elevator cycles and item errors."""
+    now = now or time.time()
     out = []
     by_name = {}
     for c in session.contracts.values():
         by_name.setdefault(c["name"], []).append(c)
     item_findings = [f for f in findings if f["fields"].get("item")]
+    counted = _deliveries_that_counted(session)
+    deliveries = [c for c in session.contracts.values()
+                  if any(_is_delivery(k, o["text"]) for k, o in c["objectives"].items())]
+
+    def only_delivery_at(c, t):
+        """True when c was the only delivery contract open at time t, so an elevator trip then was for it."""
+        return not any(d is not c and (d["accepted"] or 0) <= t <= (d["ended"] or now) for d in deliveries)
+
     for name, cs in by_name.items():
-        live = [c for c in cs if (c["accepted"] or 0) >= since or c["result"] == "active"]
-        if not live:
+        if any(c["result"] == "complete" or c["progress"] for c in cs):
+            continue        # the same contract worked this session, so it isn't broken
+        tries = [c for c in cs if ((c["accepted"] or 0) >= since or c["result"] == "active")
+                 and c["result"] in ("active", "abandoned", "dropped", "failed")]
+        if not tries:
             continue
-        stuck = [c for c in live if c["result"] == "active" and c["objectives"]
-                 and not any(o["state"] == "complete" for o in c["objectives"].values())]
-        if not stuck:
-            continue
-        objectives = [o["text"] for o in stuck[-1]["objectives"].values()]
+        delivery = any(_is_delivery(k, o["text"]) for c in tries for k, o in c["objectives"].items())
+        objectives = [o["text"] for c in tries for o in c["objectives"].values()]
+        objectives = list(dict.fromkeys(objectives))
+        per_try = [[t for t in session.freight_cycles if (c["accepted"] or 0) <= t <= (c["ended"] or now)
+                    and only_delivery_at(c, t)] for c in tries] if delivery else [[] for _ in tries]
+        cycles = sorted({t for ts in per_try for t in ts})
+        tries_with_cycles = sum(1 for ts in per_try if ts)
         linked = []
         for f in item_findings:
             disp = f["fields"].get("item_name") or f["fields"]["item"]
             if any(disp.lower() in o.lower() or len(_words(disp) & _words(o)) >= 2 for o in objectives):
                 linked.append((disp, f))
-        if linked:
-            items = sorted({d for d, _ in linked})
-            out.append(_finding(
-                severity="high", area="Contracts", rank=0,
-                title=f"\"{name}\" can't complete: the game is mishandling {_and(items)}",
-                explain=(f"The contract wants {_and(items)}, and the game logged a problem with exactly "
-                         f"{'that item' if len(items) == 1 else 'those items'} ({linked[0][1]['title'].lower()}). "
-                         "That's why the objective isn't counting. The client log can't see the server's own "
-                         "mission check, so this is a strong lead rather than proof."),
-                fixes=["Stop sending more of these items for now; they're likely being lost.",
-                       "Abandon and re-accept the contract only after a patch or a server hop; re-accepting on the "
-                       "same server usually hits the same problem.",
-                       "Report it (the Issue Council draft below has the log lines), and check whether someone has "
-                       "already reported it so you can add your confirmation."],
-                ic_title=f"{name}: delivered {_and(items)} never count toward the objective",
-                first_ts=stuck[0]["accepted"], last_ts=max(f["last_ts"] or 0 for _, f in linked), count=len(cs),
-                examples=[x for _, f in linked for x in f["examples"][:2]][:MAX_EXAMPLES * 2],
-                fields={"contract": name, "items": items, "times_accepted": len(cs)}))
-        elif len(cs) >= 2:
-            out.append(_finding(
-                severity="medium", area="Contracts",
-                title=f"\"{name}\" taken {len(cs)} times without completing",
-                explain="You've accepted this contract more than once and no objective has completed. "
-                        "That usually means something on the server isn't registering progress.",
-                fixes=["Try it on a different server (server hop) before spending more items or time.",
-                       "Check the Known issues tab and the Issue Council for this contract."],
-                ic_title=f"{name}: objectives never progress",
-                first_ts=cs[0]["accepted"], last_ts=cs[-1]["accepted"], count=len(cs), fields={"contract": name}))
+        items = sorted({d for d, _ in linked})
+        dropped = [c for c in tries if c["result"] == "dropped"]
+        bits = []
+        if cycles:
+            n = len(tries)
+            bits.append(f"You took this contract {n} time{'s' if n != 1 else ''} and the freight elevator went down "
+                        f"{len(cycles)} time{'s' if len(cycles) != 1 else ''} while it was your only delivery contract. "
+                        "The elevator worked each time, but the server never registered any progress on the objective.")
+            if counted:
+                bits.append("A different delivery through a freight elevator in this session did count, so the "
+                            "elevator itself works. That points at this contract (or these items), not at anything you did.")
+            elif tries_with_cycles >= 2:
+                bits.append("That points at the contract or the items rather than anything you did.")
+            else:
+                bits.append("If you sent everything it asked for, that points at the contract. If you only sent part of "
+                            "it, check the objective counts: partial deliveries should still move the counter.")
+        else:
+            bits.append(f"You've taken this contract {len(tries)} times and no objective has moved. Something on the "
+                        "server isn't registering progress.")
+        if items:
+            bits.append(f"The game also logged \"{linked[0][1]['title']}\" for {_and(items)}. That message also turns "
+                        "up on deliveries that do count, so on its own it isn't the cause.")
+        if dropped:
+            bits.append("Leaving the server dropped the contract at least once, so it had to be taken again.")
+        if not cycles and len(tries) < 2:
+            continue
+        strong = tries_with_cycles >= 2
+        out.append(_finding(
+            severity="high" if strong else "medium", area="Contracts", rank=0,
+            title=(f"\"{name}\": deliveries never counted" if strong
+                   else f"\"{name}\": a delivery may not have counted" if cycles
+                   else f"\"{name}\" taken {len(tries)} times without progress"),
+            explain=" ".join(bits),
+            fixes=["Don't send more items for this contract until it's fixed; they're not being counted.",
+                   "Take your items back out of the elevator before you leave the server. Items left in it stay on "
+                   "that shard, and the kiosk on a new one can't find them.",
+                   "Check the Issue Council for this contract and add your confirmation, or report it with the draft below."],
+            ic_title=(f"{name}: delivered items never count toward the objective" if cycles
+                      else f"{name}: objectives never progress"),
+            first_ts=min((c["accepted"] or now) for c in tries), last_ts=max(cycles) if cycles else None,
+            count=len(tries),
+            examples=[x for _, f in linked for x in f["examples"][:2]][:4],
+            fields={"contract": name, "items": items, "objectives": objectives, "times_accepted": len(tries),
+                    "elevator_cycles": len(cycles), "dropped": len(dropped)}))
     return out
+
+
+DELIVERY_TEXT = re.compile(r"^(Need \d+/\d+ of|Deliver|Drop ?off|Hand in|Turn in)", re.I)
+
+
+def _is_delivery(objective_id, text):
+    """Objectives handed in through a freight elevator or drop-off."""
+    return str(objective_id).startswith("dropoff") or bool(DELIVERY_TEXT.match(text or ""))
+
+
+def _deliveries_that_counted(session):
+    """Freight elevator cycles followed within 10 seconds by an objective update for some contract."""
+    ups = [e["ts"] for e in session.events if e["kind"] in ("objective_state", "objective_complete")]
+    return [t for t in session.freight_cycles if any(0 <= u - t <= 10 for u in ups)]
 
 
 def _and(items):
@@ -248,31 +293,71 @@ def _overlay(snaps, since):
     return out
 
 
-def _last_session_crash(backups_dir, current_start):
-    """Did the session before this one end without the game shutting down normally?"""
+def crash_findings(path, library, session=None):
+    """Explain a crash from the block the game's crash handler writes at the end of the log."""
+    try:
+        with open(path, "rb") as f:
+            size = Path(path).stat().st_size
+            f.seek(max(0, size - 60000))
+            tail = f.read().decode("utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    out, seen = [], set()
+    when = session.end if session else None
+    for line in tail:
+        if LINE.match(line):
+            continue
+        rule, fields = library.match(None, "", line.strip())
+        if rule is None or rule.kind == "noise" or rule.id in seen:
+            continue
+        seen.add(rule.id)
+        out.append(_finding(severity=rule.severity, kind=rule.kind, area=rule.area or "Game", rule_id=rule.id,
+                            title=rule.text("title", fields) or rule.id, explain=rule.text("explain", fields) or "",
+                            fixes=rule.text("fixes", fields) or [], ic_title=rule.text("ic_title", fields),
+                            fields=dict(fields), first_ts=when, last_ts=when, examples=[line.strip()],
+                            links=rule.d.get("links", [])))
+    if not any(f["kind"] == "problem" for f in out):
+        out.append(_finding(severity="high", area="Game", title="The game crashed", first_ts=when, last_ts=when,
+                            explain="The log ends with the game's crash handler taking over.",
+                            fixes=["Repeated crashes: verify the game files in the RSI launcher.",
+                                   "Note what you were doing when it happened for the Issue Council report."],
+                            ic_title="Client crash"))
+    return [f for f in out if f["kind"] == "problem"]
+
+
+def _last_session_crash(backups_dir, current_start, library=None):
+    """Did the session before this one crash, or end without the game shutting down normally?"""
     try:
         logs = sorted(Path(backups_dir).glob("*.log"), key=lambda p: p.stat().st_mtime)
     except OSError:
-        return None
+        return []
     if not logs:
-        return None
+        return []
     last = logs[-1]
     if current_start - last.stat().st_mtime > 3 * 3600:
-        return None
+        return []
     try:
         with open(last, "rb") as f:
-            f.seek(max(0, last.stat().st_size - 20000))
+            f.seek(max(0, last.stat().st_size - 60000))
             tail = f.read().decode("utf-8", errors="replace")
     except OSError:
-        return None
-    if any(k in tail for k in ("CCIGBroker::FastShutdown", "Shutting down all force feedback")):
-        return None
-    when = dt.datetime.fromtimestamp(last.stat().st_mtime).strftime("%H:%M")
-    return _finding(severity="high", area="Game", title="Your last session ended without a normal shutdown",
-                    explain=f"The previous log stops at {when} without the lines the game writes when it closes "
-                            "properly. That points to a crash, a freeze you had to kill, or a power or PC problem.",
-                    fixes=["If the game crashed, check for a crash report in the StarCitizen\\LIVE\\Crashes folder.",
-                           "Repeated crashes: verify the game files in the RSI launcher.",
-                           "Note what you were doing when it happened for the Issue Council report."],
-                    ic_title="Client crash (game closed without normal shutdown)",
-                    fields={"log": last.name}, first_ts=last.stat().st_mtime, last_ts=last.stat().st_mtime)
+        return []
+    when_ts = last.stat().st_mtime
+    when = dt.datetime.fromtimestamp(when_ts).strftime("%H:%M")
+    if "crash handler taking over" in tail and library is not None:
+        out = crash_findings(last, library)
+        for f in out:
+            f["title"] = "Last session: " + f["title"][0].lower() + f["title"][1:]
+            f["first_ts"] = f["last_ts"] = when_ts
+            f["fields"]["log"] = last.name
+        return out
+    if any(k in tail for k in ("CCIGBroker::FastShutdown", "Shutting down all force feedback", "<SystemQuit>")):
+        return []
+    return [_finding(severity="high", area="Game", title="Your last session ended without a normal shutdown",
+                     explain=f"The previous log stops at {when} without the lines the game writes when it closes "
+                             "properly, and without a crash report. That points to a freeze you had to kill, or a "
+                             "power or PC problem.",
+                     fixes=["Repeated freezes: verify the game files in the RSI launcher.",
+                            "Note what you were doing when it happened for the Issue Council report."],
+                     ic_title="Client froze (game closed without normal shutdown)",
+                     fields={"log": last.name}, first_ts=when_ts, last_ts=when_ts)]

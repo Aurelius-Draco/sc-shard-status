@@ -15,7 +15,7 @@ def test_tail_follows_appends_and_new_log(tmp_path):
     t.poll()
     t.poll()                                    # idle poll flushes the pending line
     s = t.session
-    assert s.shard_id == "pub_ape1a_12881860_090" and len(s.contracts) == 2 and s.clean_exit
+    assert s.shard_id == "pub_ape1a_12881860_090" and len(s.contracts) == 3 and s.clean_exit
     assert "join_pu" in seen and "contract_accepted" in seen
     # The game starts a new log: a fresh session
     log.write_text(lines[0].replace("29 Oct 26", "30 Oct 26"))

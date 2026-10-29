@@ -64,6 +64,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.pc())
                 if path == "/api/issues":
                     return self._send(200, {"version": app.library.version, "rules": app.library.listing()})
+                if path == "/api/settings":
+                    return self._send(200, app.settings())
                 if path == "/api/last":
                     return self._send(200, app.last_result or {})
                 if path == "/api/reviews":
@@ -118,7 +120,7 @@ def handle_post(app, path, body):
     if path == "/api/report":
         return app.report_draft(body.get("group", "findings"), body.get("i"))
     if path == "/api/bundle":
-        out = app.report_bundle(body.get("group", "findings"), body.get("i"))
+        out = app.report_bundle(body.get("group", "findings"), body.get("i"), body.get("text"))
         if body.get("open"):
             from .app import open_folder
             open_folder(out["folder"])
@@ -126,7 +128,10 @@ def handle_post(app, path, body):
     if path == "/api/review":
         return app.review(body.get("i"), save=bool(body.get("save")))
     if path == "/api/usercfg":
-        return {"message": app.add_displayinfo(), "user_cfg": app.user_cfg_state()}
+        msg = app.set_user_cfg(body.get("name", "r_displayinfo"), body.get("on", True) is not False)
+        return {"message": msg, "user_cfg": app.user_cfg_state()}
+    if path == "/api/settings":
+        return {"message": app.save_settings(body.get("live"), body.get("screenshots")), "settings": app.settings()}
     if path == "/api/open":
         from .app import open_folder
         from .config import DATA

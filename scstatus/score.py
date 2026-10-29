@@ -61,7 +61,7 @@ def assess(snaps, now=None, window_s=300):
     med_fps = st.median(sfps) if sfps else None
     p10_fps = _pct(sfps, 10)
     ping = st.median(_vals(recent, "ping_ms")) if _vals(recent, "ping_ms") else None
-    loss = max(_vals(recent, "loss_pct")) if _vals(recent, "loss_pct") else None
+    loss = st.median(_vals(recent, "loss_pct")) if _vals(recent, "loss_pct") else None
     hitches = max(_vals(recent, "hitches")) if _vals(recent, "hitches") else 0
     restarts = max(_vals(recent, "restarts")) if _vals(recent, "restarts") else 0
 

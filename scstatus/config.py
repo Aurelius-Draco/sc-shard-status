@@ -21,8 +21,11 @@ DEFAULT_CONFIG = {
     "game_dir": "",
     # Game language folder under Data\Localization (for item names)
     "language": "english",
-    # Read the game's debug overlay (r_displayinfo) off the screen every this many seconds. 0 = off.
+    # Read the game's debug overlay (r_displayinfo) off the screen every this many seconds. 0 = off
+    # (screenshots you take are still read).
     "overlay_every_s": 5,
+    # Also read any screenshot you take in game (Print Screen) that shows the overlay
+    "read_screenshots": True,
     # Which monitor the game is on (1 = main)
     "monitor": 1,
     # "What's gone wrong?" looks back this many minutes

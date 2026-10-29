@@ -29,6 +29,7 @@ class App:
             self.snaps.append(s)
         self.tail = LogTail(self.game_dir / "Game.log")
         self.watcher = None
+        self.shots = None
         self.stop = threading.Event()
         self.lock = threading.RLock()
         self.last_result = None
@@ -57,9 +58,23 @@ class App:
             from .capture import OverlayWatcher
             self.watcher = OverlayWatcher(self.cfg["overlay_every_s"], self.cfg.get("monitor", 1), self.on_reading)
             threading.Thread(target=self.watcher.run, args=(self.stop,), daemon=True).start()
+        if self.cfg.get("read_screenshots", True):
+            from .screenshots import ScreenshotWatcher
+
+            def reader():
+                from .overlay import OverlayReader
+                return OverlayReader(threads=2)
+            self.shots = ScreenshotWatcher(self.game_dir / "screenshots", reader, self.on_reading)
+            self.shots.poll()           # note what's already there; only new screenshots are read
+            threading.Thread(target=self.shots.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.import_backups, daemon=True).start()
 
     def on_reading(self, snap):
+        # Game.log is the authority on which shard you're on; small text at 1080p can misread a digit
+        s = self.session
+        if s and s.joins and (not snap.get("shard_id") or snap["shard_id"] != s.shard_id):
+            if not snap.get("shard_id") or _close(snap["shard_id"], s.shard_id):
+                snap["shard_id"] = s.shard_id
         with self.lock:
             self.snaps.append(snap)
         try:
@@ -105,6 +120,7 @@ class App:
         return {
             "health": a, "compare": cmp, "spark": spark,
             "overlay_status": self.watcher.status if self.watcher else "off",
+            "screenshot_readings": self.shots.count if self.shots else None,
             "session": {k: sess.get(k) for k in ("build", "version", "shard_id", "start", "load_s", "minutes",
                                                   "joins", "bad_disconnects", "errors", "clean_exit")},
             "shard": {"id": shard, "region": region_name(_region(shard)), "region_code": _region(shard)},
@@ -166,9 +182,11 @@ class App:
         d["url"] = report.ISSUE_COUNCIL
         return d
 
-    def report_bundle(self, group, i):
+    def report_bundle(self, group, i, text=None):
         f = self._finding(group, i)
         d = report.draft(f, self.last_result, self.latest_snap())
+        if text and isinstance(text, str):
+            d["body"] = text[:200_000]      # the player's edited version from the dashboard
         folder, n = report.bundle(f, self.last_result, d, self.game_dir)
         return {"folder": str(folder), "screenshots": n}
 
@@ -184,31 +202,75 @@ class App:
         return {"ticket": rid, "payload": payload, "saved": save}
 
     # -- the game's USER.cfg
+    def save_settings(self, live=None, screenshots=None):
+        """Change how readings are taken. Saved to data\\config.json; takes effect on the next start."""
+        import json
+        from .config import DATA
+        path = DATA / "config.json"
+        try:
+            cfg = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            cfg = {}
+        if live is not None:
+            cfg["overlay_every_s"] = 5 if live else 0
+            self.cfg["overlay_every_s"] = cfg["overlay_every_s"]
+        if screenshots is not None:
+            cfg["read_screenshots"] = bool(screenshots)
+            self.cfg["read_screenshots"] = cfg["read_screenshots"]
+        path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+        return "Saved. Close and restart SC Shard Status for it to take effect."
+
+    def settings(self):
+        return {"live": float(self.cfg.get("overlay_every_s") or 0) > 0,
+                "screenshots": bool(self.cfg.get("read_screenshots", True)),
+                "live_running": self.watcher is not None, "screenshot_readings": self.shots.count if self.shots else None}
+
+    # Settings the app can put in USER.cfg: name -> value to set
+    CFG_SETTINGS = {"r_displayinfo": 3, "r_DisplaySessionInfo": 1}
+
     def user_cfg_state(self):
         p = self.game_dir / "USER.cfg"
+        out = {"exists": p.exists(), "path": str(p)}
         try:
             txt = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
         except OSError:
-            return {"exists": p.exists(), "has_displayinfo": None}
-        m = re.search(r"^\s*r_displayinfo\s*=\s*(\d)", txt, re.I | re.M)
-        return {"exists": p.exists(), "has_displayinfo": bool(m and m.group(1) != "0"),
-                "value": int(m.group(1)) if m else None}
+            txt = None
+        for name in self.CFG_SETTINGS:
+            m = re.search(rf"^\s*{name}\s*=\s*(\d+)", txt or "", re.I | re.M)
+            out[name] = int(m.group(1)) if m else None
+        out["has_displayinfo"] = bool(out["r_displayinfo"]) if txt is not None else None
+        out["has_sessioninfo"] = bool(out["r_DisplaySessionInfo"]) if txt is not None else None
+        return out
 
-    def add_displayinfo(self):
-        p = self.game_dir / "USER.cfg"
+    def set_user_cfg(self, name, on=True):
+        """Add (or turn off) one of CFG_SETTINGS in the game's USER.cfg. Keeps a backup of the original."""
+        if name not in self.CFG_SETTINGS:
+            raise ValueError("That setting can't be changed from here.")
         if not self.game_dir.exists():
             raise ValueError("Game folder not found. Set game_dir in data\\config.json.")
+        p = self.game_dir / "USER.cfg"
         txt = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
-        if re.search(r"^\s*r_displayinfo\s*=", txt, re.I | re.M):
-            txt = re.sub(r"^(\s*r_displayinfo\s*=\s*)\d", r"\g<1>3", txt, flags=re.I | re.M)
-        else:
-            txt = txt.rstrip("\n") + ("\n" if txt.strip() else "") + "r_displayinfo = 3\n"
+        val = self.CFG_SETTINGS[name] if on else 0
+        rx = re.compile(rf"^(\s*{name}\s*=\s*)\d+", re.I | re.M)
+        if rx.search(txt):
+            txt = rx.sub(rf"\g<1>{val}", txt)
+        elif on:
+            txt = txt.rstrip("\n") + ("\n" if txt.strip() else "") + f"{name} = {val}\n"
         if p.exists():
             bak = p.with_suffix(".cfg.bak")
             if not bak.exists():
                 bak.write_bytes(p.read_bytes())
         p.write_text(txt, encoding="utf-8")
-        return "Added r_displayinfo = 3 to USER.cfg. It takes effect the next time the game starts."
+        verb = f"Set {name} = {val}" if on else f"Turned off {name}"
+        return f"{verb} in USER.cfg. It takes effect the next time the game starts; type it in the console to use it now."
+
+    def add_displayinfo(self):
+        return self.set_user_cfg("r_displayinfo")
+
+
+def _close(a, b):
+    """Same length and at most two characters different: an OCR slip, not a different shard."""
+    return len(a) == len(b) and sum(x != y for x, y in zip(a, b)) <= 2
 
 
 def _active_contracts(contracts):

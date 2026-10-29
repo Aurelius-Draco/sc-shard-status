@@ -11,7 +11,7 @@
     "regex": "Item class \\[(?P<item>[^\\]]+)\\] does not have a resource container"
    },
    "title": "The cargo system can't size {item_name}",
-   "explain": "The freight elevator or cargo screen looked at {item_name} and couldn't find a cargo box size for it. This shows up every time a Wikelo food or drink delivery (Very Hungry) was tried and the objective never moved. It also showed up when a Vestal Water delivery did count, so on its own it doesn't prove the delivery failed: check whether the objective counter went up.",
+   "explain": "The freight elevator or cargo screen looked at {item_name} and couldn't find a cargo box size for it. It has been seen on food and drink deliveries that never counted, and also on deliveries that did count, so on its own it doesn't prove the delivery failed: check whether the objective counter went up.",
    "fixes": [
     "Check the contract objective right after the elevator goes down. If the count didn't go up, the delivery didn't register.",
     "Don't keep re-sending the same items. Take them back out of the elevator so they're not left behind if you change server.",
@@ -35,7 +35,7 @@
     "regex": "\\[FreightElevatorKioskUIProvider\\] EntityId\\[\\d+\\] is not present"
    },
    "title": "The freight elevator is asking for items that aren't there",
-   "explain": "The freight elevator kiosk built a request that includes items it can't find. In this player's logs it happened after changing server: items left in the elevator on the old server were still listed but don't exist on the new one.",
+   "explain": "The freight elevator kiosk built a request that includes items it can't find. This usually happens after changing server: items left in the elevator on the old server are still listed, but they don't exist on the new one.",
    "fixes": [
     "Don't leave items in a freight elevator or on its platform when you leave the server; take them back first.",
     "Close and reopen the kiosk, or store and retrieve again, so the list refreshes.",
@@ -265,7 +265,7 @@
     "regex": "cause=(?P<cause>30016) reason=\"(?P<reason>[^\"]*)\" frame=\\d+ isRemote=1 viewState=(?P<view_state>eCVS_(?!InGame\\b)\\w+)"
    },
    "title": "The server dropped you while you were still spawning",
-   "explain": "The server closed the connection before you finished loading in ({view_state}). The game calls it 'player requested', but it came from the server side. In this player's log the next join landed on a different shard and region.",
+   "explain": "The server closed the connection before you finished loading in ({view_state}). The game calls it 'player requested', but it came from the server side. The next join usually lands on a different shard, and sometimes a different region.",
    "fixes": [
     "Join again. Expect to land on a different shard; check the region in the overlay.",
     "Anything you left loose in the world on the old shard (including in freight elevators) stays there.",
@@ -345,7 +345,7 @@
     "regex": "establisher=\"CReplicationModel\" runningTime=(?P<seconds>9\\d|[1-9]\\d{2,})\\.\\d+ map=\"[^\"]*\" gamerules=\"(?!SC_Frontend\")(?P<mode>[^\"]+)\""
    },
    "title": "Joining the universe took {seconds} seconds",
-   "explain": "Loading into the universe took over 90 seconds. In this player's logs the usual time is about 30 seconds (median 32, 90th percentile 53).",
+   "explain": "Loading into the universe took {seconds} seconds. It usually takes about 30 seconds, and rarely more than a minute.",
    "fixes": [
     "A slow load now and then is the server, not your PC.",
     "If every load is slow, check the game is on an SSD and other downloads aren't running.",
@@ -427,7 +427,7 @@
    "severity": "high",
    "area": "Game",
    "match": {
-    "regex": "^Exception (?P<exception>EXCEPTION_\\w+)\\((?P<code>0x[0-9A-Fa-f]+)\\) addr=0x[0-9A-Fa-f]+ digest=(?P<digest>[0-9a-f]+)"
+    "regex": "Exception (?P<exception>EXCEPTION_\\w+)\\((?P<code>0x[0-9A-Fa-f]+)\\) addr=0x[0-9A-Fa-f]+ digest=(?P<digest>[0-9a-f]+)"
    },
    "title": "The game crashed ({exception})",
    "explain": "The game's crash handler caught {exception}. This is a game crash, not a disconnect. The same digest showing up again means it's the same crash.",
@@ -450,7 +450,7 @@
    "severity": "high",
    "area": "Game",
    "match": {
-    "regex": "^Is out of (?P<which>system|video) memory: Yes"
+    "regex": "Is out of (?P<which>system|video) memory: Yes"
    },
    "title": "The game crashed after running out of {which} memory",
    "explain": "The crash handler says the game ran out of {which} memory.",
@@ -462,7 +462,7 @@
    "ic_title": "Client crash: out of {which} memory",
    "links": [],
    "general_knowledge": true,
-   "notes": "General knowledge: the crash handler prints this flag, but every crash in this corpus had 'No'.",
+   "notes": "General knowledge: the crash handler prints this flag, but every crash seen so far had 'No'.",
    "builds_seen": []
   },
   {
@@ -471,7 +471,7 @@
    "severity": "high",
    "area": "Game",
    "match": {
-    "regex": "^Is GPU crash: Yes"
+    "regex": "Is GPU crash: Yes"
    },
    "title": "The game crashed in the graphics driver",
    "explain": "The crash handler flagged this as a GPU crash.",
@@ -483,7 +483,7 @@
    "ic_title": "Client GPU crash",
    "links": [],
    "general_knowledge": true,
-   "notes": "General knowledge: the flag exists in the crash block, but every crash in this corpus had 'No'.",
+   "notes": "General knowledge: the flag exists in the crash block, but every crash seen so far had 'No'.",
    "builds_seen": []
   },
   {
@@ -492,7 +492,7 @@
    "severity": "low",
    "area": "Game",
    "match": {
-    "regex": "^Process Memory Status: (?P<ws_mb>\\d+)MB working set size, (?P<commit_mb>\\d+)MB commit size \\(\\d+MB peak\\), (?P<left_mb>\\d+)MB left to commit"
+    "regex": "Process Memory Status: (?P<ws_mb>\\d+)MB working set size, (?P<commit_mb>\\d+)MB commit size \\(\\d+MB peak\\), (?P<left_mb>\\d+)MB left to commit"
    },
    "title": "Memory at the time of the crash: {commit_mb} MB committed, {left_mb} MB left",
    "explain": "Memory use when the game crashed. Under about 2 GB left to commit means Windows was close to its limit (RAM plus page file).",
@@ -510,7 +510,7 @@
     "regex": "^Audio request queue \\[(?P<queue>\\w+)\\] passed \\d+% capacity threshold, now at (?P<pct>\\d{3,})(?:\\.\\d+)?%"
    },
    "title": "The audio system fell badly behind",
-   "explain": "The audio request queue was at {pct}% of capacity. In this player's logs it ran into the thousands of percent just before one of the crashes.",
+   "explain": "The audio request queue was at {pct}% of capacity. It has been seen running into the thousands of percent just before a crash.",
    "fixes": [
     "If sound cuts out or the game hitches, relog.",
     "Note it in any crash report."
@@ -1069,7 +1069,7 @@
     "regex": "Received PlayerLeft push message for: mission_id"
    },
    "title": "You were removed from a contract",
-   "explain": "The mission service removed you from a contract. In this player's logs it happened on abandon and when leaving the server, and Wikelo contracts had to be accepted again afterwards.",
+   "explain": "The mission service removed you from a contract. It happens when you abandon a contract and when you leave the server; some contracts (Wikelo's, for example) have to be accepted again afterwards.",
    "links": [],
    "builds_seen": [
     "12660092",
@@ -1684,7 +1684,7 @@
    "match": {
     "tag": "CEntityComponentLocationManager::PostInitialize::<lambda_1>::operator ()"
    },
-   "explain": "A station's location manager has no shop link at startup. Shops there still worked in these logs.",
+   "explain": "A station's location manager has no shop link at startup. Shops there still work.",
    "builds_seen": [
     "12572603",
     "12660092",

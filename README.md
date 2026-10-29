@@ -20,17 +20,37 @@ By Aurelius_Draco. Also by me: [SC Inventory Tracker](https://github.com/Aureliu
 
 If it can't find your game, put the path of your `StarCitizen\LIVE` folder in `data\config.json` as `game_dir`.
 
-## Turn on the game's overlay
+## Turn on the game's information
 
-The health numbers come from the game's own debug overlay. In game, open the console with `~` and type:
+The **Set up** tab in the app walks through this, with buttons that add the settings to USER.cfg for you.
+
+In game, open the console with `~` (the key left of 1) and type:
 
 ```
 r_displayinfo 3
+r_DisplaySessionInfo 1
 ```
 
-To have it on every time, use the **Add to USER.cfg** button on the dashboard, or add `r_displayinfo = 3` to `USER.cfg` in your `StarCitizen\LIVE` folder yourself. Levels 2, 3 and 4 show the same block in 4.10.
+- `r_displayinfo 3` shows the performance block in the top right: server fps, players on the shard and on your server, ping, packet loss, hitches, restarts, your fps and location. The live health numbers come from this; Game.log doesn't have them. Levels 2, 3 and 4 show the same block in 4.10.
+- `r_DisplaySessionInfo 1` shows the session QR code (also in the game's Graphics settings). It's optional, but it makes every screenshot far more useful in an Issue Council report, because CIG can find your session from it. Blur it in screenshots you post publicly.
 
-Without the overlay the app still works from Game.log: sessions, shards, disconnects, contracts, crashes and "What's gone wrong?". You just don't get the live health numbers.
+To have them on every time, add `r_displayinfo = 3` and `r_DisplaySessionInfo = 1` to `USER.cfg` in your `StarCitizen\LIVE` folder (the Set up tab does it for you and keeps a backup).
+
+## Live or screenshots
+
+- **Live** (default): the app reads the overlay corner of the screen every 5 seconds while the game is in front. You get the health score, charts and warnings.
+- **Screenshots**: press `Print Screen` in game and any screenshot with the overlay on it becomes a reading. Nothing watches your screen; you just get a reading each time you press the key. Turn live reading off on the Set up tab if you prefer this.
+
+Without the overlay the app still works from Game.log: sessions, shards, disconnects, contracts, crashes and "What's gone wrong?". You just don't get the health numbers.
+
+## Tips for clean readings
+
+- **Dark behind the text reads best.** The overlay is thin light text; over the sun, a bright planet, snow or a white wall it washes out and that reading is skipped. Face something dark when you want a reading.
+- **For screenshots, press Esc first.** The game menu darkens the screen behind the overlay; then press Print Screen. The game keeps running while the menu is open.
+- **Keep the top right corner clear** of other overlays (Discord, Steam, NVIDIA or AMD counters, RivaTuner).
+- **Turn off Chromatic Aberration and Film Grain** in the game's Graphics settings.
+- **1440p or higher** reads every value reliably. At 1080p the main numbers read fine, but the odd small value can be misread; the app uses the middle value over a few minutes, so one bad reading doesn't change the score.
+- **Main monitor**, or set `monitor` in `data\config.json`.
 
 ## What the numbers mean
 

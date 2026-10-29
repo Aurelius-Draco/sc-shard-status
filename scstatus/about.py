@@ -18,6 +18,7 @@ LINKS = [
 # Cross-links between the apps (shown on About and in the README)
 ALSO_BY = [
     {"name": "SC Inventory Tracker", "url": "https://github.com/Aurelius-Draco/sc-inventory-tracker",
+     "download": "https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest",
      "about": "Keeps track of what you've stored at every station: scans the storage kiosk, follows Game.log, "
               "wish lists with where to buy or craft, and ship fittings."},
 ]
