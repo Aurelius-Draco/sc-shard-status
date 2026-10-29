@@ -1,11 +1,17 @@
 name: release
 # Publish a release on GitHub (Releases, Draft a new release, new tag like v3.1)
 # and this builds the download zip, attaches it, and fills in the notes from
-# CHANGELOG.md. Only the release event triggers it: publishing on the website
-# also creates the tag, and two runs at once would race to upload the zip.
+# CHANGELOG.md. Pushing a tag like v1.0 does the same without the website.
 on:
   release:
     types: [published]
+  push:
+    tags: ["v*"]
+# Publishing on the website also creates the tag, so both events can fire; run them one after the other
+# (the second finds the release already there and just re-uploads the same zip).
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
