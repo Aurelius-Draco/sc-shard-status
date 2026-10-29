@@ -12,7 +12,7 @@
   --line: #262d36; --line2: #3a434f; --text: #e7eaee; --muted: #9ea7b3;
   --amber: #f2a93b; --on-amber: #1a1103; --teal: #4cc4b0; --rust: #ec7a5e; --fresh: #a9c0d8;
   --amber-bg: rgba(242,169,59,.10); --amber-line: rgba(242,169,59,.55); --teal-bg: rgba(76,196,176,.11); --rust-bg: rgba(236,122,94,.12); --fresh-bg: rgba(169,192,216,.10);
-  --hover: rgba(255,255,255,.045); --zebra: rgba(255,255,255,.018); --sel: rgba(242,169,59,.10); --sel-hover: rgba(242,169,59,.15);
+  --ghost: #242b35; --ghost-line: #5b6674; --hover: rgba(255,255,255,.045); --zebra: rgba(255,255,255,.018); --sel: rgba(242,169,59,.10); --sel-hover: rgba(242,169,59,.15);
   --field: #0c0f13; --star: rgba(214,226,240,.32); --limb: rgba(242,169,59,.09); --limb-line: rgba(242,169,59,.42);
   --shadow: 0 16px 40px rgba(0,0,0,.5); --edge: inset 0 1px 0 rgba(255,255,255,.035);
   --font: "Bahnschrift", "DIN Alternate", "Barlow", "Segoe UI", system-ui, sans-serif;
@@ -28,7 +28,7 @@
     --line: #dce0e5; --line2: #b6bec8; --text: #13171c; --muted: #4f5965;
     --amber: #8c5000; --on-amber: #ffffff; --teal: #0a6b5f; --rust: #a23a22; --fresh: #2c5a84;
     --amber-bg: rgba(140,80,0,.08); --amber-line: rgba(140,80,0,.5); --teal-bg: rgba(10,107,95,.08); --rust-bg: rgba(162,58,34,.08); --fresh-bg: rgba(44,90,132,.08);
-    --hover: rgba(19,30,45,.045); --zebra: rgba(19,30,45,.022); --sel: rgba(140,80,0,.08); --sel-hover: rgba(140,80,0,.12);
+    --ghost: #ffffff; --ghost-line: #8e98a4; --hover: rgba(19,30,45,.045); --zebra: rgba(19,30,45,.022); --sel: rgba(140,80,0,.08); --sel-hover: rgba(140,80,0,.12);
     --field: #ffffff; --star: transparent; --limb: rgba(140,80,0,.05); --limb-line: rgba(140,80,0,.32);
     --shadow: 0 14px 34px rgba(20,32,48,.16); --edge: inset 0 1px 0 rgba(255,255,255,.7);
   }
@@ -39,7 +39,7 @@
   --line: #dce0e5; --line2: #b6bec8; --text: #13171c; --muted: #4f5965;
   --amber: #8c5000; --on-amber: #ffffff; --teal: #0a6b5f; --rust: #a23a22; --fresh: #2c5a84;
   --amber-bg: rgba(140,80,0,.08); --amber-line: rgba(140,80,0,.5); --teal-bg: rgba(10,107,95,.08); --rust-bg: rgba(162,58,34,.08); --fresh-bg: rgba(44,90,132,.08);
-  --hover: rgba(19,30,45,.045); --zebra: rgba(19,30,45,.022); --sel: rgba(140,80,0,.08); --sel-hover: rgba(140,80,0,.12);
+  --ghost: #ffffff; --ghost-line: #8e98a4; --hover: rgba(19,30,45,.045); --zebra: rgba(19,30,45,.022); --sel: rgba(140,80,0,.08); --sel-hover: rgba(140,80,0,.12);
   --field: #ffffff; --star: transparent; --limb: rgba(140,80,0,.05); --limb-line: rgba(140,80,0,.32);
   --shadow: 0 14px 34px rgba(20,32,48,.16); --edge: inset 0 1px 0 rgba(255,255,255,.7);
 }
@@ -89,6 +89,14 @@ a.pill.plink:hover { background: var(--amber-bg); }
 .tabbar button:hover, .tabbar button[aria-selected="true"] { color: var(--text); }
 .tabbar button[aria-selected="true"]::after { content: ""; position: absolute; left: var(--s3); right: var(--s3); bottom: -1px; height: 2px; background: var(--amber); }
 .tabbar .t2 { margin-left: auto; }
+.tabbar .tsetup { align-self: center; height: 2.125rem; margin-right: var(--s2); padding: 0 var(--s4); border: 1px solid var(--amber); border-radius: var(--r-sm); background: var(--amber-bg); color: var(--text); }
+.tabbar .tsetup:hover { background: var(--sel-hover); }
+.tabbar .tsetup svg { color: var(--amber); }
+.tabbar .tsetup[aria-selected="true"] { background: var(--amber); border-color: var(--amber); color: var(--on-amber); }
+.tabbar .tsetup[aria-selected="true"] svg { color: var(--on-amber); }
+.tabbar .tsetup[aria-selected="true"]::after { display: none; }
+.tabbar .tsetup .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rust); box-shadow: 0 0 0 2px var(--bg); }
+.tabbar .tsetup .dot[hidden] { display: none; }
 .count { font-size: .6875rem; line-height: 1.125rem; min-width: 1.375rem; padding: 0 5px; text-align: center; border-radius: 2px; background: var(--raise2); color: var(--muted); font-weight: 700; letter-spacing: 0; }
 .count.rust { color: var(--rust); background: var(--rust-bg); }
 .count:empty { display: none; }
@@ -97,8 +105,8 @@ a.pill.plink:hover { background: var(--amber-bg); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); height: var(--h); padding: 0 var(--s4); border: 1px solid var(--amber); border-radius: var(--r-sm); background: var(--amber); color: var(--on-amber); font-weight: 600; white-space: nowrap; text-decoration: none; }
 .btn:hover { filter: brightness(1.08); color: var(--on-amber); }
 .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
-.btn.ghost { background: var(--raise); color: var(--text); border-color: var(--line2); }
-.btn.ghost:hover { filter: none; background: var(--raise2); border-color: var(--muted); color: var(--text); }
+.btn.ghost { background: var(--ghost); color: var(--text); border-color: var(--ghost-line); box-shadow: var(--edge); }
+.btn.ghost:hover { filter: none; background: var(--amber-bg); border-color: var(--amber); color: var(--text); }
 .btn.sm { height: var(--h-sm); padding: 0 var(--s3); font-size: .8125rem; }
 .btn.big { height: 3rem; padding: 0 var(--s6); font-size: 1.0625rem; }
 .link { background: none; border: 0; padding: 2px 0; color: var(--teal); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
@@ -297,7 +305,7 @@ table.switches td:last-child { white-space: nowrap; }
   <button role="tab" data-tab="history">History</button>
   <button role="tab" data-tab="pc">My PC</button>
   <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
-  <button role="tab" data-tab="setup" class="t2">Set up</button>
+  <button role="tab" data-tab="setup" class="t2 tsetup"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Set up <i class="dot" id="setupDot" hidden></i></button>
   <button role="tab" data-tab="about">About</button>
 </nav>
 
@@ -362,6 +370,7 @@ function header(d) {
   op.querySelector("span").textContent = st === "reading" ? "Overlay: reading" : st === "off" ? "Overlay: off" : "Overlay: " + st.split(" (")[0];
   op.title = st;
   $("libCount").textContent = d.library && d.library.problem ? d.library.problem : "";
+  const dot = $("setupDot"); dot.hidden = !!d.game_found; dot.title = d.game_found ? "" : "Game folder not found";
 }
 
 /* ---------- charts ---------- */
@@ -435,7 +444,7 @@ async function renderNow() {
   const score = h.score, circ = 2 * Math.PI * 52, frac = score === null ? 0 : score / 100;
   const col = {good: "var(--teal)", ok: "var(--fresh)", poor: "var(--amber)", bad: "var(--rust)"}[h.cls] || "var(--line2)";
   const setup = [];
-  if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game.log not found.</b> Set <code>game_dir</code> in <code>data\\config.json</code> to your StarCitizen\\LIVE folder, then restart.</p></div>`);
+  if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game folder not found yet.</b> Start Star Citizen and the app picks it up by itself, or paste the folder on the Set up tab.</p><button class="btn sm" id="goSetup3">Set up</button></div>`);
   if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
     setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on. The Set up tab explains both settings.</p><button class="btn sm ghost" id="addCfg">Add to USER.cfg</button><button class="btn sm ghost" id="goSetup">Set up</button></div>`);
   const cmp = d.compare;
@@ -498,6 +507,7 @@ async function renderNow() {
   if (b) b.onclick = async () => { try { const r = await api("/api/usercfg", {name: "r_displayinfo"}); toast(r.message); renderNow(); } catch (e) { toast(e.message, true); } };
   if ($("goSetup")) $("goSetup").onclick = () => show("setup");
   if ($("goSetup2")) $("goSetup2").onclick = () => show("setup");
+  if ($("goSetup3")) $("goSetup3").onclick = () => show("setup");
 }
 
 /* ---------- What's gone wrong ---------- */
@@ -712,7 +722,7 @@ async function renderSetup() {
   if (tab !== "setup") return;
   const st = (on, yes, no) => `<span class="state ${on ? "on" : ""}"><i></i>${on ? yes : no}</span>`;
   $("view").innerHTML = `
-  ${u.game_found === false ? `<div class="sec notice rust"><p><b>Game folder not found,</b> so the USER.cfg buttons are off. Put the path of your StarCitizen\\LIVE folder in <code>data\\config.json</code> as <code>game_dir</code>, then restart.</p></div>` : ""}
+  ${u.game_found === false ? `<div class="sec notice rust"><p><b>Game folder not found yet,</b> so the USER.cfg buttons are off until it is. See the Game folder box below.</p></div>` : ""}
   <section class="sec"><h3>Turn on the game's information <span>two console settings from CIG, on only when you want them</span></h3>
     <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
     Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
