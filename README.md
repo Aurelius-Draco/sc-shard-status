@@ -52,9 +52,17 @@ These are from real Game.logs with every name, ID and address swapped for made-u
 
 ## Install (Windows)
 
-1. Download the latest `SC-Shard-Status-x.y.zip` from [Releases](https://github.com/Aurelius-Draco/sc-shard-status/releases) and unzip it anywhere (next to your StarCitizen folder is handy).
-2. Double-click **Setup.bat**. It needs Python 3.12 or 3.13; if you don't have it, Setup tells you the one command to install it.
-3. Start **SC Shard Status** from the shortcut. The dashboard opens in your browser.
+1. Download **SC-Shard-Status-Setup-x.y.exe** from the latest [release](https://github.com/Aurelius-Draco/sc-shard-status/releases/latest) (or [verseshards.com/app](https://verseshards.com/app)) and run it. It installs just for you, so no admin password is needed.
+2. Windows may show "Windows protected your PC" the first time, because the app is new and not from a big publisher. Click **More info**, then **Run anyway**.
+3. Start **SC Shard Status** from the Start menu or desktop. The dashboard opens in your browser.
+
+New versions: the app says so on its dashboard and updates itself with one click, keeping your settings and history. Your settings, readings and reports live in `%LOCALAPPDATA%\SC Shard Status`; uninstalling asks whether to keep them. Used the zip version before? The installed app finds it on first start and brings everything across.
+
+<details><summary>Run it from source instead (Python 3.12 or 3.13)</summary>
+
+Download `SC-Shard-Status-x.y.zip` from the same release, unzip it anywhere and double-click **Setup.bat**. If you don't have Python, Setup tells you the one command to install it. This copy keeps its data in its own `data` folder and points you to the installer when a new version is out.
+
+</details>
 
 It finds the game by itself in most cases: it checks next to its own folder, the usual install places on every drive, and folders one or two levels deep (like `D:\Games\RSI\StarCitizen\LIVE`). If your install is somewhere unusual, start Star Citizen and the app picks the folder up from the running game, or paste the folder on the **Set up** tab. It's the `StarCitizen\LIVE` folder, the one with `Bin64` and `Game.log` in it.
 
