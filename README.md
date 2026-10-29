@@ -98,7 +98,7 @@ Without the overlay the app still works from Game.log: sessions, shards, disconn
 - **Keep the top right corner clear** of other overlays (Discord, Steam, NVIDIA or AMD counters, RivaTuner).
 - **Turn off Chromatic Aberration and Film Grain** in the game's Graphics settings.
 - **1440p or higher** reads every value reliably. At 1080p the main numbers read fine, but the odd small value can be misread; the app uses the middle value over a few minutes, so one bad reading doesn't change the score.
-- **Main monitor**, or set `monitor` in `data\config.json`.
+- **Main monitor**, or set `monitor` (2, 3 and so on) in `config.json` in the app's data folder: `%LOCALAPPDATA%\SC Shard Status` for the installed app, or the `data` folder of a copy run from source.
 
 ## What the numbers mean
 

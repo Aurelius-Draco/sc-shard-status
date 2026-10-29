@@ -486,8 +486,8 @@ class App:
         if name not in self.CFG_SETTINGS:
             raise ValueError("That setting can't be changed from here.")
         if not self.game_found:
-            raise ValueError("Game folder not found. Put the path of your StarCitizen\\LIVE folder in "
-                             "data\\config.json as game_dir, then restart.")
+            raise ValueError("Game folder not found yet. Start Star Citizen and the app picks it up, or paste your "
+                             "StarCitizen\\LIVE folder in the Game folder box on this tab.")
         p = self.game_dir / "USER.cfg"
         if p.exists():
             txt, enc, nl = read_cfg(p)

@@ -446,9 +446,10 @@ function waitForRestart() {
   }, 2000);
 }
 document.addEventListener("click", async e => {
-  const b = e.target.closest("[data-upd],[data-dismiss],#updPill");
+  const b = e.target.closest("[data-upd],[data-dismiss],[data-open],#updPill");
   if (!b) return;
   try {
+    if (b.dataset.open) { await api("/api/open", {what: b.dataset.open}); return; }
     if (b.id === "updPill") { show("setup"); setTimeout(() => $("updCard") && $("updCard").scrollIntoView({behavior: "smooth", block: "start"}), 150); return; }
     if (b.dataset.dismiss) { await api("/api/dismiss", {what: b.dataset.dismiss}); b.closest(".notice").remove(); return; }
     b.disabled = true;
@@ -924,7 +925,7 @@ async function renderSetup() {
       <li><b>Keep the top right corner clear.</b> Move other overlays (Discord, Steam, NVIDIA or AMD performance counters, RivaTuner) to another corner so they don't sit on top of the game's text.</li>
       <li><b>Turn off Chromatic Aberration and Film Grain</b> in the game's Graphics settings. Both blur small text.</li>
       <li><b>1440p or higher reads every value reliably.</b> At 1080p the text is tiny; the main numbers still read, but the odd small value can be misread. The app takes the middle value over a few minutes, so one bad reading doesn't change the score.</li>
-      <li><b>Play on your main monitor,</b> or set <code>monitor</code> in <code>data\\config.json</code> to the screen the game is on.</li>
+      <li><b>Play on your main monitor,</b> or set <code>monitor</code> to the screen the game is on (2, 3 and so on) in <code>config.json</code> in the app's data folder: <code>%LOCALAPPDATA%\\SC Shard Status</code> for the installed app. <button class="btn sm ghost" data-open="data">Open the data folder</button></li>
       <li>Live reading skips anything it can't read and tries again 5 seconds later, so a bright moment just means a gap, not a wrong number.</li>
     </ul>
   </section>

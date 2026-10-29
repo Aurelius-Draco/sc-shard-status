@@ -190,8 +190,9 @@ def load_config():
     try:
         DATA.mkdir(parents=True, exist_ok=True)
     except OSError as e:
-        raise SystemExit(f"Can't write to {DATA} ({e}). Move the SC Shard Status folder somewhere you can write to, "
-                         "such as next to your StarCitizen folder or in Documents, and run Setup.bat again.")
+        raise SystemExit(f"Can't write to {DATA} ({e}). " + ("Check that folder isn't read-only, or reinstall SC Shard "
+                         "Status." if FROZEN else "Move the SC Shard Status folder somewhere you can write to, such as "
+                         "next to your StarCitizen folder or in Documents, and run Setup.bat again."))
     cfg_path = DATA / "config.json"
     if FROZEN and not cfg_path.exists():
         # First start of the installed app: bring settings and history across from a zip copy, if there is one
