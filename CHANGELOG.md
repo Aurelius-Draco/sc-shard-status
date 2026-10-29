@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- A proper Windows installer: download SC-Shard-Status-Setup and run it. No Python, no admin password, Start menu and desktop shortcuts, and an uninstaller that asks whether to keep your history.
+- One-click updates: the dashboard says when a new version is out and Update now installs it and starts the app again, keeping your settings and history. The download is checked against its published SHA-256 before it runs.
+- Used the zip version? The installed app finds it on first start and brings your settings, history and reports across.
+- New set-up question: tell you when there's a new version. If you've already been through set-up, you're asked only the new questions.
+
 ## 1.0.1
 
 - The community site has its own address: https://verseshards.com. Linked from the top of every page in the app, the About tab and each finding in "What's gone wrong?".

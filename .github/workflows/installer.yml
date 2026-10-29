@@ -80,12 +80,27 @@ jobs:
           Stop-Process -Id $p.Id -Force
           if (-not $ok) { Get-Content "$env:SCSTATUS_DATA\status.log" -ErrorAction SilentlyContinue; throw "dashboard didn't come up" }
           Write-Host "Dashboard came up."
+          # Update over the top while it's running, the way the app's Update button does: the installer closes the
+          # running copy, puts the files in place and starts the new one, whose dashboard comes back up
+          $p = Start-Process "$dir\SC Shard Status.exe" -ArgumentList "--no-browser","--no-overlay" -PassThru
+          Start-Sleep 8
+          Start-Process "dist\SC-Shard-Status-Setup-$env:VER.exe" -ArgumentList "/SILENT","/SUPPRESSMSGBOXES","/NORESTART","/CLOSEAPPLICATIONS","/DIR=$dir" -Wait
+          $back = $false
+          foreach ($i in 1..45) {
+            Start-Sleep 2
+            try { $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8775/ -TimeoutSec 5; if ($r.Content -match 'const TOKEN = "') { $back = $true; break } } catch {}
+          }
+          if (-not $back) { Get-Content "$env:SCSTATUS_DATA\status.log" -ErrorAction SilentlyContinue; throw "didn't come back after updating over the top" }
+          Select-String -Path "$env:SCSTATUS_DATA\status.log" -Pattern "Updated to" | Select-Object -Last 1
+          Get-Process "SC Shard Status" -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep 2
+          Write-Host "Updated over the top and came back."
           Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait
           # The uninstaller hands over to a copy of itself and returns straight away, so give it time to finish
           foreach ($i in 1..30) { if (-not (Test-Path "$dir\SC Shard Status.exe")) { break }; Start-Sleep 1 }
           if (Test-Path "$dir\SC Shard Status.exe") { throw "uninstall left the app behind" }
           Write-Host "Uninstalled cleanly."
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: SC-Shard-Status-Setup-${{ env.VER }}
           path: |
