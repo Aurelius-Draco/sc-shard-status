@@ -5,12 +5,48 @@ A free tool for Star Citizen players that tells you, in plain English, how healt
 It reads two things the game already gives you: the debug overlay (`r_displayinfo 3`) and Game.log. From them it works out:
 
 - **Shard health right now.** A 0-100 score with server fps, players on the shard and on your server, ping, packet loss, hitches and server restarts, and a sentence that says what it means for you.
-- **What's gone wrong?** One button. It checks the last half hour of the log against a library of known issues and explains what it finds, with fixes. It joins facts together: if a contract wants an item and the game has just logged a cargo error for that exact item, it tells you that's why the delivery isn't counting.
+- **What's gone wrong?** One button. It checks the last 10 minutes to 4 hours of the log (earlier sessions included) against a library of known issues and explains what it finds, with fixes. It joins facts together: if a contract wants an item and the game has just logged a cargo error for that exact item, it tells you that's why the delivery isn't counting.
 - **Issue Council drafts.** Each finding comes with a ready-to-paste report (steps, expected and actual result, game version, shard, log lines) and a folder with your Game.log and screenshots from around that time, ready to attach.
 - **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
 - **My PC.** Your hardware and the game's own CPU and GPU test results from every launch, plus your frame rate by location.
 
 By Aurelius_Draco. Also by me: [SC Inventory Tracker](https://github.com/Aurelius-Draco/sc-inventory-tracker), which keeps track of what you've stored at every station.
+
+## What it looks like
+
+These are from real Game.logs with every name, ID and address swapped for made-up ones, and made-up overlay readings.
+
+**A healthy shard.** About 20 server fps is normal on 4.10.
+
+![Healthy shard](docs/screenshots/1-now-healthy.png)
+
+**Struggling.** The server has slowed down, ping is up and there are hitches. It tells you what that means in game.
+
+![Struggling shard](docs/screenshots/2-now-struggling.png)
+
+**In a bad way.** Server fps in single figures, a server restart while you were on it, packet loss. Time for a server hop.
+
+![Bad shard](docs/screenshots/3-now-bad.png)
+
+**What's gone wrong?** A contract whose deliveries never counted, the slow server, items stuck in a freight elevator after a server change, a disconnect during loading, each with what it means and what to do.
+
+![What's gone wrong](docs/screenshots/4-whats-gone-wrong.png)
+
+**Issue Council draft.** Every part has its own Copy button, so you paste each one straight into the matching box.
+
+![Issue Council draft](docs/screenshots/5-issue-council-draft.png)
+
+<details><summary>More: History, My PC, Known issues, Set up, light theme, phone width</summary>
+
+![History](docs/screenshots/6-history.png)
+![My PC](docs/screenshots/7-my-pc.png)
+![Known issues](docs/screenshots/8-known-issues.png)
+![Set up](docs/screenshots/9-set-up.png)
+![About](docs/screenshots/10-about.png)
+![Light theme](docs/screenshots/11-now-light-theme.png)
+![Phone width](docs/screenshots/12-phone-width.png)
+
+</details>
 
 ## Install (Windows)
 
@@ -89,6 +125,7 @@ python status.py --check         what's gone wrong, printed
 python status.py --check --file "logbackups\Game Build(...).log" --minutes 0
 python -m pytest -q tests
 python tools/demo.py "<StarCitizen LIVE folder>"    dashboard on copied logs with made-up readings
+python tools/showcase.py "<StarCitizen LIVE folder>"  the screenshots in docs/screenshots (names and IDs swapped for made-up ones)
 ```
 
 MIT licence. See [THIRD_PARTY.md](THIRD_PARTY.md) for the libraries it uses.

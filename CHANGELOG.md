@@ -10,4 +10,6 @@ First release.
 - Issue Council drafts with a report folder (report, Game.log, screenshots from around that time).
 - History: shards with their server fps and population, past sessions from logbackups, server fps by hour.
 - Unrecognised errors can be prepared for review with identifiers stripped; saved locally until the community service exists.
+- Finds the game folder on any drive, or from the running game, or from a folder you paste on the Set up tab.
+- Quick on/off switches for the overlay and the session QR code, in game and at start-up (USER.cfg).
 - One-click Setup.bat, shortcuts with their own icon, dark and light themes.

@@ -694,6 +694,14 @@ async function renderPC() {
 }
 
 /* ---------- Known issues ---------- */
+// Library text has blanks the app fills from the log line ({item_name}); in the list, show them as plain words
+const BLANKS = {item_name: "an item", vehicle: "a ship", task: "a step", which: "", seconds: "N", metres: "N",
+  pct: "N", commit_mb: "N", left_mb: "N", from: "one point", to: "another", manager: "", reason: "the reason given"};
+function generic(t) {
+  return String(t || "").replace(/\s*\(\{\w+\}\)/g, "").replace(/\{(\w+)\}/g, (m, k) => k in BLANKS ? BLANKS[k] : "…")
+    .replace(/\s{2,}/g, " ").replace(/\s+([.,:])/g, "$1").trim();
+}
+
 async function renderIssues() {
   const d = await api("/api/issues");
   if (tab !== "issues") return;
@@ -706,9 +714,9 @@ async function renderIssues() {
   const draw = () => {
     const q = $("libQ").value.toLowerCase();
     const rows = d.rules.filter(r => !q || (r.title + " " + r.explain + " " + r.area).toLowerCase().includes(q));
-    $("libList").innerHTML = rows.length ? rows.map(r => `<details class="frame"><summary><span class="t">${esc(r.title)}</span>
+    $("libList").innerHTML = rows.length ? rows.map(r => `<details class="frame"><summary><span class="t">${esc(generic(r.title))}</span>
       <span class="chip ${esc(r.severity)}">${esc(r.kind === "info" ? "info" : r.severity)}</span><span class="chip area">${esc(r.area)}</span></summary>
-      <p>${esc(r.explain)}</p>${r.fixes.length ? `<ul>${r.fixes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      <p>${esc(generic(r.explain))}</p>${r.fixes.length ? `<ul>${r.fixes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${r.links.length ? `<p class="sub">${r.links.map(l => `<a href="${esc(l.url || l)}" target="_blank" rel="noopener">${esc(l.title || l.url || l)}</a>`).join(" · ")}</p>` : ""}
       <p class="sub">Seen in builds: ${esc((r.builds_seen || []).join(", ") || "not yet seen in a player log")}</p></details>`).join("")
       : `<div class="empty"><h3>Nothing matches</h3></div>`;
