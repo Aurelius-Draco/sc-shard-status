@@ -14,6 +14,13 @@
   likely fixed" when it stops turning up.
 - Link suggestions from players, limited to RSI (Issue Council, Spectrum, patch notes) and the Star Citizen wiki,
   reviewed before they show; trusted contributors later.
+- Community workarounds on every known issue. Players suggest a fix or workaround from the app or the site,
+  and others mark "this worked for me" or "didn't work". Only installs that actually hit the issue (the app saw it
+  in their log) can vote, so the ranking reflects real players with the problem, not drive-by votes. New
+  suggestions show as "unverified" until a few players confirm them or an admin approves them. Text only, length
+  limited, links limited to the same RSI and wiki domains; anonymous by default, with an opt-in "credit me as
+  <handle>". Well-confirmed workarounds get promoted into the library's own fixes, and anything that stops
+  working after a patch drops down the list.
 - Review queue for unrecognised errors: deduplicated by signature, checked in batches, turned into library entries;
   the app tells the player their ticket was answered next time it starts. Optional private screenshot with chat and
   the QR code blurred, deleted once identified.
