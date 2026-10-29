@@ -131,7 +131,7 @@ Optional (asked on first start), with or without a sound: a Windows notification
 
 ## Community board
 
-https://verseshards.com
+https://verseshards.com · Discord: https://discord.gg/8kH5pfHYbe
 
 - **Shard board:** live health for every shard players are reporting from, best first in each region, so you know where to server hop.
 - **Broken right now:** known problems two or more players hit in the last 2 hours, at the top of the board.
