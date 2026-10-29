@@ -156,6 +156,8 @@ def handle_post(app, path, body):
     if path == "/api/usercfg":
         msg = app.set_user_cfg(body.get("name", "r_displayinfo"), body.get("on", True) is not False)
         return {"message": msg, "user_cfg": app.user_cfg_state()}
+    if path == "/api/setup":
+        return {"message": app.apply_setup(body.get("choices") or {}), "settings": app.settings()}
     if path == "/api/gamedir":
         return {"message": app.set_game_dir(body.get("path", "")), "game_dir": app.cfg["game_dir"]}
     if path == "/api/settings":

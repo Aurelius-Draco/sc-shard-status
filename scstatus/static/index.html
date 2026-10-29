@@ -272,6 +272,26 @@ table.switches td:last-child { white-space: nowrap; }
 .chipt input:checked { background: var(--amber); border-color: var(--amber); box-shadow: inset 0 0 0 2px var(--field); }
 .chipt:has(input:checked) { color: var(--text); border-color: var(--amber-line); }
 .chipt:has(input:focus-visible) { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* First-run questions */
+.wiz { position: fixed; inset: 0; z-index: 40; overflow-y: auto; background: rgba(4,6,9,.78); padding: var(--s6) var(--s4) 0; }
+.wiz .box { max-width: 54rem; margin: 0 auto var(--s6); background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r); box-shadow: var(--shadow); }
+.wiz header { padding: var(--s6) var(--s6) var(--s4); border-bottom: 1px solid var(--line); box-shadow: inset 0 -2px 0 var(--amber); }
+.wiz header h2 { margin: 0; font-size: 1.5rem; }
+.wiz header p { margin: var(--s2) 0 0; color: var(--muted); max-width: 70ch; }
+.wq { padding: var(--s5) var(--s6); border-bottom: 1px solid var(--line); display: grid; gap: var(--s2); }
+.wq.done { background: linear-gradient(90deg, var(--teal-bg), transparent 40%); }
+.wq .qn { font-size: .75rem; font-weight: 700; color: var(--amber); letter-spacing: .07em; text-transform: uppercase; }
+.wq.done .qn { color: var(--teal); }
+.wq h3 { margin: 0; font-size: 1.125rem; }
+.wq p { margin: 0; color: var(--muted); max-width: 75ch; font-size: .9rem; }
+.wq .ans { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); align-items: center; }
+.wq .ans button { min-width: 9rem; height: 2.5rem; padding: 0 var(--s4); border-radius: var(--r-sm); border: 1px solid var(--ghost-line); background: var(--ghost); color: var(--text); font-weight: 600; }
+.wq .ans button:hover { border-color: var(--amber); background: var(--amber-bg); }
+.wq .ans button[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--on-amber); }
+.wq .now { font-size: .8125rem; color: var(--muted); }
+.wiz footer { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: var(--s4) var(--s6); background: var(--panel); border-top: 1px solid var(--line2); }
+.wiz footer .grow { flex: 1; }
 .toast { position: fixed; left: 50%; bottom: var(--s5); transform: translateX(-50%); z-index: 30; padding: var(--s3) var(--s5); background: var(--raise2); border: 1px solid var(--line2); border-left: 3px solid var(--teal); border-radius: var(--r-sm); box-shadow: var(--shadow); max-width: min(40rem, 90vw); }
 .toast.err { border-left-color: var(--rust); }
 .empty { margin-top: var(--s4); padding: var(--s7) var(--s6); text-align: center; border: 1px dashed var(--line2); border-radius: var(--r); color: var(--muted); }
@@ -756,6 +776,7 @@ async function renderSetup() {
   const st = (on, yes, no) => `<span class="state ${on ? "on" : ""}"><i></i>${on ? yes : no}</span>`;
   $("view").innerHTML = `
   ${u.game_found === false ? `<div class="sec notice rust"><p><b>Game folder not found yet,</b> so the USER.cfg buttons are off until it is. See the Game folder box below.</p></div>` : ""}
+  <section class="sec"><button class="btn ghost" id="redoWiz">Go through the set-up questions again</button></section>
   <section class="sec"><h3>Turn on the game's information <span>two console settings from CIG, on only when you want them</span></h3>
     <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
     Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
@@ -835,7 +856,7 @@ async function renderSetup() {
     $("setToggles").innerHTML = `
       <label class="chipt"><input type="checkbox" id="tgLive" ${st.live ? "checked" : ""}> Live screen reading</label>
       <label class="chipt"><input type="checkbox" id="tgShots" ${st.screenshots ? "checked" : ""}> Read my screenshots</label>
-      <span class="sub">${st.live !== st.live_running ? "Restart the app to apply." : st.screenshot_readings ? st.screenshot_readings + " readings from screenshots this run." : ""}</span>`;
+      <span class="sub">${st.screenshot_readings ? st.screenshot_readings + " readings from screenshots this run." : ""}</span>`;
     const save = async () => { try { const r = await api("/api/settings", {live: $("tgLive").checked, screenshots: $("tgShots").checked}); toast(r.message); drawToggles(); } catch (e) { toast(e.message, true); } };
     $("tgLive").onchange = save; $("tgShots").onchange = save;
   };
@@ -851,6 +872,7 @@ async function renderSetup() {
     $("tgBoard").onchange = save; $("tgShare").onchange = save;
   };
   drawComm();
+  $("redoWiz").onclick = openWizard;
   $("view").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => {
     try { const r = await api("/api/usercfg", {name: b.dataset.cfg, on: b.dataset.on === "1"}); toast(r.message); nowData = null; nowData = await api("/api/now"); renderSetup(); }
     catch (e) { toast(e.message, true); }
@@ -886,8 +908,76 @@ async function renderAbout() {
   });
 }
 
+
+/* ---------- First-run questions: every setting is a yes or no the player answers once ---------- */
+async function openWizard() {
+  const d = await api("/api/now"); const st = await api("/api/settings"); const u = d.user_cfg || {};
+  const A = {};
+  const yn = (key, yes = "Yes", no = "No") => `<div class="ans" data-q="${key}"><button type="button" data-v="1">${yes}</button><button type="button" data-v="0">${no}</button></div>`;
+  const now = v => v === null || v === undefined ? "" : `<span class="now">Right now: ${v ? "on" : "off"}</span>`;
+  const qs = [
+    ["game", "Game folder", d.game_found ? `Is this your Star Citizen folder?` : `Where's Star Citizen installed?`,
+      d.game_found ? `The app found <code>${esc(d.game_dir)}</code>. It reads Game.log from here and saves the USER.cfg settings below to it.`
+        : `The app couldn't find it on any drive. Start the game and it picks the folder up by itself, or paste the <code>StarCitizen\\LIVE</code> folder (the RSI Launcher shows the library folder under Settings, Games).`,
+      d.game_found ? `<div class="ans" data-q="game"><button type="button" data-v="ok">Yes, that's it</button><button type="button" data-v="other">No, use another folder</button></div>
+        <div class="fa" id="wzPathRow" hidden><input class="inp" id="wzPath" placeholder="e.g. D:\\Games\\Roberts Space Industries\\StarCitizen\\LIVE" style="flex:1 1 24rem"></div>`
+        : `<div class="ans" data-q="game"><button type="button" data-v="later">Find it when I start the game</button><button type="button" data-v="other">I'll paste the folder</button></div>
+        <div class="fa" id="wzPathRow" hidden><input class="inp" id="wzPath" placeholder="e.g. D:\\Games\\Roberts Space Industries\\StarCitizen\\LIVE" style="flex:1 1 24rem"></div>`],
+    ["displayinfo", "Game setting", "Start the game with the performance overlay on?",
+      `The overlay (<code>r_displayinfo 3</code>) is where the health numbers come from: server fps, players, ping, packet loss. Yes adds it to USER.cfg. Either way you can flick it on and off in game: <kbd>~</kbd> then <code>r_displayinfo 3</code> or <code>0</code>.`,
+      yn("displayinfo", "Yes, start with it on", "No, I'll switch it on myself") + now(u.has_displayinfo)],
+    ["sessioninfo", "Game setting", "Start the game with the session QR code on?",
+      `A small QR code (<code>r_DisplaySessionInfo 1</code>) that tells CIG's QA team exactly which session a screenshot came from. Useful for Issue Council reports. Blur it in screenshots you post publicly.`,
+      yn("sessioninfo", "Yes, start with it on", "No") + now(u.has_sessioninfo)],
+    ["live", "This app", "Read the overlay off your screen while you play?",
+      `Every 5 seconds, only while the game window is in front, the app reads the overlay corner of the screen. This gives the live health score, charts and warnings. Nothing leaves your PC.`,
+      yn("live") + now(st.live)],
+    ["screenshots", "This app", "Read the screenshots you take?",
+      `Any screenshot (<kbd>Print Screen</kbd>) with the overlay on it becomes a reading, and screenshots from around a problem go into the Issue Council report folder.`,
+      yn("screenshots") + now(st.screenshots)],
+    ["board", "Community board", "Show how other shards are doing?",
+      `Fetches the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> every 2 minutes and shows your region on the Now tab, with the best shard to hop to. This sends nothing about you.`,
+      yn("board") + now(st.board)],
+    ["share", "Community board", "Share your readings with the community board?",
+      `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
+      yn("share", "Yes, share", "No, don't share") + now(st.share)],
+  ];
+  const w = document.createElement("div");
+  w.className = "wiz"; w.id = "wiz"; w.setAttribute("role", "dialog"); w.setAttribute("aria-modal", "true"); w.setAttribute("aria-labelledby", "wzTitle");
+  w.innerHTML = `<div class="box"><header><h2 id="wzTitle">Before you start: ${qs.length} quick questions</h2>
+    <p>Each one needs a yes or a no, so nothing gets missed. You can change any of them later on the Set up tab.</p></header>
+    ${qs.map(([k, eb, h, p, a], i) => `<section class="wq" id="wq-${k}"><span class="qn">${i + 1} of ${qs.length} · ${eb}</span><h3>${h}</h3><p>${p}</p>${a}</section>`).join("")}
+    <footer><span class="sub" id="wzLeft"></span><span class="grow"></span><button class="btn big" id="wzDone" disabled>Save and start</button></footer></div>`;
+  document.body.appendChild(w);
+  document.body.style.overflow = "hidden";
+  const update = () => {
+    const pathOk = A.game !== "other" || ($("wzPath").value.trim().length > 2);
+    const left = qs.filter(([k]) => A[k] === undefined || (k === "game" && !pathOk)).length;
+    $("wzLeft").textContent = left ? `${left} still to answer` : "All answered.";
+    $("wzDone").disabled = !!left;
+    qs.forEach(([k]) => $("wq-" + k).classList.toggle("done", A[k] !== undefined && (k !== "game" || pathOk)));
+  };
+  w.querySelectorAll(".ans").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
+    const k = g.dataset.q;
+    A[k] = b.dataset.v === "1" ? true : b.dataset.v === "0" ? false : b.dataset.v;
+    g.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    if (k === "game") { $("wzPathRow").hidden = A.game !== "other"; if (A.game === "other") $("wzPath").focus(); }
+    update();
+  }));
+  $("wzPath").oninput = update;
+  $("wzDone").onclick = async () => {
+    const choices = {...A, game: A.game === "other" ? $("wzPath").value.trim() : A.game};
+    $("wzDone").disabled = true;
+    try {
+      const r = await api("/api/setup", {choices});
+      toast(r.message); w.remove(); document.body.style.overflow = ""; show(tab);
+    } catch (e) { toast(e.message, true); $("wzDone").disabled = false; }
+  };
+  update();
+}
+
 show(tab);
-api("/api/now").then(header).catch(() => {});
+api("/api/now").then(d => { header(d); if (d.setup_needed) openWizard(); }).catch(() => {});
 </script>
 </body>
 </html>

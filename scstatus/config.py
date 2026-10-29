@@ -41,6 +41,8 @@ DEFAULT_CONFIG = {
     "community_board": False,
     # Leave blank for the official board
     "community_url": "",
+    # Which version of the first-run questions has been answered (the app asks again when new ones are added)
+    "setup_version": 0,
     "open_browser": True,
     # Add r_displayinfo to the game's USER.cfg when it's missing (asks first)
     "offer_user_cfg": True,

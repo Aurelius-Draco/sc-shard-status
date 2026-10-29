@@ -61,6 +61,21 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
             assert e.code == 400
         for p in ("/api/history", "/api/pc", "/api/issues", "/api/about"):
             assert _call(url, token, p) is not None
+        # First-run questions: asked until every one is answered, then applied in one go
+        assert now["setup_needed"] is True
+        try:
+            _call(url, token, "/api/setup", {"choices": {"game": "ok", "live": True}})
+            raise AssertionError("half-answered set-up accepted")
+        except urllib.error.HTTPError as e:
+            assert e.code == 400
+        r = _call(url, token, "/api/setup", {"choices": {"game": "ok", "displayinfo": True, "sessioninfo": False,
+                                                          "live": False, "screenshots": False, "board": False,
+                                                          "share": False}})
+        st = r["settings"]
+        assert st["live"] is False and st["screenshots"] is False and st["share"] is False and st["board"] is False
+        cfgtxt = (game / "USER.cfg").read_text()
+        assert "r_displayinfo = 3" in cfgtxt and "r_DisplaySessionInfo = 0" in cfgtxt
+        assert _call(url, token, "/api/now")["setup_needed"] is False
     finally:
         app.stop.set()
         server.shutdown()

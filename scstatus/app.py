@@ -56,23 +56,48 @@ class App:
     def start(self, overlay=True):
         self.tail.poll()
         threading.Thread(target=self.tail.run, args=(self.stop,), daemon=True).start()
-        if overlay and float(self.cfg.get("overlay_every_s") or 0) > 0:
-            from .capture import OverlayWatcher
-            self.watcher = OverlayWatcher(self.cfg["overlay_every_s"], self.cfg.get("monitor", 1), self.on_reading)
-            threading.Thread(target=self.watcher.run, args=(self.stop,), daemon=True).start()
+        self._overlay_allowed = overlay
+        if float(self.cfg.get("overlay_every_s") or 0) > 0:
+            self._start_live()
         if self.cfg.get("read_screenshots", True):
-            from .screenshots import ScreenshotWatcher
-
-            def reader():
-                from .overlay import OverlayReader
-                return OverlayReader(threads=2)
-            self.shots = ScreenshotWatcher(self.game_dir / "screenshots", reader, self.on_reading)
-            self.shots.poll()           # note what's already there; only new screenshots are read
-            threading.Thread(target=self.shots.run, args=(self.stop,), daemon=True).start()
+            self._start_shots()
         threading.Thread(target=self.import_backups, daemon=True).start()
         threading.Thread(target=self.community.run, args=(self.stop,), daemon=True).start()
         if not self.game_found:
             threading.Thread(target=self._watch_for_game, daemon=True).start()
+
+    # Live reading and screenshot reading can be switched on and off while the app runs
+    def _start_live(self):
+        if self.watcher or not getattr(self, "_overlay_allowed", True):
+            return
+        from .capture import OverlayWatcher
+        every = float(self.cfg.get("overlay_every_s") or 5) or 5
+        self.watcher = OverlayWatcher(every, self.cfg.get("monitor", 1), self.on_reading)
+        self._live_stop = threading.Event()
+        threading.Thread(target=self.watcher.run, args=(self._live_stop,), daemon=True).start()
+
+    def _stop_live(self):
+        if self.watcher:
+            self._live_stop.set()
+            self.watcher = None
+
+    def _start_shots(self):
+        if self.shots:
+            return
+        from .screenshots import ScreenshotWatcher
+
+        def reader():
+            from .overlay import OverlayReader
+            return OverlayReader(threads=2)
+        self.shots = ScreenshotWatcher(self.game_dir / "screenshots", reader, self.on_reading)
+        self.shots.poll()           # note what's already there; only new screenshots are read
+        self._shots_stop = threading.Event()
+        threading.Thread(target=self.shots.run, args=(self._shots_stop,), daemon=True).start()
+
+    def _stop_shots(self):
+        if self.shots:
+            self._shots_stop.set()
+            self.shots = None
 
     def _watch_for_game(self):
         """No game folder yet: when Star Citizen starts, take its folder from the running game."""
@@ -108,6 +133,14 @@ class App:
         if self.shots:
             self.shots.folder = p / "screenshots"
         self._names = None
+        pending = self.cfg.pop("pending_user_cfg", None)
+        if pending:
+            for name, on in pending.items():
+                try:
+                    self.set_user_cfg(name, on)
+                except Exception as e:
+                    say(f"Couldn't update USER.cfg ({e}).")
+            save_setting("pending_user_cfg", None)
         threading.Thread(target=self.import_backups, daemon=True).start()
         say(f"Game folder set to {p} (from {source}).")
         return f"Game folder set to {p}."
@@ -173,6 +206,7 @@ class App:
             "library": {"version": self.library.version, **self.library.counts()},
             "community": self.community.region_view(shard, _region(shard)) if self.cfg.get("community_board") else None,
             "sharing": self.community.share_status if self.cfg.get("share_readings") else "off",
+            "setup_needed": self.setup_needed,
         }
 
     def run_diagnosis(self, minutes=None):
@@ -256,12 +290,13 @@ class App:
         if live is not None:
             self.cfg["overlay_every_s"] = 5 if live else 0
             save_setting("overlay_every_s", self.cfg["overlay_every_s"])
-            msg.append("Close and restart SC Shard Status for the reading change to take effect.")
+            self._start_live() if live else self._stop_live()
+            msg.append("Live screen reading on." if live else "Live screen reading off.")
         if screenshots is not None:
             self.cfg["read_screenshots"] = bool(screenshots)
             save_setting("read_screenshots", self.cfg["read_screenshots"])
-            if not msg:
-                msg.append("Close and restart SC Shard Status for the reading change to take effect.")
+            self._start_shots() if screenshots else self._stop_shots()
+            msg.append("Reading your screenshots." if screenshots else "Not reading screenshots.")
         if share is not None:
             self.cfg["share_readings"] = bool(share)
             save_setting("share_readings", self.cfg["share_readings"])
@@ -274,6 +309,39 @@ class App:
                 self.community.board_at = 0          # fetch now
             msg.append("Community board on." if board else "Community board off.")
         return " ".join(msg) or "Saved."
+
+    # -- first-run questions: every setting is a yes/no the player has to answer once
+    SETUP_VERSION = 1           # raise when a new question is added, so everyone is asked the new one
+
+    @property
+    def setup_needed(self):
+        return int(self.cfg.get("setup_version") or 0) < self.SETUP_VERSION
+
+    def apply_setup(self, c):
+        """c: {game: "ok"|"later"|<path>, displayinfo, sessioninfo, live, screenshots, board, share} (booleans)."""
+        from .config import save_setting
+        need = ("game", "displayinfo", "sessioninfo", "live", "screenshots", "board", "share")
+        missing = [k for k in need if c.get(k) is None or c.get(k) == ""]
+        if missing:
+            raise ValueError("Answer every question first (" + ", ".join(missing) + ").")
+        notes = []
+        g = c["game"]
+        if g not in ("ok", "later"):
+            self.set_game_dir(g)
+        cfg_wanted = {"r_displayinfo": bool(c["displayinfo"]), "r_DisplaySessionInfo": bool(c["sessioninfo"])}
+        if self.game_found:
+            for name, on in cfg_wanted.items():
+                self.set_user_cfg(name, on)
+        else:
+            # Applied when the game folder turns up (set_game_dir)
+            self.cfg["pending_user_cfg"] = cfg_wanted
+            save_setting("pending_user_cfg", cfg_wanted)
+            notes.append("The USER.cfg choices will be saved once the game folder is found.")
+        self.save_settings(live=bool(c["live"]), screenshots=bool(c["screenshots"]),
+                           share=bool(c["share"]), board=bool(c["board"]))
+        self.cfg["setup_version"] = self.SETUP_VERSION
+        save_setting("setup_version", self.SETUP_VERSION)
+        return " ".join(["All set. You can change any of these on the Set up tab."] + notes)
 
     def settings(self):
         c = self.community
