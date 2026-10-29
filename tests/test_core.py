@@ -97,7 +97,8 @@ def test_shard_report_has_nothing_personal():
     # Long numbers here are the build and the time, nothing else
     assert set(leaks(json.dumps(p), [])) <= {"long number"}
     assert set(p) == {"v", "kind", "install", "build", "ts", "shard_id", "server", "server_fps", "server_fps_min",
-                      "server_fps_max", "hitches", "restarts", "pop_shard", "pop_srv", "ping_ms", "loss_pct", "issues"}
+                      "server_fps_max", "hitches", "restarts", "pop_shard", "pop_srv", "ping_ms", "loss_pct", "issues",
+                      "readings", "app"}
 
 
 def _snaps(fps, n=10, **kw):

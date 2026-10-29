@@ -8,6 +8,8 @@ import string
 from pathlib import Path
 
 VERSION = "1.0"
+# The public community board (Cloudflare Worker in the admin repo)
+COMMUNITY_URL = "https://sc-shard-status.aurelius-draco.workers.dev"
 APP_NAME = "SC Shard Status"
 AUTHOR = "Aurelius_Draco"
 REPO = "https://github.com/Aurelius-Draco/sc-shard-status"
@@ -33,6 +35,12 @@ DEFAULT_CONFIG = {
     "lookback_minutes": 30,
     # Local dashboard (only reachable from this PC). The inventory tracker uses 8765.
     "dashboard_port": 8775,
+    # Community board (both off until you switch them on in the app's Set up tab).
+    # share_readings: send a 5-minute summary of your overlay readings. community_board: show other shards.
+    "share_readings": False,
+    "community_board": False,
+    # Leave blank for the official board
+    "community_url": "",
     "open_browser": True,
     # Add r_displayinfo to the game's USER.cfg when it's missing (asks first)
     "offer_user_cfg": True,

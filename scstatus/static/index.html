@@ -243,6 +243,10 @@ td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
 .tile:hover { border-color: var(--amber-line); color: var(--text); }
 .tile b { font-size: 1rem; } .tile span { color: var(--muted); font-size: .875rem; }
 .tile .go { color: var(--teal); font-weight: 600; font-size: .875rem; }
+table.comm .score { display: inline-flex; align-items: center; gap: var(--s2); font-weight: 700; }
+table.comm .score i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.score.good i { background: var(--teal); } .score.ok i { background: var(--fresh); } .score.poor i { background: var(--amber); } .score.bad i { background: var(--rust); }
+table.comm tr.me td { background: var(--sel); }
 .promo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--s5); align-items: center; padding: var(--s4) var(--s5); text-decoration: none; color: var(--text); }
 .promo:hover { border-color: var(--amber-line); color: var(--text); }
 .promo b { font-size: 1.0625rem; } .promo > span:not(.btn) { grid-column: 1; color: var(--muted); font-size: .875rem; }
@@ -479,6 +483,7 @@ async function renderNow() {
       <div class="cell"><dt>Your fps</dt><dd>${fmt(h.client_fps)}</dd></div>
     </dl>
   </section>
+  ${commSection(d)}
   <section class="sec grid2">
     <div class="frame card"><h4>Server fps</h4><span class="sub">Last hour. About 20 is normal on 4.10.</span><div class="chart" id="cFps"></div></div>
     <div class="frame card"><h4>Players on your server</h4><span class="sub">Last hour. The server node you're on, not the whole shard.</span><div class="chart" id="cPop"></div></div>
@@ -508,6 +513,25 @@ async function renderNow() {
   if ($("goSetup")) $("goSetup").onclick = () => show("setup");
   if ($("goSetup2")) $("goSetup2").onclick = () => show("setup");
   if ($("goSetup3")) $("goSetup3").onclick = () => show("setup");
+  if ($("goSetup4")) $("goSetup4").onclick = () => { show("setup"); setTimeout(() => { const c = $("commCard"); if (c) c.scrollIntoView({block: "start"}); }, 400); };
+}
+
+// Other shards in your region, from the community board
+function commSection(d) {
+  const c = d.community;
+  if (!c) return `<section class="sec"><div class="notice teal"><p><b>Compare your shard with the rest of your region.</b> Turn on the community board to see which shard is running best right now, from players' own readings.</p><button class="btn sm ghost" id="goSetup4">Turn it on</button></div></section>`;
+  const mine = c.mine, best = c.best;
+  const dot = x => `<span class="score ${x.cls}"><i></i>${x.score}</span>`;
+  let hop = "";
+  if (best && mine && best.shard_id !== mine.shard_id && best.score - mine.score >= 20)
+    hop = `<div class="notice"><p><b>${esc(best.shard_id)} is running better</b> (${best.score}/100, server at ${fmt(best.server_fps, 1)} fps). If yours is causing trouble, a server hop could land you somewhere healthier, though the game picks the shard, not you.</p></div>`;
+  const rows = c.shards.map(x => `<tr class="${x.shard_id === (mine && mine.shard_id) ? "me" : ""}"><td>${dot(x)}</td><td><code>${esc(x.shard_id)}</code>${x.shard_id === (mine && mine.shard_id) ? ` <span class="chip area">you</span>` : ""}</td>
+    <td class="num">${fmt(x.server_fps, 1)}</td><td class="num">${fmt(x.pop_shard)}</td><td class="num">${x.reporters}</td></tr>`).join("");
+  return `<section class="sec"><h3>Your region right now <span>${esc(c.region || "")} on the community board${c.updated ? ", updated " + ago(c.updated) : ""}</span></h3>
+    ${hop}
+    ${c.shards.length ? `<div class="frame" style="overflow-x:auto"><table class="comm"><thead><tr><th>Health</th><th>Shard</th><th class="num">Server fps</th><th class="num">Players</th><th class="num">Reporting</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : `<p class="sub">${c.error ? esc(c.error) : "Nobody in your region is sharing readings right now."}</p>`}
+    <p class="sub"><a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">Open the full board</a></p></section>`;
 }
 
 /* ---------- What's gone wrong ---------- */
@@ -695,6 +719,7 @@ async function renderPC() {
 
 /* ---------- Known issues ---------- */
 // Library text has blanks the app fills from the log line ({item_name}); in the list, show them as plain words
+const COMMUNITY_SITE = "https://sc-shard-status.aurelius-draco.workers.dev";
 const BLANKS = {item_name: "an item", vehicle: "a ship", task: "a step", which: "", seconds: "N", metres: "N",
   pct: "N", commit_mb: "N", left_mb: "N", from: "one point", to: "another", manager: "", reason: "the reason given"};
 function generic(t) {
@@ -790,6 +815,16 @@ async function renderSetup() {
     <p><b>Live</b> reads the overlay corner of your screen every 5 seconds while the game is in front. That gives the health score, the charts and warnings when the server slows down. <b>Screenshots</b> reads only the screenshots you take, so nothing watches your screen; you get a reading each time you press <kbd>Print Screen</kbd>, but no live score.</p>
     <div class="fa" id="setToggles"></div>
   </section>
+  <section class="sec frame setcard" id="commCard">
+    <h4>Community board</h4>
+    <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. Both switches are off until you turn them on.</p>
+    <ul class="rules">
+      <li><b>Show other shards</b> fetches the board every 2 minutes and puts your region on the Now tab. It sends nothing about you.</li>
+      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
+    </ul>
+    <div class="fa" id="commToggles"></div>
+    <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
+  </section>
   <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. Before each change the app saves the file as it was to USER.cfg.bak. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
   $("gdSave").onclick = async () => {
     try { const r = await api("/api/gamedir", {path: $("gdPath").value}); toast(r.message); nowData = await api("/api/now"); renderSetup(); }
@@ -805,6 +840,17 @@ async function renderSetup() {
     $("tgLive").onchange = save; $("tgShots").onchange = save;
   };
   drawToggles();
+  const drawComm = async () => {
+    const st = await api("/api/settings");
+    $("commToggles").innerHTML = `
+      <label class="chipt"><input type="checkbox" id="tgBoard" ${st.board ? "checked" : ""}> Show other shards</label>
+      <label class="chipt"><input type="checkbox" id="tgShare" ${st.share ? "checked" : ""}> Share my readings</label>
+      <span class="sub">${st.share ? esc(st.share_status === "sharing" ? `Sharing: ${st.sent} summar${st.sent === 1 ? "y" : "ies"} sent this run.` : "Sharing: " + st.share_status) : ""}${st.board && st.board_error ? " " + esc(st.board_error) : ""}</span>`;
+    $("commPayload").textContent = st.last_payload ? JSON.stringify(st.last_payload, null, 2) : "Nothing sent yet.";
+    const save = async () => { try { const r = await api("/api/settings", {board: $("tgBoard").checked, share: $("tgShare").checked}); toast(r.message); drawComm(); } catch (e) { toast(e.message, true); } };
+    $("tgBoard").onchange = save; $("tgShare").onchange = save;
+  };
+  drawComm();
   $("view").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => {
     try { const r = await api("/api/usercfg", {name: b.dataset.cfg, on: b.dataset.on === "1"}); toast(r.message); nowData = null; nowData = await api("/api/now"); renderSetup(); }
     catch (e) { toast(e.message, true); }

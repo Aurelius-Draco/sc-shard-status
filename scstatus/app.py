@@ -34,6 +34,8 @@ class App:
         self.lock = threading.RLock()
         self.last_result = None
         self.import_status = "not started"
+        from .config import COMMUNITY_URL, VERSION
+        self.community = community.Community(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
 
     # -- parts that load slowly
     @property
@@ -68,6 +70,7 @@ class App:
             self.shots.poll()           # note what's already there; only new screenshots are read
             threading.Thread(target=self.shots.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.import_backups, daemon=True).start()
+        threading.Thread(target=self.community.run, args=(self.stop,), daemon=True).start()
         if not self.game_found:
             threading.Thread(target=self._watch_for_game, daemon=True).start()
 
@@ -168,6 +171,8 @@ class App:
             "game_dir": str(self.game_dir), "game_found": (self.game_dir / "Game.log").exists(),
             "user_cfg": self.user_cfg_state(), "import_status": self.import_status,
             "library": {"version": self.library.version, **self.library.counts()},
+            "community": self.community.region_view(shard, _region(shard)) if self.cfg.get("community_board") else None,
+            "sharing": self.community.share_status if self.cfg.get("share_readings") else "off",
         }
 
     def run_diagnosis(self, minutes=None):
@@ -176,6 +181,7 @@ class App:
             snaps = list(self.snaps)
         res = diagnose(self.game_dir / "Game.log", self.library, self.names, snaps, lookback_min=minutes,
                        backups_dir=self.game_dir / "logbackups")
+        res["checked_at"] = time.time()
         self.last_result = res
         return res
 
@@ -242,28 +248,41 @@ class App:
         return {"ticket": rid, "payload": payload, "saved": save}
 
     # -- the game's USER.cfg
-    def save_settings(self, live=None, screenshots=None):
-        """Change how readings are taken. Saved to data\\config.json; takes effect on the next start."""
-        import json
-        from .config import DATA
-        path = DATA / "config.json"
-        try:
-            cfg = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            cfg = {}
+    def save_settings(self, live=None, screenshots=None, share=None, board=None):
+        """Change settings. Saved to data\\config.json. Reading changes take effect on the next start;
+        the community switches take effect straight away."""
+        from .config import save_setting
+        msg = []
         if live is not None:
-            cfg["overlay_every_s"] = 5 if live else 0
-            self.cfg["overlay_every_s"] = cfg["overlay_every_s"]
+            self.cfg["overlay_every_s"] = 5 if live else 0
+            save_setting("overlay_every_s", self.cfg["overlay_every_s"])
+            msg.append("Close and restart SC Shard Status for the reading change to take effect.")
         if screenshots is not None:
-            cfg["read_screenshots"] = bool(screenshots)
-            self.cfg["read_screenshots"] = cfg["read_screenshots"]
-        path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-        return "Saved. Close and restart SC Shard Status for it to take effect."
+            self.cfg["read_screenshots"] = bool(screenshots)
+            save_setting("read_screenshots", self.cfg["read_screenshots"])
+            if not msg:
+                msg.append("Close and restart SC Shard Status for the reading change to take effect.")
+        if share is not None:
+            self.cfg["share_readings"] = bool(share)
+            save_setting("share_readings", self.cfg["share_readings"])
+            msg.append("Sharing on. Your first summary goes after 5 minutes of overlay readings." if share
+                       else "Sharing off. Nothing more is sent.")
+        if board is not None:
+            self.cfg["community_board"] = bool(board)
+            save_setting("community_board", self.cfg["community_board"])
+            if board:
+                self.community.board_at = 0          # fetch now
+            msg.append("Community board on." if board else "Community board off.")
+        return " ".join(msg) or "Saved."
 
     def settings(self):
+        c = self.community
         return {"live": float(self.cfg.get("overlay_every_s") or 0) > 0,
                 "screenshots": bool(self.cfg.get("read_screenshots", True)),
-                "live_running": self.watcher is not None, "screenshot_readings": self.shots.count if self.shots else None}
+                "live_running": self.watcher is not None, "screenshot_readings": self.shots.count if self.shots else None,
+                "share": bool(self.cfg.get("share_readings")), "board": bool(self.cfg.get("community_board")),
+                "share_status": c.share_status, "sent": c.sent, "last_payload": c.last_payload,
+                "board_url": c.url, "board_error": c.board_error}
 
     # Settings the app can put in USER.cfg: name -> value to set
     CFG_SETTINGS = {"r_displayinfo": 3, "r_DisplaySessionInfo": 1}

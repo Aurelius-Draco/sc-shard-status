@@ -159,7 +159,8 @@ def handle_post(app, path, body):
     if path == "/api/gamedir":
         return {"message": app.set_game_dir(body.get("path", "")), "game_dir": app.cfg["game_dir"]}
     if path == "/api/settings":
-        return {"message": app.save_settings(body.get("live"), body.get("screenshots")), "settings": app.settings()}
+        return {"message": app.save_settings(body.get("live"), body.get("screenshots"), body.get("share"), body.get("board")),
+                "settings": app.settings()}
     if path == "/api/open":
         from .app import open_folder
         from .config import DATA
