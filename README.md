@@ -121,17 +121,23 @@ Players on shard is everyone on the shard; on your server is the server node han
 
 ## Known issues library
 
-What the app recognises lives in `scstatus/library/issues.json`: each entry is a log pattern, a plain-English explanation, fixes and a suggested Issue Council title. It's data, not code, so new entries don't need a new version of the app. See [docs/library.md](docs/library.md) to add one, or open an issue with the log lines and what was happening.
+What the app recognises lives in `scstatus/library/issues.json`: each entry is a log pattern, a plain-English explanation, fixes and a suggested Issue Council title. It's data, not code, so new entries don't need a new version of the app: with library updates on (asked on first start), the app fetches the newest copy from verseshards.com every 6 hours. See [docs/library.md](docs/library.md) to add one, or open an issue with the log lines and what was happening.
+
+Something the app doesn't recognise? On the "What's gone wrong?" tab, **Send for review** shows you exactly what would be sent (names and numbers already replaced with placeholders), then sends it to the review queue. The answer shows up under **Your reviews**, and the library gets a new entry so everyone benefits.
+
+## Pop-up alerts
+
+Optional (asked on first start), with or without a sound: a Windows notification when the server's fps falls off a cliff, the server you're on restarts, packet loss climbs, you're disconnected with an error, or a known problem turns up in Game.log, such as contract deliveries not counting. Each kind at most once every 10 minutes. Windows holds notifications back while a full-screen game is in front, so borderless window mode or a second screen works best; the sound plays either way.
 
 ## Community board
 
 https://verseshards.com
 
 - **Shard board:** live health for every shard players are reporting from, best first in each region, so you know where to server hop.
-- **Known issues:** a page for each issue the app recognises. Press "I had this too", add the Issue Council report so others can upvote it, and post workarounds that others mark as worked or didn't work. The app's "What's gone wrong?" links each finding to its page.
+- **Broken right now:** known problems two or more players hit in the last 2 hours, at the top of the board.
+- **Known issues:** a page for each issue the app recognises. Press "I had this too", add the Issue Council report so others can upvote it, and post workarounds that others mark as worked or didn't work. After a patch, each issue says whether it's still happening on the new build. The app's "What's gone wrong?" links each finding to its page.
+- Scores from one player are marked as a first look; more players reporting means a score you can trust.
 - Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**.
-
-Still to come: the review queue for errors nobody recognises yet. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## For developers
 
