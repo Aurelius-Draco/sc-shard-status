@@ -228,11 +228,19 @@ class App:
     # Settings the app can put in USER.cfg: name -> value to set
     CFG_SETTINGS = {"r_displayinfo": 3, "r_DisplaySessionInfo": 1}
 
+    @property
+    def game_found(self):
+        from .config import game_dir_ok
+        return game_dir_ok(self.cfg.get("game_dir"))
+
     def user_cfg_state(self):
+        if not self.game_found:
+            return {"exists": False, "path": None, "game_found": False, "has_displayinfo": None,
+                    "has_sessioninfo": None, **{k: None for k in self.CFG_SETTINGS}}
         p = self.game_dir / "USER.cfg"
-        out = {"exists": p.exists(), "path": str(p)}
+        out = {"exists": p.exists(), "path": str(p), "game_found": True}
         try:
-            txt = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
+            txt = read_cfg(p)[0] if p.exists() else ""
         except OSError:
             txt = None
         for name in self.CFG_SETTINGS:
@@ -243,29 +251,53 @@ class App:
         return out
 
     def set_user_cfg(self, name, on=True):
-        """Add (or turn off) one of CFG_SETTINGS in the game's USER.cfg. Keeps a backup of the original."""
+        """Add (or turn off) one of CFG_SETTINGS in the game's USER.cfg, keeping its encoding and line endings.
+        The file as it was before each change is kept as USER.cfg.bak."""
         if name not in self.CFG_SETTINGS:
             raise ValueError("That setting can't be changed from here.")
-        if not self.game_dir.exists():
-            raise ValueError("Game folder not found. Set game_dir in data\\config.json.")
+        if not self.game_found:
+            raise ValueError("Game folder not found. Put the path of your StarCitizen\\LIVE folder in "
+                             "data\\config.json as game_dir, then restart.")
         p = self.game_dir / "USER.cfg"
-        txt = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
+        if p.exists():
+            txt, enc, nl = read_cfg(p)
+        else:
+            txt, enc, nl = "", "utf-8", "\r\n"
         val = self.CFG_SETTINGS[name] if on else 0
         rx = re.compile(rf"^(\s*{name}\s*=\s*)\d+", re.I | re.M)
         if rx.search(txt):
-            txt = rx.sub(rf"\g<1>{val}", txt)
+            new = rx.sub(lambda m: m.group(1) + str(val), txt)
         elif on:
-            txt = txt.rstrip("\n") + ("\n" if txt.strip() else "") + f"{name} = {val}\n"
+            new = txt.rstrip("\r\n") + (nl if txt.strip() else "") + f"{name} = {val}" + nl
+        else:
+            new = txt
         if p.exists():
-            bak = p.with_suffix(".cfg.bak")
-            if not bak.exists():
-                bak.write_bytes(p.read_bytes())
-        p.write_text(txt, encoding="utf-8")
+            p.with_name("USER.cfg.bak").write_bytes(p.read_bytes())
+        p.write_bytes(new.encode(enc))
         verb = f"Set {name} = {val}" if on else f"Turned off {name}"
         return f"{verb} in USER.cfg. It takes effect the next time the game starts; type it in the console to use it now."
 
     def add_displayinfo(self):
         return self.set_user_cfg("r_displayinfo")
+
+
+def read_cfg(p):
+    """USER.cfg -> (text, encoding to write it back in, line ending). Handles UTF-8 (with or without a BOM),
+    UTF-16 (Notepad's 'Unicode', PowerShell 5) and old Windows-1252 files."""
+    raw = Path(p).read_bytes()
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        enc = "utf-16"
+    elif raw.startswith(b"\xef\xbb\xbf"):
+        enc = "utf-8-sig"
+    else:
+        try:
+            raw.decode("utf-8")
+            enc = "utf-8"
+        except UnicodeDecodeError:
+            enc = "cp1252"
+    txt = raw.decode(enc)
+    nl = "\r\n" if "\r\n" in txt or "\n" not in txt else "\n"
+    return txt, enc, nl
 
 
 def _close(a, b):

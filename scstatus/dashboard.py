@@ -5,8 +5,10 @@ token, so other web pages open in your browser can't call it.
 """
 
 import json
+import os
 import re
 import secrets
+import socket
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,6 +18,30 @@ from urllib.parse import parse_qs, urlparse
 from .config import VERSION, say
 
 STATIC = Path(__file__).resolve().parent / "static"
+
+
+class _Server(ThreadingHTTPServer):
+    # On Windows SO_REUSEADDR lets a second copy bind a port that's already in use; ask for the port to ourselves
+    allow_reuse_address = os.name != "nt"
+    daemon_threads = True
+
+    def server_bind(self):
+        if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
+def already_running(port):
+    """Is SC Shard Status already serving on this port? Returns its address or None."""
+    import urllib.request
+    url = f"http://127.0.0.1:{port}/"
+    try:
+        with urllib.request.urlopen(url, timeout=1.5) as r:
+            if b"SC Shard Status v" in r.read():
+                return url
+    except Exception:
+        return None
+    return None
 
 
 def start_server(app, open_browser=False):
@@ -100,7 +126,7 @@ def start_server(app, open_browser=False):
     server = None
     for p in range(port, port + 10):
         try:
-            server = ThreadingHTTPServer(("127.0.0.1", p), Handler)
+            server = _Server(("127.0.0.1", p), Handler)
             port = p
             break
         except OSError:

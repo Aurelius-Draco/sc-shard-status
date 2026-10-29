@@ -33,6 +33,8 @@ def draft(finding, result, snapshot=None, location_hint=None):
         f"Game version: {s.get('version') or 'unknown'} (build {s.get('build') or 'unknown'})",
         f"Shard: {s.get('shard_id') or 'unknown'}" + (f" ({s.get('region')})" if s.get("region") else ""),
     ]
+    if snapshot and s.get("shard_id") and snapshot.get("shard_id") and snapshot["shard_id"] != s["shard_id"]:
+        snapshot = None         # an overlay reading from a different shard says nothing about this one
     if snapshot:
         if snapshot.get("server_name"):
             env.append(f"Server: {snapshot['server_name']}")
@@ -53,7 +55,12 @@ def draft(finding, result, snapshot=None, location_hint=None):
 
     steps = steps_for(finding)
     excerpt = "\n".join(x[:400] for x in finding.get("examples", [])[:5]) or "(no log lines; see attached Game.log)"
-    summary = finding.get("explain", "").strip() + "\n\n" + DISCLAIMER
+    if finding.get("ic_summary"):
+        lead = finding["ic_summary"].strip()
+    else:
+        lead = (f"What I hit: {finding['title'].rstrip('.')}.\n\n"
+                f"What the tool found in my Game.log: {finding.get('explain', '').strip()}")
+    summary = lead + "\n\n" + DISCLAIMER
     sections = [
         {"key": "title", "label": "Title", "text": title},
         {"key": "summary", "label": "Summary", "text": summary},
@@ -103,7 +110,10 @@ def bundle(finding, result, report, game_dir, out_root=None, minutes_around=20):
     (folder / "issue-council-report.txt").write_text(report["body"], encoding="utf-8")
     game = Path(game_dir or ".")
     log = game / "Game.log"
-    if log.exists():
+    old = finding.get("fields", {}).get("log")
+    if old and (game / "logbackups" / old).exists():
+        shutil.copy2(game / "logbackups" / old, folder / old)      # the earlier session the finding is about
+    elif log.exists():
         shutil.copy2(log, folder / "Game.log")
     lo = (finding.get("first_ts") or time.time()) - minutes_around * 60
     hi = (finding.get("last_ts") or time.time()) + minutes_around * 60

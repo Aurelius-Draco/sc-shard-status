@@ -14,8 +14,8 @@ $items = @(
 
 function New-Shortcut($dir, $it) {
   $lnk = $shell.CreateShortcut((Join-Path $dir ($it.Name + '.lnk')))
-  $lnk.TargetPath = $env:ComSpec
-  $lnk.Arguments = '/c "' + (Join-Path $root ('launchers\' + $it.Bat)) + '"'
+  # Point straight at the .bat: works with spaces and brackets in the folder name ("SC-Shard-Status (1)")
+  $lnk.TargetPath = (Join-Path $root ('launchers\' + $it.Bat))
   $lnk.WorkingDirectory = $root
   $lnk.IconLocation = $icon + ',0'
   $lnk.Description = $it.Desc

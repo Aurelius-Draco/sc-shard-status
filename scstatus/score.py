@@ -63,7 +63,10 @@ def assess(snaps, now=None, window_s=300):
     ping = st.median(_vals(recent, "ping_ms")) if _vals(recent, "ping_ms") else None
     loss = st.median(_vals(recent, "loss_pct")) if _vals(recent, "loss_pct") else None
     hitches = max(_vals(recent, "hitches")) if _vals(recent, "hitches") else 0
-    restarts = max(_vals(recent, "restarts")) if _vals(recent, "restarts") else 0
+    rs = _vals(snaps, "restarts")
+    # The overlay's count may cover the server node's whole life; only a rise while you're on it is news
+    restarts = (max(rs) - min(rs)) if len(rs) >= 2 else 0
+    restarted_before = bool(rs) and min(rs) > 0
 
     server = None
     if med_fps is not None:
@@ -89,7 +92,7 @@ def assess(snaps, now=None, window_s=300):
         "server_name": last.get("server_name"), "location": last.get("location"),
         "parts": {"server": _r(server), "network": _r(net), "stability": _r(stab)},
         "summary": summarise(label, med_fps, p10_fps, ping, loss, hitches, restarts, last),
-        "points": tips(med_fps, p10_fps, ping, loss, hitches, restarts, last),
+        "points": tips(med_fps, p10_fps, ping, loss, hitches, restarts, last, restarted_before),
     }
 
 
@@ -114,11 +117,14 @@ def summarise(label, fps, low, ping, loss, hitches, restarts, last):
     return " ".join(bits)
 
 
-def tips(fps, low, ping, loss, hitches, restarts, last):
+def tips(fps, low, ping, loss, hitches, restarts, last, restarted_before=False):
     out = []
     if restarts:
-        out.append("The server node you're on has restarted this session. Expect things to reset or "
+        out.append("The server node you're on restarted while you were on it. Expect things to reset or "
                    "go missing nearby; a server hop is worth it.")
+    elif restarted_before:
+        out.append("The overlay shows this server node has restarted at some point, though not while you've been "
+                   "watching. Nothing to do unless things start going missing.")
     if fps is not None and fps < 10:
         out.append("Server fps this low means slow elevators, frozen or laggy AI, rubber-banding and "
                    "missions that don't update. Consider a server hop before starting anything important.")

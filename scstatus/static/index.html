@@ -124,6 +124,8 @@ select { background: var(--field); border: 1px solid var(--line2); border-radius
 .cell dd { margin: 2px 0 0; font-size: 1.375rem; font-weight: 600; line-height: 1.25; white-space: nowrap; }
 .cell dd small { font-size: .8125rem; color: var(--muted); font-weight: 500; margin-left: 4px; }
 .cell .sub { display: block; white-space: normal; }
+.cell dd { overflow-wrap: anywhere; }
+@media (max-width: 760px) { .cell dd { white-space: normal; } }
 
 /* Now: hero */
 .hero { margin-top: var(--s5); padding: var(--s6); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s5) var(--s7); align-items: center; overflow: hidden; background: linear-gradient(180deg, var(--raise), var(--panel) 70%); }
@@ -334,8 +336,15 @@ function show(t) {
   try { sessionStorage.setItem("tab", t); } catch (e) {}
   document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
   clearInterval(timer);
-  ({now: renderNow, check: renderCheck, history: renderHistory, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow)();
-  if (t === "now") timer = setInterval(renderNow, 5000);
+  const fn = {now: renderNow, check: renderCheck, history: renderHistory, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow;
+  Promise.resolve().then(fn).catch(e => {
+    if (tab === t) $("view").innerHTML = `<div class="empty"><h3>Couldn't load this page</h3><p>${esc(e.message)}. Is the SC Shard Status window still open?</p></div>`;
+  });
+  if (t === "now") timer = setInterval(() => {
+    // Don't rebuild the page under someone reading a tooltip or a report
+    if (document.querySelector("#view .tip:not([hidden])") || $("drawer").classList.contains("open")) return;
+    renderNow();
+  }, 5000);
 }
 
 /* ---------- header ---------- */
@@ -453,7 +462,7 @@ async function renderNow() {
       <div class="cell ${clsLow(h.ping_ms, 80, 200)}"><dt>Ping</dt><dd>${fmt(h.ping_ms)}<small>ms</small></dd></div>
       <div class="cell ${clsLow(h.loss_pct, 0.4, 2)}"><dt>Packet loss</dt><dd>${h.loss_pct == null ? "–" : h.loss_pct + "%"}</dd></div>
       <div class="cell ${clsLow(h.hitches, 0, 3)}"><dt>Hitches</dt><dd>${fmt(h.hitches)}</dd></div>
-      <div class="cell ${clsLow(h.restarts, 0, 0)}"><dt>Server restarts</dt><dd>${fmt(h.restarts)}</dd></div>
+      <div class="cell ${clsLow(h.restarts, 0, 0)}"><dt>Restarts while on</dt><dd>${fmt(h.restarts)}</dd></div>
       <div class="cell"><dt>Your fps</dt><dd>${fmt(h.client_fps)}</dd></div>
     </dl>
   </section>
@@ -615,15 +624,16 @@ async function openReview(i) {
   const p = d.payload;
   openDrawer("Send for review", "Exactly what would be sent", `
     <p>When the community service is running, this goes to a review queue. Someone works out what the error means, adds it to the library for everyone, and the app tells you here (ticket <code>${esc(d.ticket)}</code>).</p>
-    <p class="sub">Your handle, other players' names, account and entity numbers, session ids, IP addresses and file paths have been replaced with placeholders like &lt;YOU&gt; and &lt;ID&gt;. ${p.checked_clean ? "A final check found nothing identifying left." : "<b>Warning:</b> the final check still found something; it won't be sent."}</p>
+    <p class="sub">Your handle, other players' names, account and entity numbers, session ids, IP addresses and file paths have been replaced with placeholders like &lt;YOU&gt; and &lt;ID&gt;. ${p.checked_clean ? "A final check found nothing identifying left." : "<b>Warning:</b> the final check still found something identifying, so this one can't be saved for review."}</p>
     <pre class="lines" style="max-height:28rem">${esc(JSON.stringify(p, null, 2))}</pre>
-    <div class="fa"><button class="btn" id="rvSave">Save for review</button><span class="sub">This version keeps it on your PC (in data\\status.db) until the community service exists.</span></div>`);
+    <div class="fa"><button class="btn" id="rvSave" ${p.checked_clean ? "" : "disabled"}>Save for review</button><span class="sub">This version keeps it on your PC (in data\\status.db) until the community service exists.</span></div>`);
   $("rvSave").onclick = async () => { try { await api("/api/review", {i, save: true}); toast("Saved. It'll be sent once the community service is live."); closeDrawer(); } catch (e) { toast(e.message, true); } };
 }
 
 /* ---------- History ---------- */
 async function renderHistory() {
   const d = await api("/api/history");
+  if (tab !== "history") return;
   const sh = d.shards, ss = d.sessions;
   $("view").innerHTML = `
   <section class="sec"><h3>Shards you've been on <span>from overlay readings</span></h3>
@@ -647,6 +657,7 @@ async function renderHistory() {
 /* ---------- My PC ---------- */
 async function renderPC() {
   const d = await api("/api/pc"); const hw = d.hardware || {};
+  if (tab !== "pc") return;
   $("view").innerHTML = `
   <section class="sec"><h3>Your PC <span>as the game reports it at start-up</span></h3>
     <div class="frame card"><dl class="readout">
@@ -669,6 +680,7 @@ async function renderPC() {
 /* ---------- Known issues ---------- */
 async function renderIssues() {
   const d = await api("/api/issues");
+  if (tab !== "issues") return;
   const areas = [...new Set(d.rules.map(r => r.area || "Other"))].sort();
   $("view").innerHTML = `
   <section class="sec"><h3>Known issues <span>library ${esc(d.version)}, ${d.rules.length} entries (harmless messages hidden)</span></h3>
@@ -691,8 +703,10 @@ async function renderIssues() {
 /* ---------- Set up ---------- */
 async function renderSetup() {
   const d = nowData || await api("/api/now"); const u = d.user_cfg || {};
+  if (tab !== "setup") return;
   const st = (on, yes, no) => `<span class="state ${on ? "on" : ""}"><i></i>${on ? yes : no}</span>`;
   $("view").innerHTML = `
+  ${u.game_found === false ? `<div class="sec notice rust"><p><b>Game folder not found,</b> so the USER.cfg buttons are off. Put the path of your StarCitizen\\LIVE folder in <code>data\\config.json</code> as <code>game_dir</code>, then restart.</p></div>` : ""}
   <section class="sec"><h3>Turn on the game's information <span>two console settings, both from CIG, both safe to leave on</span></h3>
     <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
     Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
@@ -701,7 +715,7 @@ async function renderSetup() {
     <span class="cmd">r_displayinfo 3</span>
     <p>Shows a block of small text in the top right: server fps, players on the shard and on your server, ping, packet loss, hitches, server restarts, your own fps and where you are. The app reads this off the screen every few seconds while the game is in front. Levels 2, 3 and 4 show the same block in 4.10; <code>r_displayinfo 0</code> turns it off.</p>
     <div class="fa">${st(u.has_displayinfo, "On in USER.cfg", "Not in USER.cfg")}
-      <button class="btn sm ${u.has_displayinfo ? "ghost" : ""}" data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
+      <button class="btn sm ${u.has_displayinfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
   </section>
   <section class="sec frame setcard">
     <h4>2. The session QR code (recommended for Issue Council reports)</h4>
@@ -709,7 +723,7 @@ async function renderSetup() {
     <p>Puts a small QR code in the top right corner. It holds your session id, shard and the exact time, which is what CIG's QA team uses to find your session on their side, so any screenshot you take becomes far more useful in a bug report. The Star Citizen wiki's bug reporting guide recommends it. You can also switch it on in the game's Graphics settings. The app copes with it: the overlay block moves left to make room and is still read.</p>
     <p class="sub">The QR code identifies your session, so blur it in screenshots you post publicly (Spectrum, Discord, Reddit). It's fine in Issue Council reports, which go to CIG.</p>
     <div class="fa">${st(u.has_sessioninfo, "On in USER.cfg", "Not in USER.cfg")}
-      <button class="btn sm ${u.has_sessioninfo ? "ghost" : ""}" data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
+      <button class="btn sm ${u.has_sessioninfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
   </section>
   <section class="sec frame setcard">
     <h4>3. Screenshots</h4>
@@ -752,6 +766,7 @@ async function renderSetup() {
 /* ---------- About ---------- */
 async function renderAbout() {
   const d = await api("/api/about");
+  if (tab !== "about") return;
   const theme = document.documentElement.dataset.theme || "";
   $("view").innerHTML = `
   <section class="sec frame about">

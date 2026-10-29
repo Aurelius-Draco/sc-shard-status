@@ -8,7 +8,7 @@ echo.
 set PY=
 py -3.13 -c "import sys" >nul 2>&1 && set PY=py -3.13
 if not defined PY py -3.12 -c "import sys" >nul 2>&1 && set PY=py -3.12
-if not defined PY python -c "import sys; assert (3,11)<=sys.version_info[:2]<=(3,13)" >nul 2>&1 && set PY=python
+if not defined PY python -c "import sys; assert (3,12)<=sys.version_info[:2]<=(3,13)" >nul 2>&1 && set PY=python
 
 if not defined PY (
   echo Python 3.12 or 3.13 was not found.

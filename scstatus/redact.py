@@ -16,6 +16,7 @@ HEX32 = re.compile(r"\b[0-9a-fA-F]{32}\b")
 IP = re.compile(r"\b(?!0\.0\.0\.0\b|127\.0\.0\.1\b)\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b")
 IPV6 = re.compile(r"\[?\b(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{0,4}(?:%\w+)?\]?(?:/\d+)?")
 LONG_NUM = re.compile(r"\b\d{6,}\b")
+ENTITY_ID = re.compile(r"(?<=[A-Za-z_])\d{9,}\b")
 URL = re.compile(r"https?://\S+")
 WIN_PATH = re.compile(r"[A-Za-z]:[\\/][^\s\"']+")
 USERS_DIR = re.compile(r"([\\/]Users[\\/])[^\\/\s\"']+", re.I)
@@ -49,8 +50,11 @@ NAME_FORMS = [
     # notification text (other players)
     re.compile(r"New Member Joined\W+" + _N + r" has joined"),
     re.compile(r"Member Left\W+" + _N + r" has left"),
-    re.compile(r"^\W*" + _N + r"\W+Party Invite Received", re.M),
-    re.compile(r"^\W*" + _N + r"\W+Friend Request", re.M),
+    re.compile(r"(?:^|\")\W*" + _N + r"\W+Party Invite Received", re.M),
+    re.compile(r"(?:^|\")\W*" + _N + r"\W+Friend Request", re.M),
+    re.compile(r"Crime Committed:[^\"]*?\bagainst\s+" + _N),
+    re.compile(r"\bname = " + _N + r"\b"),
+    re.compile(r"\b" + _N + r" is now party leader"),
     re.compile(r"Friend Added\W+" + _N),
     re.compile(r"New Party Leader\W+" + _N + r" is now party leader"),
     re.compile(r"Invitation Declined\W+" + _N + r" has declined"),
@@ -97,6 +101,12 @@ class Redactor:
         self.names = {}
         for i, h in enumerate(self.handles):
             self.names[h] = "<YOU>" if i == 0 else f"<PLAYER{i}>"
+        # The game sometimes writes a handle with spaces for underscores ("Some Pilot is now party leader")
+        for h in list(self.handles):
+            if "_" in h:
+                spaced = h.replace("_", " ")
+                self.names.setdefault(spaced, self.names[h])
+                self.handles.append(spaced)
         self._rx = (re.compile(r"(?<![A-Za-z0-9_])(" + "|".join(re.escape(h) for h in
                                                                  sorted(self.handles, key=len, reverse=True))
                                + r")(?![A-Za-z0-9_])") if self.handles else None)
@@ -111,8 +121,9 @@ class Redactor:
         own = list(dict.fromkeys(own))
         rest = [h for h in found if h not in own]
         r = cls(own + rest)
-        for h in own[1:]:
+        for h in own:
             r.names[h] = "<YOU>"
+            r.names[h.replace("_", " ")] = "<YOU>"
         return r
 
     def line(self, s):
@@ -134,6 +145,7 @@ class Redactor:
         s = IPV6.sub("<IP>", s)
         s = IP.sub("<IP>", s)
         s = LONG_NUM.sub("<ID>", s)
+        s = ENTITY_ID.sub("<ID>", s)
         return s
 
     def lines(self, lines):
@@ -146,7 +158,8 @@ def leaks(text, handles):
     for h in handles:
         if h and re.search(r"(?<![A-Za-z0-9_])" + re.escape(h) + r"(?![A-Za-z0-9_])", text):
             out.append(f"handle {h}")
-    for rx, what in ((GUID, "guid"), (IP, "ip address"), (LONG_NUM, "long number"), (USERS_DIR, "windows user")):
+    for rx, what in ((GUID, "guid"), (IP, "ip address"), (LONG_NUM, "long number"), (ENTITY_ID, "entity id"),
+                     (USERS_DIR, "windows user")):
         if rx.search(text):
             out.append(what)
     return out

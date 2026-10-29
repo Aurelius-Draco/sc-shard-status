@@ -129,9 +129,9 @@ def diagnose(log_path, library, names=None, snapshots=None, lookback_min=30, now
 def headline(findings, unknown):
     high = [f for f in findings if f["severity"] == "high"]
     if high:
-        return f"{len(high)} serious problem{'s' if len(high) != 1 else ''} found. Most likely cause: {high[0]['title']}."
+        return f"{len(high)} serious problem{'s' if len(high) != 1 else ''} found. Top of the list: {high[0]['title']}."
     if findings:
-        return f"{len(findings)} minor problem{'s' if len(findings) != 1 else ''} found, nothing serious."
+        return f"{len(findings)} problem{'s' if len(findings) != 1 else ''} found, none of them serious."
     if unknown:
         return "No known problems. Some unrecognised errors were logged; they may be harmless."
     return "Nothing wrong found in the log for this period."
@@ -166,7 +166,6 @@ def _contracts(session, since, findings, names, now=None):
     for c in session.contracts.values():
         by_name.setdefault(c["name"], []).append(c)
     item_findings = [f for f in findings if f["fields"].get("item")]
-    counted = _deliveries_that_counted(session)
     deliveries = [c for c in session.contracts.values()
                   if any(_is_delivery(k, o["text"]) for k, o in c["objectives"].items())]
 
@@ -177,17 +176,20 @@ def _contracts(session, since, findings, names, now=None):
     for name, cs in by_name.items():
         if any(c["result"] == "complete" or c["progress"] for c in cs):
             continue        # the same contract worked this session, so it isn't broken
-        tries = [c for c in cs if ((c["accepted"] or 0) >= since or c["result"] == "active")
-                 and c["result"] in ("active", "abandoned", "dropped", "failed")]
+        delivery = any(_is_delivery(k, o["text"]) for c in cs for k, o in c["objectives"].items())
+        # Elevator trips inside the look-back window, while this contract was the only delivery contract open
+        per = {id(c): [t for t in session.freight_cycles if since <= t <= now
+                       and (c["accepted"] or 0) <= t <= (c["ended"] or now) and only_delivery_at(c, t)]
+               if delivery else [] for c in cs}
+        tries = [c for c in cs if c["result"] in ("active", "abandoned", "dropped", "failed")
+                 and ((c["accepted"] or 0) >= since or per[id(c)])]
         if not tries:
             continue
-        delivery = any(_is_delivery(k, o["text"]) for c in tries for k, o in c["objectives"].items())
-        objectives = [o["text"] for c in tries for o in c["objectives"].values()]
-        objectives = list(dict.fromkeys(objectives))
-        per_try = [[t for t in session.freight_cycles if (c["accepted"] or 0) <= t <= (c["ended"] or now)
-                    and only_delivery_at(c, t)] for c in tries] if delivery else [[] for _ in tries]
-        cycles = sorted({t for ts in per_try for t in ts})
-        tries_with_cycles = sum(1 for ts in per_try if ts)
+        objectives = list(dict.fromkeys(o["text"] for c in tries for o in c["objectives"].values()))
+        cycles = sorted({t for c in tries for t in per[id(c)]})
+        tries_with_cycles = sum(1 for c in tries if per[id(c)])
+        if not cycles and len(tries) < 2:
+            continue
         linked = []
         for f in item_findings:
             disp = f["fields"].get("item_name") or f["fields"]["item"]
@@ -195,48 +197,52 @@ def _contracts(session, since, findings, names, now=None):
                 linked.append((disp, f))
         items = sorted({d for d, _ in linked})
         dropped = [c for c in tries if c["result"] == "dropped"]
-        bits = []
-        if cycles:
-            n = len(tries)
-            bits.append(f"You took this contract {n} time{'s' if n != 1 else ''} and the freight elevator went down "
-                        f"{len(cycles)} time{'s' if len(cycles) != 1 else ''} while it was your only delivery contract. "
-                        "The elevator worked each time, but the server never registered any progress on the objective.")
-            if counted:
-                bits.append("A different delivery through a freight elevator in this session did count, so the "
-                            "elevator itself works. That points at this contract (or these items), not at anything you did.")
-            elif tries_with_cycles >= 2:
-                bits.append("That points at the contract or the items rather than anything you did.")
-            else:
-                bits.append("If you sent everything it asked for, that points at the contract. If you only sent part of "
-                            "it, check the objective counts: partial deliveries should still move the counter.")
+        n, k = len(tries), len(cycles)
+        strong = tries_with_cycles >= 2
+        bits, ic = [], []
+        if strong:
+            bits.append(f"You took this contract {n} times. On {tries_with_cycles} of those attempts the freight elevator "
+                        "went down while it was your only delivery contract open, and the server never registered any "
+                        "progress on the objective. The same thing happening across attempts points at the contract or "
+                        "its items rather than anything you did.")
+            ic.append(f"I accepted \"{name}\" {n} times. On {tries_with_cycles} attempts I sent the required items down the "
+                      "freight elevator; the elevator cycled normally but the objective never progressed (Game.log shows "
+                      "no objective update for the mission).")
+        elif cycles:
+            bits.append(f"The freight elevator went down {k} time{'s' if k != 1 else ''} while this was your only delivery "
+                        "contract open, and the objective didn't move. If those trips carried this contract's items, the "
+                        "delivery didn't register. If you were moving other cargo, ignore this.")
+            ic.append(f"I sent items for \"{name}\" down the freight elevator and the objective did not progress "
+                      "(Game.log shows no objective update for the mission).")
         else:
-            bits.append(f"You've taken this contract {len(tries)} times and no objective has moved. Something on the "
-                        "server isn't registering progress.")
+            bits.append(f"You've taken this contract {n} times and no objective has moved.")
+            ic.append(f"I accepted \"{name}\" {n} times and no objective ever progressed.")
         if items:
-            bits.append(f"The game also logged \"{linked[0][1]['title']}\" for {_and(items)}. That message also turns "
-                        "up on deliveries that do count, so on its own it isn't the cause.")
+            what = f"{linked[0][1]['area'].lower() or 'item'} error{'s' if len(items) > 1 else ''}"
+            bits.append(f"The game also logged {what} for {_and(items)}. Those turn up on deliveries that do count "
+                        "too, so on their own they aren't the cause.")
+            ic.append(f"Game.log also shows {what} for {_and(items)}, though the same messages appear on "
+                      "deliveries that do count.")
         if dropped:
             bits.append("Leaving the server dropped the contract at least once, so it had to be taken again.")
-        if not cycles and len(tries) < 2:
-            continue
-        strong = tries_with_cycles >= 2
         out.append(_finding(
             severity="high" if strong else "medium", area="Contracts", rank=0,
             title=(f"\"{name}\": deliveries never counted" if strong
                    else f"\"{name}\": a delivery may not have counted" if cycles
-                   else f"\"{name}\" taken {len(tries)} times without progress"),
-            explain=" ".join(bits),
-            fixes=["Don't send more items for this contract until it's fixed; they're not being counted.",
+                   else f"\"{name}\" taken {n} times without progress"),
+            explain=" ".join(bits), ic_summary=" ".join(ic),
+            fixes=["Hold off sending more items for this contract; they don't seem to be counting.",
                    "Take your items back out of the elevator before you leave the server. Items left in it stay on "
                    "that shard, and the kiosk on a new one can't find them.",
                    "Check the Issue Council for this contract and add your confirmation, or report it with the draft below."],
-            ic_title=(f"{name}: delivered items never count toward the objective" if cycles
+            ic_title=(f"{name}: delivered items never count toward the objective" if strong
+                      else f"{name}: delivery through the freight elevator didn't count" if cycles
                       else f"{name}: objectives never progress"),
             first_ts=min((c["accepted"] or now) for c in tries), last_ts=max(cycles) if cycles else None,
-            count=len(tries),
+            count=n,
             examples=[x for _, f in linked for x in f["examples"][:2]][:4],
-            fields={"contract": name, "items": items, "objectives": objectives, "times_accepted": len(tries),
-                    "elevator_cycles": len(cycles), "dropped": len(dropped)}))
+            fields={"contract": name, "items": items, "objectives": objectives, "times_accepted": n,
+                    "elevator_cycles": k, "dropped": len(dropped)}))
     return out
 
 
@@ -274,14 +280,15 @@ def _overlay(snaps, since):
                             fixes=["Server hop: exit to menu and rejoin, or pick a different region.",
                                    "Avoid starting missions or deliveries until it recovers."],
                             first_ts=low[0]["ts"], last_ts=low[-1]["ts"], count=len(low)))
-    restarts = [s for s in recent if s.get("restarts")]
-    if restarts:
+    rs = [s for s in recent if s.get("restarts") is not None]
+    rises = [b for a, b in zip(rs, rs[1:]) if b["restarts"] > a["restarts"]]
+    if rises:
         out.append(_finding(severity="high", area="Server", title="Your server node restarted",
-                            explain="The overlay shows the server node restarted while you were on it. Things nearby "
-                                    "can reset or vanish, and contracts can break.",
+                            explain="The overlay's restart count went up while you were on this server node. Things "
+                                    "nearby can reset or vanish, and contracts can break.",
                             fixes=["Check your ship and cargo are still where you left them.",
                                    "If a contract stopped updating, a server hop is the usual fix."],
-                            first_ts=restarts[0]["ts"], last_ts=restarts[-1]["ts"], count=len(restarts)))
+                            first_ts=rises[0]["ts"], last_ts=rises[-1]["ts"], count=len(rises)))
     lossy = [s for s in recent if (s.get("loss_pct") or 0) >= 2]
     if len(lossy) >= 3:
         out.append(_finding(severity="medium", area="Connection", title="Packet loss",

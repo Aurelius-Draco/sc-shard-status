@@ -59,7 +59,7 @@ Without the overlay the app still works from Game.log: sessions, shards, disconn
 | Server fps | about 20 | under 10: elevators stall, AI freezes, missions stop updating |
 | Ping | under 80 ms | over 250 ms: probably a server in another region |
 | Packet loss | 0% | 2% or more: rubber-banding, actions that don't go through |
-| Server restarts | 0 | anything above 0: the server node you're on restarted |
+| Server restarts | no change | the count goes up while you're on it: the server node you're on restarted |
 
 Players on shard is everyone on the shard; on your server is the server node handling your area. A shard is made of several server nodes.
 

@@ -69,8 +69,14 @@ def check(cfg, file=None, minutes=None):
 
 
 def live(cfg, overlay=True, browser=True):
+    import webbrowser
     from .app import App
-    from .dashboard import start_server
+    from .dashboard import already_running, start_server
+    url = already_running(int(cfg.get("dashboard_port", 8775)))
+    if url:
+        say(f"SC Shard Status is already running. Opening its dashboard: {url}")
+        webbrowser.open(url)
+        return 0
     from . import score
     say(f"{APP_NAME} {VERSION}. Game folder: {cfg.get('game_dir') or 'not found'}")
     app = App(cfg)

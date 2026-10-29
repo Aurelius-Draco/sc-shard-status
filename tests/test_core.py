@@ -50,7 +50,7 @@ def test_diagnose_links_contract_to_cargo_error():
     r = diagnose(LOG, LIB, Names(GAME), lookback_min=300, now=s.end + 1, session=s)
     top = r["findings"][0]
     assert top["severity"] == "high" and top["title"] == '"Very Hungry": deliveries never counted'
-    assert "Berry Blend Smoothie" in top["explain"] and "isn't the cause" in top["explain"] and top["examples"]
+    assert "Berry Blend Smoothie" in top["explain"] and "aren't the cause" in top["explain"] and top["examples"]
     assert top["fields"]["elevator_cycles"] == 2 and top["fields"]["times_accepted"] == 2
     assert r["noise_lines"] == 1
     # the [SPAM n] line is read too
@@ -112,8 +112,13 @@ def test_score_bands():
     assert "Healthy shard. 400 players, 30 on your server." in good["summary"]
     bad = score.assess(_snaps(5))
     assert bad["label"] in ("Bad", "Struggling") and any("server hop" in t.lower() for t in bad["points"])
-    restart = score.assess(_snaps(21, restarts=1))
-    assert restart["score"] < good["score"] and any("restarted" in t for t in restart["points"])
+    rising = _snaps(21, restarts=0)
+    for x in rising[5:]:
+        x["restarts"] = 1
+    restart = score.assess(rising)
+    assert restart["score"] < good["score"] and any("restarted while you were on it" in t for t in restart["points"])
+    before = score.assess(_snaps(21, restarts=2))      # a lifetime count that never moves is not an alarm
+    assert before["score"] == good["score"] and any("at some point" in t for t in before["points"])
     assert score.assess([])["score"] is None
 
 

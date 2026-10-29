@@ -1,5 +1,5 @@
 {
- "version": "2026-10-29.1",
+ "version": "2026-10-29.2",
  "rules": [
   {
    "id": "cargo-no-resource-container",
@@ -63,7 +63,8 @@
    "fixes": [
     "Close the kiosk, wait a few seconds and try again.",
     "Move fewer items at a time.",
-    "If it keeps failing, relog. Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+    "If it keeps failing, relog or server hop.",
+    "If none of that works, it needs a fix from CIG: report it."
    ],
    "ic_title": "Freight elevator request fails with {result}",
    "links": [],
@@ -197,7 +198,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "inventory-op-over-budget",
@@ -253,7 +255,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "disconnect-30016-spawn",
@@ -265,7 +268,7 @@
     "regex": "cause=(?P<cause>30016) reason=\"(?P<reason>[^\"]*)\" frame=\\d+ isRemote=1 viewState=(?P<view_state>eCVS_(?!InGame\\b)\\w+)"
    },
    "title": "The server dropped you while you were still spawning",
-   "explain": "The server closed the connection before you finished loading in ({view_state}). The game calls it 'player requested', but it came from the server side. The next join usually lands on a different shard, and sometimes a different region.",
+   "explain": "The connection closed before you finished loading in ({view_state}). The game logs it as 'player requested', but you hadn't quit, so it most likely came from the server. The next join usually lands on a different shard, and sometimes a different region.",
    "fixes": [
     "Join again. Expect to land on a different shard; check the region in the overlay.",
     "Anything you left loose in the world on the old shard (including in freight elevators) stays there.",
@@ -293,7 +296,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "disconnect-30010",
@@ -311,7 +315,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "loading-long-wait",
@@ -499,7 +504,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "audio-queue-overflow",
@@ -603,7 +609,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "qt-other-player-state",
@@ -620,7 +627,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "asop-atc-timeout",
@@ -636,7 +644,7 @@
    "fixes": [
     "Wait a minute and check the kiosk again before re-requesting.",
     "If it's stuck as 'in hangar' or 'retrieving', relog.",
-    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+    "If none of that works, it needs a fix from CIG: report it."
    ],
    "ic_title": "Fleet manager: ATC {notification} TIMEOUT FAIL on vehicle retrieval",
    "links": [],
@@ -767,7 +775,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "hangar-elevator-no-platform",
@@ -783,7 +792,7 @@
    "fixes": [
     "Use a different hangar or pad.",
     "Store and re-retrieve your ship.",
-    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+    "If none of that works, it needs a fix from CIG: report it."
    ],
    "ic_title": "Loading platform manager {manager} has no loading platform",
    "links": [],
@@ -802,11 +811,11 @@
     "regex": "\\[TRANSPORT\\] Path \\[\\d+ -> \\d+\\] not found, carriage will not move this update"
    },
    "title": "An elevator or tram couldn't find its route",
-   "explain": "A carriage couldn't find its path and didn't move. These come in bursts in about one in six sessions here and usually clear on their own. It only matters if you were actually stuck waiting.",
+   "explain": "A carriage couldn't find its path and didn't move. These tend to come in bursts and usually clear on their own. It only matters if you were actually stuck waiting.",
    "fixes": [
     "Call the elevator again or use a different one.",
     "If you're stuck inside a carriage, wait a minute, then use another exit or relog.",
-    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+    "If none of that works, it needs a fix from CIG: report it."
    ],
    "ic_title": "Transit carriage path not found, carriage does not move",
    "links": [],
@@ -873,7 +882,7 @@
    "fixes": [
     "Close the panel and call the elevator again.",
     "Leave and re-enter the area.",
-    "Relog or server hop. There's no player-side fix; it needs a patch from CIG."
+    "If none of that works, it needs a fix from CIG: report it."
    ],
    "ic_title": "Elevator: permissions interface failed to provide instanced destinations",
    "links": [],
@@ -915,7 +924,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "transit-gateway-schedule",
@@ -931,7 +941,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "transit-spline-in-manager",
@@ -946,7 +957,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "shop-authority-error",
@@ -958,7 +970,7 @@
     "regex": "result\\[(?P<result>(?!Success\\])\\w+)\\]"
    },
    "title": "A purchase failed ({result})",
-   "explain": "The shop's server-side handler refused the purchase. You aren't charged when this happens.",
+   "explain": "The shop's server-side handler refused the purchase. Check your balance and inventory before buying again.",
    "fixes": [
     "Close the shop, step away and come back, then buy again.",
     "If every purchase fails, relog or server hop."
@@ -983,7 +995,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "commodity-location-missing",
@@ -1041,7 +1054,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "contract-failed",
@@ -1057,7 +1071,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "contract-left",
@@ -1074,7 +1089,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "player-died",
@@ -1090,7 +1106,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "player-incapacitated",
@@ -1108,7 +1125,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "vehicle-destroyed",
@@ -1124,7 +1142,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "vehicle-impounded",
@@ -1140,7 +1159,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "align-no-vehicle",
@@ -1155,7 +1175,8 @@
    "links": [],
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-particle-limit",
@@ -1170,7 +1191,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-particle-multiview",
@@ -1185,7 +1207,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-particle-max-count",
@@ -1198,7 +1221,8 @@
    "explain": "A particle effect asked for more particles than allowed and was clamped. Visual only.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-particle-kidnap",
@@ -1213,7 +1237,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-morton-index",
@@ -1228,7 +1253,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-glow-negative",
@@ -1242,7 +1268,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-render-node",
@@ -1257,7 +1284,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-raindrops",
@@ -1271,7 +1299,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-sdf-texture",
@@ -1284,7 +1313,8 @@
    "explain": "A ship part's distance-field texture didn't load. Visual only.",
    "builds_seen": [
     "12660092"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-fire-cb",
@@ -1297,7 +1327,8 @@
    "explain": "Fire effect buffer missed a frame. Visual only.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-fire-snapshot",
@@ -1310,7 +1341,8 @@
    "explain": "Saved fire state for a ship room didn't match its size and was skipped. Visual only.",
    "builds_seen": [
     "12660092"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-damage-maps",
@@ -1323,7 +1355,8 @@
    "explain": "Too many hit decals in one frame; extras were dropped. Visual only.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-effect-code-param",
@@ -1338,7 +1371,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-effect-tag",
@@ -1351,7 +1385,8 @@
    "explain": "An effect was given a missing tag. Data warning, no effect on play.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-duplicated-item-ports",
@@ -1366,7 +1401,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-creation-refused",
@@ -1381,7 +1417,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-aggregate-bind",
@@ -1395,7 +1432,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-failed-attachment",
@@ -1410,7 +1448,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-attach-destroy",
@@ -1425,7 +1464,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-port-from-id",
@@ -1439,7 +1479,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-finalize-parent",
@@ -1454,7 +1495,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-spawn-params",
@@ -1468,7 +1510,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-local-entity-class",
@@ -1482,7 +1525,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-serialized-overwrite",
@@ -1497,7 +1541,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-replicated-batch-callback",
@@ -1512,7 +1557,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-linked-entity",
@@ -1527,7 +1573,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-subsumption",
@@ -1542,7 +1589,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-actor-physics",
@@ -1557,7 +1605,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-carryable",
@@ -1572,7 +1621,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-invalid-manager",
@@ -1585,7 +1635,8 @@
    "explain": "Developer warning during setup. No effect.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-loading-platform-lights",
@@ -1600,7 +1651,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-obstruction-bounds-xml",
@@ -1616,7 +1668,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-obstruction-bounds-entity",
@@ -1632,7 +1685,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-docking-tube",
@@ -1646,7 +1700,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-fuel-tags",
@@ -1660,7 +1715,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-dashboard-mfd",
@@ -1674,7 +1730,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-location-manager-1",
@@ -1689,7 +1746,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-location-manager-2",
@@ -1704,7 +1762,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-atc-owner-inventory",
@@ -1717,7 +1776,8 @@
    "explain": "The client can't query the shard graph (only the server can). Routine.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-warehouse-exit",
@@ -1730,7 +1790,8 @@
    "explain": "Server-only code called on the client. No effect.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-commodity-ammo-guid",
@@ -1743,7 +1804,8 @@
    "explain": "A commodity kiosk saw an unknown commodity record. The rest of the list still works.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-shop-selection",
@@ -1758,7 +1820,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-shop-dropdown",
@@ -1771,7 +1834,8 @@
    "explain": "Shop location dropdown index out of range. Cosmetic.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-inventory-view",
@@ -1784,7 +1848,8 @@
    "explain": "Inventory screen tried to add to a view that wasn't open. Cosmetic.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-comms-bindings",
@@ -1798,7 +1863,8 @@
    "builds_seen": [
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-comms-cleanup",
@@ -1811,7 +1877,8 @@
    "explain": "A comms call was cleaned up after it had already stopped. Harmless.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-comms-flow",
@@ -1826,7 +1893,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-comms-guid",
@@ -1841,7 +1909,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-mission-ui-subobjective",
@@ -1854,7 +1923,8 @@
    "explain": "Mission log tried to show a sub-objective before its parent. Display only.",
    "builds_seen": [
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-objective-databank",
@@ -1869,7 +1939,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-chat-lobby",
@@ -1884,7 +1955,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   },
   {
    "id": "noise-subscription-key",
@@ -1899,7 +1971,8 @@
     "12572603",
     "12660092",
     "12913470"
-   ]
+   ],
+   "fixes": []
   }
  ]
 }

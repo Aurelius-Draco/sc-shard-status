@@ -3,6 +3,7 @@
 import datetime as dt
 import json
 import os
+import re
 import string
 from pathlib import Path
 
@@ -76,20 +77,47 @@ def find_game_dir():
     return None
 
 
+def _lenient_json(text):
+    """config.json as people edit it on Windows: single backslashes in paths are taken literally."""
+    def has_control(v):
+        return any(isinstance(x, str) and any(ord(c) < 32 for c in x) for x in v.values())
+    try:
+        data = json.loads(text)
+        if not has_control(data):
+            return data
+    except json.JSONDecodeError:
+        pass
+    return json.loads(re.sub(r'(?<!\\)\\(?![\\"])', r"\\\\", text))
+
+
 def load_config():
-    DATA.mkdir(exist_ok=True)
+    try:
+        DATA.mkdir(exist_ok=True)
+    except OSError as e:
+        raise SystemExit(f"Can't write to {DATA} ({e}). Move the SC Shard Status folder somewhere you can write to, "
+                         "such as next to your StarCitizen folder or in Documents, and run Setup.bat again.")
     cfg_path = DATA / "config.json"
     cfg = json.loads(json.dumps(DEFAULT_CONFIG))
+    broken = False
     if cfg_path.exists():
         try:
-            cfg.update(json.loads(cfg_path.read_text(encoding="utf-8")))
+            cfg.update(_lenient_json(cfg_path.read_text(encoding="utf-8-sig")))
+        except Exception as e:
+            broken = True
+            say(f"Couldn't read data\\config.json ({e}). Using the defaults for now; your file is left as it is. "
+                "Check for a missing comma or quote.")
+    if not broken:
+        try:
+            cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
         except Exception:
             pass
-    try:
-        cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-    except Exception:
-        pass
     if not cfg.get("game_dir") or not _is_game_dir(cfg["game_dir"]):
+        if cfg.get("game_dir"):
+            say(f"No Game.log in {cfg['game_dir']} (game_dir in data\\config.json). Looking in the usual places.")
         found = find_game_dir()
         cfg["game_dir"] = str(found) if found else ""
     return cfg
+
+
+def game_dir_ok(path):
+    return bool(path) and _is_game_dir(path)

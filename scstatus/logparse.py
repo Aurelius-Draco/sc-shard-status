@@ -13,8 +13,10 @@ line only for the player's own use on this PC; redact.py strips identifiers
 before anything is shared.
 """
 
+import codecs
 import datetime as dt
 import re
+import time
 from pathlib import Path
 
 LINE = re.compile(r"^<(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?)Z>\s?(?:\[SPAM \d+\])?(?:\[(\w+)\] )?"
@@ -448,6 +450,8 @@ class LogTail:
         self.ident = None
         self.partial = ""
         self.buffer = []
+        self.buffer_since = None
+        self.decoder = None
         self.session = None
 
     def _identity(self):
@@ -464,23 +468,30 @@ class LogTail:
         except OSError:
             return 0
         ident = self._identity()
-        if ident != self.ident or size < self.pos:
+        same = ident == self.ident or bool(self.ident and ident and ident.startswith(self.ident))
+        if same and ident:
+            self.ident = ident
+        if not same or size < self.pos or self.session is None:
             self.ident = ident
             self.pos = 0
             self.partial = ""
             self.buffer = []
+            self.buffer_since = None
+            self.decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
             self.session = Session(self.path.name)
             if self.on_new_session:
                 self.on_new_session(self.session)
         if size == self.pos:
-            self._feed(self.buffer, final=True)
-            self.buffer = []
+            # A held-back notification gets a few seconds for its second line before it's read as it is
+            if self.buffer and time.time() - (self.buffer_since or 0) > 3:
+                self._feed(self.buffer, final=True)
+                self.buffer = []
             return 0
         with open(self.path, "rb") as f:
             f.seek(self.pos)
             data = f.read(size - self.pos)
         self.pos = size
-        text = self.partial + data.decode("utf-8", errors="replace")
+        text = self.partial + self.decoder.decode(data)
         lines = text.split("\n")
         self.partial = lines.pop()
         # Hold back the last few lines: a notification may still be waiting for its continuation
@@ -488,9 +499,12 @@ class LogTail:
         keep = 0
         for i in range(len(lines) - 1, max(-1, len(lines) - 10), -1):
             if "SHUDEvent_OnNotification" in lines[i] and not NOTIFY.search(lines[i]):
-                keep = len(lines) - i
+                first = next(records(lines[i:]), "")
+                if not NOTIFY.search(first):          # its second line hasn't arrived yet
+                    keep = len(lines) - i
                 break
         self.buffer = lines[len(lines) - keep:] if keep else []
+        self.buffer_since = time.time() if keep else None
         self._feed(lines[:len(lines) - keep] if keep else lines)
         return len(lines)
 

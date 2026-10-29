@@ -14,17 +14,28 @@ from .config import say
 
 
 def game_in_front():
-    """True when the Star Citizen window has focus (always True off Windows, for testing)."""
+    """True when the Star Citizen game window has focus (always True off Windows, for testing).
+    Checks the process behind the window, so a browser tab called "Star Citizen" doesn't count."""
     if os.name != "nt":
         return True
     try:
         import ctypes
-        user32 = ctypes.windll.user32
+        from ctypes import wintypes
+        user32, kernel32 = ctypes.windll.user32, ctypes.windll.kernel32
         hwnd = user32.GetForegroundWindow()
-        n = user32.GetWindowTextLengthW(hwnd)
-        buf = ctypes.create_unicode_buffer(n + 1)
-        user32.GetWindowTextW(hwnd, buf, n + 1)
-        return "star citizen" in buf.value.lower()
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        h = kernel32.OpenProcess(0x1000, False, pid.value)       # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        try:
+            buf = ctypes.create_unicode_buffer(1024)
+            size = wintypes.DWORD(1024)
+            if not kernel32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
+                return False
+            return os.path.basename(buf.value).lower() == "starcitizen.exe"
+        finally:
+            kernel32.CloseHandle(h)
     except Exception:
         return True
 
