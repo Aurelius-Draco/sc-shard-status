@@ -70,3 +70,17 @@ def test_bad_disconnect_alerts_normal_one_doesnt():
 def test_off_means_off():
     app, a, shown, t = _make(None)
     assert a.mode is None
+
+
+def test_an_old_crash_isnt_alerted_when_the_app_starts(monkeypatch):
+    app, a, shown, t = _make()
+    app.game_found = True
+    app.game_dir = __import__("pathlib").Path("/nonexistent")
+    app.library = app.names = None
+    old = {"title": "The game crashed", "area": "Game", "kind": "problem", "severity": "high", "rule_id": "crash-x",
+           "first_ts": t[0] - 7200, "last_ts": t[0] - 7200, "explain": ""}
+    new = dict(old, rule_id="crash-y", title="Contract stuck", first_ts=t[0] - 60, last_ts=t[0] - 60)
+    import scstatus.diagnose as d
+    monkeypatch.setattr(d, "diagnose", lambda *a, **k: {"findings": [old, new]})
+    a._problems(t[0])
+    assert [s[0] for s in shown] == ["Contract stuck"]

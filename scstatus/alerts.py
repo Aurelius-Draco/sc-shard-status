@@ -169,6 +169,11 @@ class Alerts:
         except Exception:
             return
         for f in res.get("findings", []):
+            # Only what happened in the last 15 minutes: a crash at the end of an old Game.log isn't news when
+            # the app starts up hours later
+            when = f.get("last_ts") or f.get("first_ts")
+            if when and when < now - 900:
+                continue
             # Library problems, and the contract checks (deliveries not counting). Slow servers, restarts, packet
             # loss and disconnects are covered by the live checks above.
             key = f.get("rule_id") or ("contract:" + f["title"] if f.get("area") == "Contracts" else None)

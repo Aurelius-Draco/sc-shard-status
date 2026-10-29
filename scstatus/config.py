@@ -8,7 +8,7 @@ import string
 import sys
 from pathlib import Path
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 # The public community board (Cloudflare Worker in the admin repo)
 COMMUNITY_URL = "https://verseshards.com"
 APP_NAME = "SC Shard Status"

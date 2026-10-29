@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- Pop-up alerts only cover the last 15 minutes, so starting the app no longer alerts about a crash from an earlier session.
+- Set up tab: an Open the data folder button beside the second-monitor tip, and clearer help when the game folder isn't found.
+
 ## 1.1.0
 
 - A proper Windows installer: download SC-Shard-Status-Setup and run it. No Python, no admin password, Start menu and desktop shortcuts, and an uninstaller that asks whether to keep your history.
