@@ -16,6 +16,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
@@ -84,7 +85,9 @@ jobs:
           # running copy, puts the files in place and starts the new one, whose dashboard comes back up
           $p = Start-Process "$dir\SC Shard Status.exe" -ArgumentList "--no-browser","--no-overlay" -PassThru
           Start-Sleep 8
-          Start-Process "dist\SC-Shard-Status-Setup-$env:VER.exe" -ArgumentList "/SILENT","/SUPPRESSMSGBOXES","/NORESTART","/CLOSEAPPLICATIONS","/DIR=$dir" -Wait
+          # WaitForExit, not -Wait: -Wait would also wait for the app the installer starts, which keeps running
+          $u = Start-Process "dist\SC-Shard-Status-Setup-$env:VER.exe" -ArgumentList "/SILENT","/SUPPRESSMSGBOXES","/NORESTART","/CLOSEAPPLICATIONS","/DIR=$dir" -PassThru
+          if (-not $u.WaitForExit(180000)) { throw "installer didn't finish in 3 minutes" }
           $back = $false
           foreach ($i in 1..45) {
             Start-Sleep 2
