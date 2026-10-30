@@ -293,6 +293,21 @@ table.switches td:last-child { white-space: nowrap; }
 .alist { padding: var(--s3) var(--s4); display: grid; gap: var(--s2); font-size: .875rem; }
 .alist > div { display: grid; grid-template-columns: 4rem 1fr; gap: var(--s3); }
 .alist > div > b { color: var(--muted); font-weight: 600; }
+/* Timeline */
+.tlbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s4); padding: var(--s3) var(--s4); }
+.tlbar .grow { flex: 1; }
+.tlf { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.tlf button { height: 1.75rem; padding: 0 var(--s3); border: 1px solid var(--line2); border-radius: 999px; background: none; color: var(--muted); font-size: .8125rem; font-weight: 600; }
+.tlf button[aria-pressed="true"] { color: var(--text); border-color: var(--amber); background: var(--amber-bg); }
+.tl { list-style: none; margin: 0; padding: 0; }
+.tl li { display: grid; grid-template-columns: 4.25rem 1.25rem 1fr; gap: var(--s3); align-items: start; padding: 6px var(--s4); border-top: 1px solid var(--line); }
+.tl li:first-child { border-top: 0; }
+.tl .t { color: var(--muted); font-variant-numeric: tabular-nums; font-size: .8125rem; padding-top: 1px; }
+.tl .k { width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--line2); }
+.tl .g-travel .k { background: var(--fresh); } .tl .g-place .k { background: var(--teal); } .tl .g-ship .k { background: var(--amber); }
+.tl .g-contract .k { background: #b392f0; } .tl .g-connection .k { background: var(--muted); } .tl li.bad .k { background: var(--rust); }
+.tl .x { font: .75rem var(--mono); color: var(--muted); margin-left: var(--s2); }
+.tl li.day { display: block; padding: var(--s2) var(--s4); background: var(--well); color: var(--muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 /* First-run questions */
 .wiz { position: fixed; inset: 0; z-index: 40; overflow-y: auto; background: rgba(4,6,9,.78); padding: var(--s6) var(--s4) 0; }
 .wiz .box { max-width: 54rem; margin: 0 auto var(--s6); background: var(--panel); border: 1px solid var(--line2); border-radius: var(--r); box-shadow: var(--shadow); }
@@ -348,6 +363,7 @@ table.switches td:last-child { white-space: nowrap; }
 <nav class="tabbar" role="tablist" aria-label="Sections">
   <button role="tab" data-tab="now" aria-selected="true">Now</button>
   <button role="tab" data-tab="check">What's gone wrong? <span class="count rust" id="findCount"></span></button>
+  <button role="tab" data-tab="timeline">Timeline</button>
   <button role="tab" data-tab="history">History</button>
   <button role="tab" data-tab="pc">My PC</button>
   <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
@@ -394,7 +410,7 @@ function show(t) {
   try { sessionStorage.setItem("tab", t); } catch (e) {}
   document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
   clearInterval(timer);
-  const fn = {now: renderNow, check: renderCheck, history: renderHistory, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow;
+  const fn = {now: renderNow, check: renderCheck, timeline: renderTimeline, history: renderHistory, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow;
   Promise.resolve().then(fn).catch(e => {
     if (tab === t) $("view").innerHTML = `<div class="empty"><h3>Couldn't load this page</h3><p>${esc(e.message)}. Is the SC Shard Status window still open?</p></div>`;
   });
@@ -786,6 +802,53 @@ async function drawMyReviews() {
     b.disabled = true;
     try { const r = await api("/api/review/send", {ticket: b.dataset.rvsend}); toast(r.message); drawMyReviews(); } catch (e) { toast("Couldn't send: " + e.message, true); b.disabled = false; }
   });
+}
+
+/* ---------- Timeline ---------- */
+// What you did, in order, from Game.log: travel, places, ships, contracts and your connection
+let tlFilter = new Set(), tlDetails = false;
+async function renderTimeline() {
+  let mins = 60; try { mins = +sessionStorage.getItem("tlmins") || 60; } catch (e) {}
+  const d = await api("/api/timeline?minutes=" + mins);
+  if (tab !== "timeline") return;
+  const groups = d.groups || {};
+  $("view").innerHTML = `
+  <section class="sec"><div class="frame tlbar">
+    <div class="seg" role="radiogroup" aria-label="How far back">${[[30, "30 min"], [60, "1 h"], [120, "2 h"], [240, "4 h"]].map(([m, l]) =>
+      `<button type="button" data-mins="${m}" aria-pressed="${m === d.minutes}">${l}</button>`).join("")}</div>
+    <div class="tlf" role="group" aria-label="Show">${Object.entries(groups).map(([k, l]) =>
+      `<button type="button" data-g="${k}" aria-pressed="${!tlFilter.size || tlFilter.has(k)}">${esc(l)}</button>`).join("")}</div>
+    <span class="grow"></span>
+    <label class="sub"><input type="checkbox" id="tlDet" ${tlDetails ? "checked" : ""}> Details</label>
+  </div></section>
+  <section class="sec" id="tlOut"></section>`;
+  const draw = () => {
+    const rows = d.items.filter(i => !tlFilter.size || tlFilter.has(i.group)).slice().reverse();
+    if (!rows.length) {
+      $("tlOut").innerHTML = `<div class="empty"><h3>Nothing in this time</h3><p>${d.game_found ? "The timeline fills from Game.log as you play: places, quantum jumps, ships, contracts and your connection. Try a longer time." : "The game folder hasn't been found yet. Start Star Citizen and the app picks it up."}</p></div>`;
+      return;
+    }
+    let lastDay = "", html = "";
+    for (const i of rows) {
+      const day = new Date(i.ts * 1000).toLocaleDateString([], {weekday: "short", day: "numeric", month: "short"});
+      if (day !== lastDay) { html += `<li class="day">${esc(day)}</li>`; lastDay = day; }
+      const bad = ["disconnect", "crash", "contract_failed", "objective_failed", "contract_dropped"].includes(i.kind);
+      html += `<li class="g-${esc(i.group)}${bad ? " bad" : ""}"><span class="t">${tm(i.ts)}</span><i class="k" title="${esc(groups[i.group] || "")}"></i>
+        <span>${esc(i.text)}${tlDetails && i.code ? `<span class="x">${esc(i.code)}</span>` : ""}</span></li>`;
+    }
+    $("tlOut").innerHTML = `<ul class="frame tl">${html}</ul><p class="sub">Newest first. Read from your Game.log on this PC; nothing on this tab is shared.</p>`;
+  };
+  draw();
+  $("view").querySelectorAll("[data-mins]").forEach(b => b.onclick = () => { try { sessionStorage.setItem("tlmins", b.dataset.mins); } catch (e) {} renderTimeline(); });
+  $("view").querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+    const g = b.dataset.g, all = Object.keys(groups);
+    if (!tlFilter.size) tlFilter = new Set(all);
+    if (tlFilter.has(g)) tlFilter.delete(g); else tlFilter.add(g);
+    if (tlFilter.size === all.length || !tlFilter.size) tlFilter = new Set();
+    $("view").querySelectorAll("[data-g]").forEach(x => x.setAttribute("aria-pressed", !tlFilter.size || tlFilter.has(x.dataset.g)));
+    draw();
+  });
+  $("tlDet").onchange = e => { tlDetails = e.target.checked; draw(); };
 }
 
 /* ---------- History ---------- */
