@@ -24,7 +24,7 @@ def _utc(ts):
     return dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC") if ts else "unknown"
 
 
-def draft(finding, result, snapshot=None, location_hint=None):
+def draft(finding, result, snapshot=None, location_hint=None, session=None, places=None):
     """Plain-text Issue Council report for one finding."""
     s = result.get("session", {})
     title = finding.get("ic_title") or finding["title"]
@@ -53,7 +53,7 @@ def draft(finding, result, snapshot=None, location_hint=None):
     env.append(f"First seen: {_utc(finding.get('first_ts'))}; last seen: {_utc(finding.get('last_ts'))}; "
                f"times logged: {finding.get('count', 1)}")
 
-    steps = steps_for(finding)
+    steps = steps_for(finding, session, places)
     excerpt = "\n".join(x[:400] for x in finding.get("examples", [])[:5]) or "(no log lines; see attached Game.log)"
     if finding.get("ic_summary"):
         lead = finding["ic_summary"].strip()
@@ -77,8 +77,32 @@ def draft(finding, result, snapshot=None, location_hint=None):
     return {"title": title, "sections": sections, "body": body}
 
 
-def steps_for(f):
-    """Steps as a list, one per Issue Council step box."""
+def steps_for(f, session=None, places=None):
+    """Steps as a list, one per Issue Council step box. Built from what the log shows you did in the 30 minutes
+    before the problem when it can be; otherwise a template to fill in."""
+    base = _template_steps(f)
+    first = f.get("first_ts")
+    if session is not None and first:
+        from .timeline import STEP_KINDS, steps_from, timeline
+        # A contract problem runs from taking it to the last delivery, so its steps run to the last sighting
+        until = max(first, f.get("last_ts") or first) if f.get("area") == "Contracts" else first
+        items = timeline(session, places, since=first - 1800, until=until)
+        if any(i["kind"] in STEP_KINDS and i["kind"] != "armistice" for i in items):
+            return steps_from(items, _final_step(f, base))
+    return base
+
+
+def _final_step(f, base):
+    """The step that says what went wrong, worded for the end of a list of real steps."""
+    if f.get("fields", {}).get("contract") or f.get("area") == "Contracts" \
+            or (base and base[-1] == "The objective does not progress."):
+        return "The objective does not progress."
+    if base and not base[-1].startswith("("):
+        return base[-1]
+    return f["title"].rstrip(".") + "."
+
+
+def _template_steps(f):
     c = f.get("fields", {}).get("contract")
     items = f.get("fields", {}).get("items") or ([f["fields"]["item_name"]] if f.get("fields", {}).get("item_name") else [])
     if c and items:

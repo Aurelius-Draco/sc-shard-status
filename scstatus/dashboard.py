@@ -88,6 +88,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.history())
                 if path == "/api/pc":
                     return self._send(200, app.pc())
+                if path == "/api/timeline":
+                    return self._send(200, app.timeline(qs.get("minutes", 60)))
                 if path == "/api/issues":
                     return self._send(200, {"version": app.library.version, "rules": app.library.listing()})
                 if path == "/api/settings":

@@ -24,6 +24,7 @@ class App:
         self.library = Library()
         self.game_dir = Path(cfg.get("game_dir") or ".")
         self._names = None
+        self._places = None
         self.snaps = collections.deque(maxlen=2000)
         for s in self.store.snapshots(since=time.time() - 3 * 3600):
             self.snaps.append(s)
@@ -50,6 +51,14 @@ class App:
         if self._names is None:
             self._names = Names(self.game_dir, self.cfg.get("language", "english"))
         return self._names
+
+    @property
+    def places(self):
+        """Place names from the game's own text file (global.ini), loaded once."""
+        if self._places is None:
+            from .locations import Places
+            self._places = Places(self.game_dir if self.game_found else None, self.cfg.get("language", "english"))
+        return self._places
 
     @property
     def session(self):
@@ -143,6 +152,7 @@ class App:
         if self.shots:
             self.shots.folder = p / "screenshots"
         self._names = None
+        self._places = None
         pending = self.cfg.pop("pending_user_cfg", None)
         if pending:
             for name, on in pending.items():
@@ -303,15 +313,28 @@ class App:
         with self.lock:
             return self.snaps[-1] if self.snaps and time.time() - self.snaps[-1]["ts"] < 900 else None
 
+    def timeline(self, minutes=60):
+        """What happened in the last `minutes` of the current session, in plain English."""
+        from .timeline import GROUPS, timeline
+        try:
+            minutes = max(5, min(int(minutes or 60), 24 * 60))
+        except (TypeError, ValueError):
+            minutes = 60
+        s = self.session
+        end = (s.end if s and s.end else time.time())
+        items = timeline(s, self.places, since=end - minutes * 60) if s else []
+        return {"minutes": minutes, "items": items, "groups": GROUPS, "game_found": self.game_found,
+                "session_start": s.start if s else None, "session_end": s.end if s else None}
+
     def report_draft(self, group, i):
         f = self._finding(group, i)
-        d = report.draft(f, self.last_result, self.latest_snap())
+        d = report.draft(f, self.last_result, self.latest_snap(), session=self.session, places=self.places)
         d["url"] = report.ISSUE_COUNCIL
         return d
 
     def report_bundle(self, group, i, text=None):
         f = self._finding(group, i)
-        d = report.draft(f, self.last_result, self.latest_snap())
+        d = report.draft(f, self.last_result, self.latest_snap(), session=self.session, places=self.places)
         if text and isinstance(text, str):
             d["body"] = text[:200_000]      # the player's edited version from the dashboard
         folder, n = report.bundle(f, self.last_result, d, self.game_dir)

@@ -48,6 +48,13 @@ PU_LOADED = re.compile(r'establisher="CReplicationModel" runningTime=([\d.]+) ma
 PLATFORM = re.compile(r"Loading Platform Manager \[([^\]]+)\] Platform state changed to (\w+)")
 UNSTOW = re.compile(r"Processed bindings into transfer request - Entities: (\d+)")
 LOGIN = re.compile(r"Handle\[([^\]]+)\]")
+# Travel and places (the player's own ship is named before its [entity id]; AI ships have _AI_ in the name)
+QT_TARGET = re.compile(r"\|\s*([A-Za-z][A-Za-z0-9_]*?)_\d+\[\d+\]\|CSCItemNavigation::OnPlayerSelectedQuantumTarget\|"
+                       r"Player has selected point (\S+) as their destination")
+QT_ARRIVED = re.compile(r"\|\s*([A-Za-z][A-Za-z0-9_]*?)_\d+\[\d+\]\|CSCItemNavigation::OnQuantumDriveArrived")
+LOCATION = re.compile(r"requested inventory for Location\[([^\]]+)\]")
+ATC_SHIP = re.compile(r"ATC '([A-Za-z][A-Za-z0-9_]*?)_ShipATCDataManager")
+ARMISTICE = re.compile(r"^(Entering|Leaving) Armistice Zone", re.I)
 
 # Crash block: written without timestamps after the last line
 CRASH_START = re.compile(r"^Cloud Imperium Games public crash handler taking over")
@@ -207,6 +214,18 @@ def parse_line(raw):
         return None
     if tag == "CEntityComponentFreightElevatorUIProvider::FillUnstowRequest" and (u := UNSTOW.search(msg)):
         return {"ts": ts, "kind": "freight_unstow", "entities": int(u.group(1))}
+    if tag == "Player Selected Quantum Target - Local" and (q := QT_TARGET.search(msg)):
+        return {"ts": ts, "kind": "qt_target", "ship": q.group(1), "dest": q.group(2)}
+    if tag and tag.startswith("Quantum Drive Arrived") and (q := QT_ARRIVED.search(msg)):
+        if "_AI_" in q.group(1):
+            return None                          # an AI ship arriving nearby, not the player
+        return {"ts": ts, "kind": "qt_arrived", "ship": q.group(1)}
+    if tag == "RequestLocationInventory" and (loc := LOCATION.search(msg)):
+        return {"ts": ts, "kind": "location", "code": loc.group(1)}
+    if tag == "CEntityComponentShipListProvider::SetVehicleSpawningInformations":
+        return {"ts": ts, "kind": "ship_retrieved", "ship": None}
+    if tag == "ATC_Reset_VehiclesBeingStoredCleared" and (a := ATC_SHIP.search(msg)):
+        return {"ts": ts, "kind": "atc_ship", "ship": a.group(1)}
     if tag == "Legacy login response" and (h := LOGIN.search(msg)):
         return {"ts": ts, "kind": "login", "handle": h.group(1)}
     if (tag and "FastShutdown" in tag) or any(k in msg for k in SHUTDOWN_MARKS):
@@ -258,6 +277,8 @@ NOTE_KINDS = [
 def _notification(ts, text, mission_id, objective_id=None):
     text = re.sub(r"<[^>]+>", "", text).strip()
     mid = None if mission_id == ZERO_GUID else mission_id
+    if a := ARMISTICE.match(text):
+        return {"ts": ts, "kind": "armistice", "on": a.group(1).lower() == "entering"}
     for rx, kind in NOTE_KINDS:
         if m := rx.match(text):
             name = re.sub(r"\s*\n\s*", " ", m.group(1)).strip(" :")
@@ -291,14 +312,23 @@ class Session:
         self.errors = []
         self.notifications = []
         self.freight_cycles = []    # times the freight elevator finished going down (items handed over)
+        self.travel = []            # quantum jumps, places, armistice zones, ships retrieved (for the timeline)
         self.quit = None
         self.clean_exit = False
         self.crash = None
         self.events = []
         self._last_platform = {}
 
+    TRAVEL_KINDS = ("qt_target", "qt_arrived", "location", "armistice", "ship_retrieved")
+
     def add(self, ev):
         if ev is None:
+            return
+        if ev["kind"] == "atc_ship":
+            # ATC lines name ships all the time; one just after a retrieval names the ship that was retrieved
+            last = self.travel[-1] if self.travel else None
+            if last and last["kind"] == "ship_retrieved" and last["ship"] is None and ev["ts"] - last["ts"] <= 15:
+                last["ship"] = ev["ship"]
             return
         self.events.append(ev)
         ts = ev["ts"]
@@ -348,6 +378,15 @@ class Session:
             self._contract(ev)
         elif k == "notification":
             self.notifications.append(ev)
+        elif k in self.TRAVEL_KINDS:
+            if k == "location":
+                prev = next((e for e in reversed(self.travel) if e["kind"] == "location"), None)
+                if prev and prev["code"].lower() == ev["code"].lower():
+                    return
+            if k == "qt_arrived":
+                dest = next((e for e in reversed(self.travel) if e["kind"] == "qt_target"), None)
+                ev["dest"] = dest["dest"] if dest else None
+            self.travel.append(ev)
 
     def _new_contract(self, mid, name, ts=None):
         c = {"mission_id": mid, "name": name, "accepted": ts, "objectives": {}, "result": "active",
