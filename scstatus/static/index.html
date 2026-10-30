@@ -426,7 +426,8 @@ function header(d) {
   const sp = $("shardPill"), op = $("ovPill");
   const sh = d.shard || {};
   sp.className = "pill" + (sh.id ? " on" : "");
-  sp.querySelector("span").textContent = sh.id ? `${sh.id}  ·  ${sh.region}` : (d.game_found ? "Not in the PU yet" : "Game.log not found");
+  sp.querySelector("span").textContent = sh.id ? `${sh.name || sh.id}  ·  ${sh.region}` : (d.game_found ? "Not in the PU yet" : "Game.log not found");
+  sp.title = sh.id || "";
   const st = d.overlay_status || "off";
   op.className = "pill" + (st === "reading" ? " on" : st === "off" ? "" : " warn");
   op.querySelector("span").textContent = st === "reading" ? "Overlay: reading" : st === "off" ? "Overlay: off" : "Overlay: " + st.split(" (")[0];
@@ -548,6 +549,7 @@ async function renderNow() {
   const setup = [];
   const un = updNotice(d.update);
   if (un) setup.push(un);
+  if (d.rsi) setup.push(`<div class="notice rust"><p><b>RSI reports a problem right now:</b> ${esc((d.rsi.issues || []).map(i => i.system + ": " + i.title).join("; ") || "see their status page")}.</p><a class="btn sm ghost" href="https://status.robertsspaceindustries.com/" target="_blank" rel="noopener">RSI status</a></div>`);
   if (d.patch && d.patch.new) setup.push(`<div class="notice"><p><b>New game build today</b> (${esc(d.patch.build)}, was ${esc(d.patch.previous)}). The first day after a patch, servers are often busier and slower than usual. Your "usual fps on this patch" starts again from nothing, so that comparison shows once you've played a while. Some known issues may be fixed and new ones may turn up; <a href="${esc(COMMUNITY_SITE)}/issues" target="_blank" rel="noopener">the community site</a> marks which ones players are still hitting.</p><button class="btn sm ghost" data-dismiss="patch">Got it</button></div>`);
   if (d.migrated_from) setup.push(`<div class="notice teal"><p><b>Your settings and history came across</b> from the copy you unzipped before, in <code>${esc(d.migrated_from)}</code>. That folder isn't used any more, so delete it when you're ready.</p><button class="btn sm ghost" data-dismiss="migrated">Got it</button></div>`);
   if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game folder not found yet.</b> Start Star Citizen and the app picks it up by itself, or paste the folder on the Set up tab.</p><button class="btn sm" id="goSetup3">Set up</button></div>`);
@@ -566,9 +568,9 @@ async function renderNow() {
       <span class="verdict v-${h.cls}"><i></i>${esc(h.label)}</span>
       <p class="summary">${esc(h.summary)}</p>
       ${h.points && h.points.length ? `<ul class="tips">${h.points.map(p => `<li class="notice"><p>${esc(p)}</p></li>`).join("")}</ul>` : ""}
-      <div class="shardline">${sh.id ? `<span>Shard <code>${esc(sh.id)}</code></span><span>${esc(sh.region)}</span>` : ""}
-        ${h.server_name ? `<span>Server <code>${esc(h.server_name.split("-").slice(-2).join("-"))}</code></span>` : ""}
-        ${h.location ? `<span>At <code>${esc(h.location)}</code></span>` : ""}
+      <div class="shardline">${sh.id ? `<span title="${esc(sh.id)}">Shard <b>${esc(sh.name || sh.id)}</b></span><span>${esc(sh.region)}</span>` : ""}
+        ${h.server_name ? `<span>Server <code>${esc(h.server_name.split("-").slice(-2).join("-"))}</code>${d.where && d.where.area_name ? `, running ${esc(d.where.area_name)}` : ""}</span>` : ""}
+        ${d.where ? `<span>At ${esc(d.where.place)}</span>` : h.location ? `<span>At <code>${esc(h.location)}</code></span>` : ""}
         ${h.ts ? `<span>Last reading ${ago(h.ts)}</span>` : ""}${cmpTxt ? `<span>${esc(cmpTxt)}</span>` : ""}</div>
     </div>
   </section>
@@ -628,14 +630,15 @@ function commSection(d) {
   let hop = "";
   // A score from one player is a first look; don't suggest hopping on the strength of it
   if (best && mine && best.shard_id !== mine.shard_id && best.score - mine.score >= 20 && best.reporters >= 2)
-    hop = `<div class="notice"><p><b>${esc(best.shard_id)} is running better</b> (${best.score}/100, server at ${fmt(best.server_fps, 1)} fps, from ${best.reporters} players). If yours is causing trouble, a server hop could land you somewhere healthier, though the game picks the shard, not you.</p></div>`;
-  const rows = c.shards.map(x => `<tr class="${x.shard_id === (mine && mine.shard_id) ? "me" : ""}"><td>${dot(x)}</td><td><code>${esc(x.shard_id)}</code>${x.shard_id === (mine && mine.shard_id) ? ` <span class="chip area">you</span>` : ""}</td>
+    hop = `<div class="notice"><p><b>${esc(best.name || best.shard_id)} is running better</b> (${best.score}/100, server at ${fmt(best.server_fps, 1)} fps, from ${best.reporters} players). If yours is causing trouble, a server hop could land you somewhere healthier, though the game picks the shard, not you.</p></div>`;
+  const rows = c.shards.map(x => `<tr class="${x.shard_id === (mine && mine.shard_id) ? "me" : ""}"><td>${dot(x)}</td><td title="${esc(x.shard_id)}"><b>${esc(x.name || x.shard_id)}</b>${x.shard_id === (mine && mine.shard_id) ? ` <span class="chip area">you</span>` : ""}${(x.servers || []).length ? `<span class="sub" style="display:block">${esc([...new Set(x.servers.flatMap(v => v.areas.map(a => a.name)))].slice(0, 4).join(", "))}</span>` : ""}</td>
     <td class="num">${fmt(x.server_fps, 1)}</td><td class="num">${fmt(x.pop_shard)}</td><td class="num">${x.reporters}${x.reporters < 2 ? ` <span class="sub" title="One player's readings: a first look, not a verdict">first look</span>` : ""}</td></tr>`).join("");
   return `<section class="sec"><h3>Your region right now <span>${esc(c.region || "")} on the community board${c.updated ? ", updated " + ago(c.updated) : ""}</span></h3>
     ${hop}
     ${c.shards.length ? `<div class="frame" style="overflow-x:auto"><table class="comm"><thead><tr><th>Health</th><th>Shard</th><th class="num">Server fps</th><th class="num">Players</th><th class="num">Reporting</th></tr></thead><tbody>${rows}</tbody></table></div>`
       : `<p class="sub">${c.error ? esc(c.error) : "Nobody in your region is sharing readings right now."}</p>`}
-    <p class="sub"><a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">Open the full board</a></p></section>`;
+    ${c.areas && c.areas.quiet && c.areas.quiet.length ? `<p class="sub" style="margin-top:var(--s3)"><b>Quieter areas right now:</b> ${c.areas.quiet.map(q => `${esc(q.area_name)} on ${esc(q.shard)} (${fmt(q.players)} players, ${fmt(q.server_fps, 1)} fps)`).join(" · ")}. Quieter means fewer players on that server, not safer.</p>` : ""}
+    <p class="sub"><a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">Open the full board</a> · <a href="${esc(COMMUNITY_SITE)}/trends" target="_blank" rel="noopener">Busiest times and patch report card</a></p></section>`;
 }
 
 /* ---------- What's gone wrong ---------- */
@@ -1002,7 +1005,7 @@ async function renderSetup() {
     <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
     <ul class="rules">
       <li><b>Show other shards</b> fetches the board every 2 minutes and puts your region on the Now tab. It sends nothing about you.</li>
-      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
+      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. After each game session it also sends that session's build, length, load time, whether it crashed and any disconnect error codes, for the patch report card. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
     </ul>
     <div class="swlist" id="commToggles"></div>
     <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
@@ -1163,7 +1166,7 @@ async function openWizard(all) {
       `Fetches the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> every 2 minutes and shows your region on the Now tab, with the best shard to hop to. This sends nothing about you.`,
       yn("board") + now(st.board)],
     ["share", "Community board", "Share your readings with the community board?",
-      `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
+      `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. After each game session: its build, length, load time, whether it crashed and any disconnect error codes. Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
       yn("share", "Yes, share", "No, don't share") + now(st.share)],
     ["updates", "This app", "Tell you when there's a new version?",
       `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. Nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,

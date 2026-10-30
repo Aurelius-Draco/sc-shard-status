@@ -89,7 +89,8 @@ def test_nothing_sent_when_off_and_one_summary_when_on():
         c.tick()
         c.tick()                                 # second tick inside 5 minutes sends nothing more
         assert log.count("board") == 1
-        sent = [x for x in log if x != "board"]
+        assert "/api/v1/rsi" in log               # RSI status comes with the board
+        sent = [x for x in log if isinstance(x, dict)]
         assert len(sent) == 1 and sent[0]["shard_id"] == "pub_apse2a_12881860_090"
         assert c.share_status == "sharing"
         v = c.region_view("pub_apse2a_12881860_090", "apse2")

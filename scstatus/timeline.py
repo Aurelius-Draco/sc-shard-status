@@ -13,16 +13,12 @@ from .logparse import NORMAL_CAUSES
 # What each kind is filed under on the Timeline tab
 GROUPS = {"travel": "Travel", "place": "Places", "ship": "Ships", "contract": "Contracts",
           "connection": "Connection", "other": "Other"}
-REGION_SHORT = {"apse2": "AU", "apse1": "ASIA", "ape1": "ASIA", "apne1": "ASIA", "use1": "USE", "use2": "USE",
-                "usw1": "USW", "usw2": "USW", "euw1": "EU", "euw2": "EU", "euc1": "EU", "eun1": "EU"}
 
 
 def shard_label(shard_id):
-    """'pub_apse2a_12881860_020' -> 'AU-20'. Falls back to the id."""
-    m = re.match(r"^[a-z]+_([a-z]+\d)[a-z]?_\d+_(\d+)$", shard_id or "")
-    if not m:
-        return shard_id or ""
-    return f"{REGION_SHORT.get(m.group(1), m.group(1).upper())}-{int(m.group(2))}"
+    """AU-20 style name (one helper for the whole app: community.shard_name)."""
+    from .community import shard_name
+    return shard_name(shard_id)
 
 
 def ship_name(cls):

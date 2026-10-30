@@ -85,6 +85,12 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
         r = _call(url, token, "/api/setup", {"choices": {"updates": False, "library": False, "alerts": "quiet"}})
         assert r["settings"]["alerts"]["mode"] == "quiet"
         assert _call(url, token, "/api/now")["setup_needed"] is False
+        # What's shared changed in 1.2, so people already sharing are asked again; others aren't
+        app.cfg.update(setup_version=2, share_readings=True, share_text_seen=None)
+        assert _call(url, token, "/api/now")["setup_ask"] == ["share"]
+        assert _call(url, token, "/api/now")["setup_needed"] is True
+        app.cfg.update(share_readings=False)
+        assert _call(url, token, "/api/now")["setup_ask"] == [] and not _call(url, token, "/api/now")["setup_needed"]
     finally:
         app.stop.set()
         server.shutdown()

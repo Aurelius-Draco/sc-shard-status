@@ -150,6 +150,8 @@ class Community:
     @property
     def places(self):
         """Place and area names from the game's text file, read once."""
+        if hasattr(type(self.app), "places"):              # the app keeps one copy for everything
+            return self.app.places
         from .locations import Places
         gd = getattr(self.app, "game_dir", None)
         key = str(gd)

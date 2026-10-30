@@ -400,6 +400,9 @@ class App:
         if share is not None:
             self.cfg["share_readings"] = bool(share)
             save_setting("share_readings", self.cfg["share_readings"])
+            if share:                               # turned on beside the current wording, so no need to ask again
+                self.cfg["share_text_seen"] = self.QUESTIONS["share"]
+                save_setting("share_text_seen", self.cfg["share_text_seen"])
             if share and self.community.share_status in ("off", ""):
                 self.community.share_status = "starting"
             msg.append("Sharing on. Your first summary goes after 5 minutes of overlay readings." if share
@@ -434,19 +437,23 @@ class App:
     # -- first-run questions: every setting is a yes/no the player has to answer once
     # Each question and the set-up version it arrived in. Raise SETUP_VERSION when adding one: players who have
     # already been through set-up are asked only the new ones.
-    QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 1,
+    # share is 3: 1.2 added the area and session stats to what's shared, so sharers are asked again
+    QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 3,
                  "updates": 2, "library": 2, "alerts": 2}
     SETUP_VERSION = max(QUESTIONS.values())
 
     @property
     def setup_needed(self):
-        return int(self.cfg.get("setup_version") or 0) < self.SETUP_VERSION
+        return bool(self.setup_ask)
 
     @property
     def setup_ask(self):
         """The questions this player still has to answer (all of them on a first start)."""
         done = int(self.cfg.get("setup_version") or 0)
-        return [k for k, since in self.QUESTIONS.items() if since > done]
+        # The sharing question changed in 1.2; only people already sharing need to see it again
+        return [k for k, since in self.QUESTIONS.items() if since > done
+                and not (k == "share" and done and (not self.cfg.get("share_readings")
+                                                    or int(self.cfg.get("share_text_seen") or 0) >= since))]
 
     def apply_setup(self, c):
         """c: {game: "ok"|"later"|<path>, displayinfo, sessioninfo, live, screenshots, board, share, updates}
