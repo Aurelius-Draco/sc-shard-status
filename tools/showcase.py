@@ -177,7 +177,7 @@ SCENARIOS = {
     "struggling": dict(fps=7.2, spread=2.4, ping=118, loss=0.8, hitches=3, restart=False, client=71),
     "bad": dict(fps=3.4, spread=1.6, ping=262, loss=4.0, hitches=6, restart=True, client=58),
 }
-LOCATIONS = ["RR_CRU_L4", "Area18", "Orison", "Lorville", "New Babbage", "Baijini Point", "Port Tressler"]
+LOCATIONS = ["RR_HUR_LEO", "Stanton1", "RR_CRU_L1", "Stanton2", "Stanton2", "RR_CRU_L4"]   # the game's own codes; ends at CRU-L4
 
 
 def readings(app, shard, kind, rnd, now):
@@ -203,6 +203,71 @@ def readings(app, shard, kind, rnd, now):
                     "vram_used_mb": 9250, "vram_total_mb": 16304,
                     "location": LOCATIONS[(i // 12) % len(LOCATIONS)]})
     return out
+
+
+MY_BOARD = {"healthy": (92, "good", 20.8, 37), "struggling": (45, "poor", 6.9, 46), "bad": (18, "bad", 3.4, 49)}
+
+
+def fake_board(mine, kind="healthy"):
+    """A made-up community board for the region card: served from this PC only, never the real site."""
+    def sv(node, players, fps, areas):
+        cls = "good" if fps >= 15 else "ok" if fps >= 9 else "bad"
+        return {"node": node, "players": players, "server_fps": fps, "label": "", "cls": cls, "reporters": 2,
+                "areas": [{"area": a, "name": n, "system": "pyro" if a.startswith("pyro") else "stanton", "reporters": 1}
+                          for a, n in areas]}
+    base = mine.rsplit("_", 1)[0]
+    others = [n for n in ("110", "060", "040", "130") if not mine.endswith("_" + n)][:3]
+    shards = [
+        {"shard_id": f"{base}_{others[0]}", "score": 96, "cls": "good", "label": "Healthy", "server_fps": 21.4, "pop_shard": 388, "reporters": 9,
+         "servers": [sv("03", 31, 21.8, [("crusader", "Crusader")]), sv("05", 44, 20.6, [("pyro3", "Bloom"), ("pyro-space", "Pyro, open space")]),
+                     sv("01", 52, 21.0, [("hurston", "Hurston")])]},
+        {"shard_id": mine, "score": MY_BOARD[kind][0], "cls": MY_BOARD[kind][1], "label": "", "server_fps": MY_BOARD[kind][2],
+         "pop_shard": 431 if kind == "healthy" else 612, "reporters": 6,
+         "servers": [sv("07", MY_BOARD[kind][3], MY_BOARD[kind][2], [("crusader", "Crusader")]), sv("02", 61, 18.2, [("microtech", "microTech")])]},
+        {"shard_id": f"{base}_{others[1]}", "score": 61, "cls": "ok", "label": "Slow", "server_fps": 11.6, "pop_shard": 598, "reporters": 7,
+         "servers": [sv("04", 78, 9.4, [("arccorp", "ArcCorp")]), sv("06", 66, 12.8, [("pyro3", "Bloom")])]},
+        {"shard_id": f"{base}_{others[2]}", "score": 34, "cls": "bad", "label": "Struggling", "server_fps": 5.8, "pop_shard": 642, "reporters": 4,
+         "servers": [sv("02", 91, 5.1, [("crusader", "Crusader")])]},
+    ]
+    from scstatus.community import shard_name
+    for x in shards:
+        x["name"] = shard_name(x["shard_id"])
+    shards.sort(key=lambda x: -x["score"])
+    pick = lambda x, v: {"shard_id": x["shard_id"], "shard": x["name"], "node": v["node"], "area": v["areas"][0]["area"],
+                         "area_name": v["areas"][0]["name"], "system": v["areas"][0]["system"], "players": v["players"],
+                         "server_fps": v["server_fps"], "cls": v["cls"], "reporters": 2}
+    allv = [(x, v) for x in shards for v in x["servers"]]
+    ok = sorted([p for p in allv if p[1]["server_fps"] >= 12], key=lambda p: p[1]["players"])
+    return {"updated": time.time(), "reporters": 26, "regions": [{"name": "Australia", "shards": shards}],
+            "areas": [{"region": "Australia", "quiet": [pick(*p) for p in ok[:3]],
+                       "busy": [pick(*p) for p in sorted(allv, key=lambda p: -p[1]["players"])[:3]]}]}
+
+
+def fake_site(holder):
+    """Answers the companion's board and RSI requests on this PC, so the screenshots never touch verseshards.com."""
+    import json as _json
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    class H(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            body = holder["board"] if self.path.startswith("/api/v1/board") else \
+                {"summary": "operational", "systems": [], "issues": [], "problem": False}
+            data = _json.dumps(body).encode()
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_POST(self):                 # sharing stays off, but answer politely if anything tries
+            self.send_response(403)
+            self.end_headers()
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return f"http://127.0.0.1:{srv.server_address[1]}"
 
 
 def past_readings(app, rnd, now):
@@ -245,6 +310,7 @@ def main():
                read_screenshots=False,
                # Never talk to the real community site from a demo (made-up readings would land on the live board)
                community_url="http://127.0.0.1:9", share_readings=False, community_board=False)
+    cfg["setup_version"] = appmod.App.SETUP_VERSION          # set-up already done, so no dialog over the pages
     app = appmod.App(cfg)
     app.start(overlay=False)
 
@@ -259,6 +325,12 @@ def main():
     now = time.time()
     past_readings(app, rnd, now)
     shard = (app.session.shard_id if app.session and app.session.shard_id else "pub_apse2a_43711962_090")
+    # The region card on the Now tab: a made-up board served from this PC (sharing stays off)
+    holder = {"board": fake_board(shard)}
+    app.cfg.update(community_url=fake_site(holder), community_board=True)
+    app.community.url = app.cfg["community_url"]
+    app.community.tick()
+    print("Board for the region card:", "loaded" if app.community.board else "missing", flush=True)
 
     from scstatus.dashboard import start_server
     server, url = start_server(app)
@@ -283,6 +355,7 @@ def main():
             print("  saved", name, flush=True)
 
         def scenario(kind):
+            holder["board"] = app.community.board = fake_board(shard, kind)
             with app.lock:
                 app.snaps.clear()
             for s in readings(app, shard, kind, random.Random(kind), time.time()):
@@ -311,11 +384,11 @@ def main():
 
         scenario("healthy")
         for n, tab in (("6-history", "history"), ("7-my-pc", "pc"), ("8-known-issues", "issues"),
-                       ("9-set-up", "setup"), ("10-about", "about")):
+                       ("9-set-up", "setup"), ("10-about", "about"), ("13-timeline", "timeline")):
             p = page()
             p.click(f'[data-tab="{tab}"]')
             p.wait_for_timeout(1500)
-            shot(p, n, full=tab not in ("issues", "setup"), h=1400 if tab in ("issues", "setup") else None)
+            shot(p, n, full=tab not in ("issues", "setup", "timeline"), h=1400 if tab in ("issues", "setup", "timeline") else None)
             p.close()
         p = page("light")
         shot(p, "11-now-light-theme", full=True)
