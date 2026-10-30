@@ -4,9 +4,10 @@ A free tool for Star Citizen players that tells you, in plain English, how healt
 
 It reads two things the game already gives you: the debug overlay (`r_displayinfo 3`) and Game.log. From them it works out:
 
-- **Shard health right now.** A 0-100 score with server fps, players on the shard and on your server, ping, packet loss, hitches and server restarts, and a sentence that says what it means for you.
+- **Shard health right now.** Each shard gets a short name like AU-20 or EU-410 (region and shard number). A 0-100 score with server fps, players on the shard and on your server, ping, packet loss, hitches and server restarts, and a sentence that says what it means for you, plus where you are in the game's own words and which area your server runs.
 - **What's gone wrong?** One button. It checks the last 10 minutes to 4 hours of the log (earlier sessions included) against a library of known issues and explains what it finds, with fixes. It joins facts together: if a contract wants an item and the game has just logged a cargo error for that exact item, it tells you that's why the delivery isn't counting.
-- **Issue Council drafts.** Each finding comes with a ready-to-paste report (steps, expected and actual result, game version, shard, log lines) and a folder with your Game.log and screenshots from around that time, ready to attach.
+- **Timeline.** What happened, in order: quantum jumps, arrivals, armistice zones, ships retrieved, contracts, freight elevator, loading, disconnects and crashes, with place names from the game. Tick Details for the raw log lines.
+- **Issue Council drafts.** Each finding comes with a ready-to-paste report (real steps to reproduce taken from your timeline, expected and actual result, game version, shard, log lines) and a folder with your Game.log and screenshots from around that time, ready to attach.
 - **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
 - **My PC.** Your hardware and the game's own CPU and GPU test results from every launch, plus your frame rate by location.
 
@@ -136,8 +137,12 @@ https://verseshards.com · Discord: https://discord.gg/8kH5pfHYbe
 - **Shard board:** live health for every shard players are reporting from, best first in each region, so you know where to server hop.
 - **Common in-game issues right now:** known Star Citizen problems two or more players hit in the last 2 hours, under the 24-hour history.
 - **Known issues:** a page for each issue the app recognises. Press "I had this too", add the Issue Council report so others can upvote it, and post workarounds that others mark as worked or didn't work. After a patch, each issue says whether it's still happening on the new build. The app's "What's gone wrong?" links each finding to its page.
+- **Servers and areas:** open a shard to see each of its game servers, how many players are on it and which areas it runs (a planet, jump point or open space). Each region lists its quieter and busier areas right now. Quieter means fewer players, not safer.
+- **Trends:** busiest times by hour of the week for each region (in your own time zone), a report card for each patch (server fps, 30k disconnects, crashes, load times, restarts) and which issues are rising or falling, plus every shard and server seen in the last 30 days.
+- **Trade:** the most profitable trade routes from [UEX](https://uexcorp.space)'s crowdsourced prices, beside how busy each end's server is.
+- **RSI status:** when RSI's own status page reports a problem, the board and the app say so.
 - Scores from one player are marked as a first look; more players reporting means a score you can trust.
-- Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**.
+- Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**. Sharing sends a summary every 5 minutes (shard, server node, the area your server runs but never the exact place, server fps, players, ping rounded to 10 ms, packet loss, known-issue ids, game build, random install id) and, after each session, its build, length, load time, whether it crashed and any disconnect error codes. Never your handle, other players' names or anything that identifies you.
 
 ## For developers
 

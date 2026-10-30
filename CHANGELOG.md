@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0
+
+- Shards have short names: AU-20, EU-410, USE-130 (region and shard number), in the app, on verseshards.com and in Discord. The full id is still there when you hover.
+- Where you are, in words: the Now tab shows your place using the game's own names (CRU-L4 Shallow Fields Station, Bloom, the Stanton to Pyro jump point) and which area your server runs.
+- New Timeline tab: what happened in order, from quantum jumps and armistice zones to ships, contracts, the freight elevator, loading, disconnects and crashes. Filters by kind and a Details switch for the log lines.
+- Issue Council drafts now have real steps to reproduce, built from your timeline.
+- When RSI's status page reports a problem, the Now tab says so.
+- With the community board on, your region shows its quieter areas right now (fewest players on the server running them; quieter, not safer), and shards show which areas their servers run.
+- Sharing now also sends the area your server runs (a planet, jump point or open space, never the exact place) and, after each session, its build, length, load time, whether it crashed and disconnect error codes, for the new patch report card on verseshards.com. If you share, you're asked once more so you can see the new list.
+- New on verseshards.com: Trends (busiest times by hour, patch report cards, issue trends, every shard and server seen) and Trade (UEX trade routes beside how busy each end's server is).
+
 ## 1.1.2
 
 - With more than one copy of Star Citizen on the PC, the app now picks the one you played most recently. Before, the installed app could pick an old copy and spend a long time reading its old logs.
