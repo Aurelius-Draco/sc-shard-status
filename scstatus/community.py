@@ -25,9 +25,21 @@ def _r(v, step):
     return None if v is None else round(round(v / step) * step, 3)
 
 
-def shard_report(snap, install_id, build, findings=(), app_version=None):
-    """One health reading (or a 5-minute summary of several) for the live shard status board."""
-    return {
+REGION_TAGS = {"apse2": "AU", "apse1": "AS", "ape1": "AS", "apne1": "AS", "use1": "USE", "use2": "USE", "usw1": "USW",
+               "usw2": "USW", "euw1": "EU", "euw2": "EU", "euc1": "EU", "eun1": "EU"}
+
+
+def shard_name(shard_id):
+    """CIG don't name shards; ours is the region tag and shard number: pub_apse2a_12881860_020 -> AU-20."""
+    import re
+    m = re.fullmatch(r"[a-z]+_([a-z]+\d)[a-z]?_\d+_(\d+)", shard_id or "")
+    return f"{REGION_TAGS.get(m.group(1), m.group(1).upper())}-{int(m.group(2))}" if m else (shard_id or "")
+
+
+def shard_report(snap, install_id, build, findings=(), app_version=None, where=None):
+    """One health reading (or a 5-minute summary of several) for the live shard status board. `where` is the
+    area only (a planet, a jump point or open space: {system, area, area_name}), never the exact place."""
+    out = {
         "v": PAYLOAD_VERSION, "kind": "shard", "install": install_id, "build": build,
         "ts": int(snap["ts"] // 60 * 60),
         "shard_id": snap.get("shard_id"),
@@ -39,10 +51,32 @@ def shard_report(snap, install_id, build, findings=(), app_version=None):
         "issues": sorted({f["rule_id"] for f in findings if f.get("rule_id")}),
         "readings": snap.get("readings", 1), "app": app_version,
     }
+    if where:
+        out.update(system=where.get("system"), area=where.get("area"), area_name=where.get("area_name"))
+    return out
+
+
+def sessions_report(install_id, sessions, since, now=None):
+    """Finished game sessions for the patch report card: build, length, load time, whether it crashed, and the
+    error codes of any disconnects. No shard, place, handle or anything else."""
+    from .logparse import NORMAL_CAUSES
+    now = now or time.time()
+    rows = []
+    for s in sessions:
+        start = s.get("start")
+        if not start or start <= since or start < now - 6 * 86400 or not s.get("build"):
+            continue
+        rows.append({"start": int(start), "build": str(s["build"]), "region": s.get("region"),
+                     "minutes": s.get("minutes"), "load_s": s.get("load_s"), "crashed": bool(s.get("crashed")),
+                     "disconnects": [c for c in s.get("disconnect_causes", []) if c not in NORMAL_CAUSES][:10]})
+    rows.sort(key=lambda r: r["start"])
+    return {"v": PAYLOAD_VERSION, "kind": "sessions", "install": install_id, "sessions": rows[:20]} if rows else None
 
 
 SHARE_EVERY_S = 300
 BOARD_EVERY_S = 120
+RSI_EVERY_S = 600
+SESSIONS_EVERY_S = 1800
 
 
 def summarise(snaps, now=None, window_s=SHARE_EVERY_S):
@@ -70,7 +104,12 @@ def summarise(snaps, now=None, window_s=SHARE_EVERY_S):
         "restarts": (max(rs) - min(rs)) if rs else None,
         "pop_shard": _int(med("pop_shard")), "pop_srv": _int(med("pop_srv")), "ping_ms": med("ping_ms"),
         "loss_pct": med("loss_pct"), "readings": len(recent),
+        "location": _most_common([s.get("location") for s in recent if s.get("location")]),
     }
+
+
+def _most_common(vals):
+    return max(set(vals), key=vals.count) if vals else None
 
 
 def _int(v):
@@ -90,6 +129,10 @@ class Community:
         self.last_payload = None
         self.share_status = "starting" if app.cfg.get("share_readings") else "off"
         self.retry_at = 0
+        self.rsi = None
+        self.rsi_at = 0
+        self.sessions_at = 0
+        self.sessions_sent = 0
 
     def _req(self, path, body=None):
         data = None if body is None else json.dumps(body).encode()
@@ -104,11 +147,48 @@ class Community:
             except Exception:
                 return e.code, {}
 
+    @property
+    def places(self):
+        """Place and area names from the game's text file, read once."""
+        from .locations import Places
+        gd = getattr(self.app, "game_dir", None)
+        key = str(gd)
+        if getattr(self, "_places_key", None) != key:
+            self._places, self._places_key = Places(gd, self.app.cfg.get("language", "english")), key
+        return self._places
+
+    def send_sessions(self, now=None):
+        """Finished game sessions since the last ones sent (patch report card). Only with sharing on."""
+        now = now or time.time()
+        since = float(self.app.store.meta("sessions_sent_upto", 0) or 0)
+        payload = sessions_report(self.app.store.install_id(), self.app.store.sessions(limit=60), since, now)
+        if not payload:
+            return 0
+        code, d = self._req("/api/v1/sessions", payload)
+        if code == 200:
+            self.app.store.set_meta("sessions_sent_upto", max(r["start"] for r in payload["sessions"]))
+            self.sessions_sent += len(payload["sessions"])
+            return len(payload["sessions"])
+        return 0
+
     def tick(self, now=None):
         now = now or time.time()
         cfg = self.app.cfg
         if not self.url:
             return
+        if cfg.get("community_board") and now - self.rsi_at >= RSI_EVERY_S:
+            self.rsi_at = now
+            try:
+                code, d = self._req("/api/v1/rsi")
+                self.rsi = d if code == 200 else self.rsi
+            except Exception:
+                pass
+        if cfg.get("share_readings") and now - self.sessions_at >= SESSIONS_EVERY_S:
+            self.sessions_at = now
+            try:
+                self.send_sessions(now)
+            except Exception:
+                pass
         if cfg.get("community_board") and now - self.board_at >= BOARD_EVERY_S:
             self.board_at = now
             try:
@@ -129,7 +209,8 @@ class Community:
             return
         last = self.app.last_result or {}
         findings = last.get("findings", []) if now - (last.get("checked_at") or 0) < 1800 else []
-        payload = shard_report(snap, self.app.store.install_id(), self.app.build, findings, self.version)
+        payload = shard_report(snap, self.app.store.install_id(), self.app.build, findings, self.version,
+                               self.places.where(snap.get("location")))
         self.last_payload = payload
         try:
             code, d = self._req("/api/v1/report", payload)
@@ -177,7 +258,8 @@ class Community:
         shards = group["shards"] if group else []
         mine = next((s for s in shards if s["shard_id"] == shard_id), None)
         best = shards[0] if shards else None
-        return {"region": name, "shards": shards[:8], "mine": mine, "best": best,
+        picks = next((a for a in self.board.get("areas", []) if a.get("region") == name), None)
+        return {"region": name, "shards": shards[:8], "mine": mine, "best": best, "areas": picks,
                 "reporters": self.board.get("reporters"), "updated": self.board.get("updated"),
                 "error": self.board_error}
 

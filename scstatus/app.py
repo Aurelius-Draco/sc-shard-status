@@ -209,7 +209,9 @@ class App:
             "screenshot_readings": self.shots.count if self.shots else None,
             "session": {k: sess.get(k) for k in ("build", "version", "shard_id", "start", "load_s", "minutes",
                                                   "joins", "bad_disconnects", "errors", "clean_exit")},
-            "shard": {"id": shard, "region": region_name(_region(shard)), "region_code": _region(shard)},
+            "shard": {"id": shard, "name": community.shard_name(shard), "region": region_name(_region(shard)),
+                      "region_code": _region(shard)},
+            "where": self._where(a), "rsi": (self.community.rsi if (self.community.rsi or {}).get("problem") else None),
             "contracts": _active_contracts(sess.get("contracts", [])),
             "game_dir": str(self.game_dir), "game_found": (self.game_dir / "Game.log").exists(),
             "user_cfg": self.user_cfg_state(), "import_status": self.import_status,
@@ -220,6 +222,18 @@ class App:
             "update": self.updater.info(), "patch": self.patch_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
         }
+
+    def _where(self, health):
+        """Where you are from the latest overlay reading: the place, its area and your game server's number."""
+        with self.lock:
+            last = next((x for x in reversed(self.snaps) if x.get("location")), None)
+        if not last or time.time() - last["ts"] > 900:
+            return None
+        p = self.community.places
+        w = p.where(last["location"]) or {}
+        node = (last.get("server_name") or "").rsplit("-", 1)[-1] or None
+        return {"place": p.place(last["location"]), "area_name": w.get("area_name"), "server": node,
+                "pop_srv": last.get("pop_srv")}
 
     PATCH_NOTICE_S = 36 * 3600
 

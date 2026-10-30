@@ -65,7 +65,7 @@ def _server(log):
             self.wfile.write(b'{"ok":true}')
 
         def do_GET(self):
-            log.append("board")
+            log.append("board" if self.path.startswith("/api/v1/board") else self.path)
             body = json.dumps({"reporters": 2, "updated": time.time(), "regions": [{"name": "Australia", "shards": [
                 {"shard_id": "pub_apse2a_12881860_020", "score": 100, "cls": "good"},
                 {"shard_id": "pub_apse2a_12881860_090", "score": 60, "cls": "ok"}]}]}).encode()
@@ -96,3 +96,20 @@ def test_nothing_sent_when_off_and_one_summary_when_on():
         assert v["region"] == "Australia" and v["mine"]["score"] == 60 and v["best"]["score"] == 100
     finally:
         srv.shutdown()
+
+
+def test_area_and_sessions_payloads():
+    from scstatus.community import sessions_report, shard_name, shard_report
+    assert shard_name("pub_apse2a_12881860_020") == "AU-20" and shard_name("pub_euw1b_1_410") == "EU-410"
+    snap = {"ts": 1_800_000_000, "shard_id": "pub_apse2a_1_020", "server_fps": 20, "location": "RR_P3_LEO"}
+    p = shard_report(snap, "0123456789abcdef", "200", where={"system": "pyro", "area": "pyro3", "area_name": "Bloom"})
+    assert (p["system"], p["area"], p["area_name"]) == ("pyro", "pyro3", "Bloom")
+    assert "location" not in p                                   # never the exact place
+    now = 1_800_000_000
+    sess = [{"start": now - 7200, "build": "200", "region": "apse2", "minutes": 60, "load_s": 90, "crashed": True,
+             "disconnect_causes": [30010, 30000]},
+            {"start": now - 10 * 86400, "build": "199"}, {"start": now - 100, "build": None}]
+    r = sessions_report("0123456789abcdef", sess, since=0, now=now)
+    assert len(r["sessions"]) == 1 and r["sessions"][0]["disconnects"] == [30000] and r["sessions"][0]["crashed"]
+    assert set(r["sessions"][0]) == {"start", "build", "region", "minutes", "load_s", "crashed", "disconnects"}
+    assert sessions_report("0123456789abcdef", sess, since=now, now=now) is None
