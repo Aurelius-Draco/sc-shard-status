@@ -457,8 +457,10 @@ details.why[open] > summary { margin-bottom: var(--s2); }
 .pirate .plab { font: 700 .75rem/1 var(--font); letter-spacing: .1em; text-transform: uppercase; font-stretch: semi-condensed; background: var(--st-bad); color: #1a1103; padding: 4px 6px; border-radius: 2px; }
 .pirate .ptxt { flex: 1 1 14rem; font-size: .9375rem; }
 .pirate .pclr { font-size: .8125rem; color: #f4a48f; white-space: nowrap; }
-.pirate.one { background: rgba(255,209,102,.12); border-color: rgba(255,209,102,.38); animation: none; }
-.pirate.one .edge, .pirate.one .plab { background: var(--st-poor); } .pirate.one .edge { animation: pirBlink .5s steps(1) 4; } .pirate.one .pclr { color: var(--st-poor); }
+.pirate.one { background: rgba(255,209,102,.12); border-color: rgba(255,209,102,.38); animation: pirGlowOne 6s ease-in-out 4s infinite; }
+@keyframes pirGlowOne { 0%, 10%, 100% { box-shadow: 0 0 0 0 rgba(255,209,102,0); } 5% { box-shadow: 0 0 0 3px rgba(255,209,102,.22); } }
+@keyframes pirBlinkOne { 0% { opacity: 1; } 3% { opacity: .3; } 6%, 100% { opacity: 1; } }
+.pirate.one .edge, .pirate.one .plab { background: var(--st-poor); } .pirate.one .edge { animation: pirBlink .5s steps(1) 4, pirBlinkOne 6s steps(1) 4s infinite; } .pirate.one .pclr { color: var(--st-poor); }
 @keyframes pirGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(236,122,94,0); } 50% { box-shadow: 0 0 0 4px rgba(236,122,94,.28); } }
 @keyframes pirGlowCycle { 0%, 10%, 100% { box-shadow: 0 0 0 0 rgba(236,122,94,0); } 5% { box-shadow: 0 0 0 4px rgba(236,122,94,.28); } }
 @keyframes pirBlink { 0% { opacity: 1; } 50% { opacity: .15; } }
