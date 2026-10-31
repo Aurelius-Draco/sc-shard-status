@@ -733,7 +733,8 @@ i.st.new { background: var(--amber); }
 .ab-road { display: grid; } .ab-road > div { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border-top: 1px solid var(--line); }
 .ab-road > div.first { border-top: 0; }
 .ab-road i { width: 12px; height: 12px; border-radius: 50%; justify-self: center; box-shadow: inset 0 0 0 2px var(--ghost-line); }
-.ab-road .next i { box-shadow: inset 0 0 0 2px var(--amber); } .ab-road .next.first i { background: var(--amber); }
+.ab-road .next i { box-shadow: inset 0 0 0 2px var(--amber); } .ab-road .next.now i { background: var(--amber); }
+.ab-road .done i { background: var(--st-good); box-shadow: none; } .ab-road .done b { color: var(--st-good); } .ab-road .done span { color: var(--muted); }
 .ab-road b { font: 700 .75rem var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; } .ab-road .next b { color: var(--amber); }
 .ab-thanks { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s3); }
 .ab-thanks li { display: flex; gap: var(--s3); } .ab-thanks li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); margin-top: .55em; flex: none; }
@@ -2051,8 +2052,8 @@ async function renderAbout() {
   if (tab !== "about") return;
   const theme = document.documentElement.dataset.theme || "";
   const shot = (src, label, cls = "") => `<div class="shot ${cls}"><span>${label}</span><img src="${src}" alt="${label}" onerror="this.remove()"></div>`;
-  const road = [["Verse Shards for PC 1.4: a cleaner Now tab and group cards that match the site", "Next"], ["More detail on group posts: voice, experience, ship or seat, language", "Next"],
-    ["Group tools: mark spots filled, “poster has seen you”, close when full", "Planned"], ["Org tools: plan events on the healthiest shard and rally members", "Planned"],
+  const road = [["Verse Shards for PC 1.4: the cockpit Now tab, group cards that match the site, My pilot", "Done"], ["Group posts with details, crew filled, “poster has seen you”, extend and close when full", "Done"],
+    ["Community: The Shard Courier, creators and orgs", "Done"], ["Org tools: plan events on the healthiest shard and rally members", "Next"],
     ["Quick search across shards, issues and commodities", "Later"], ["Share cards, so a shard link shows its health when posted", "Later"]];
   const siteAbout = `<section class="ab-hero">
     <div class="ab-me"><div class="ab-who"><img src="img/aurelius-draco.jpg" alt="Aurelius_Draco"><div><span class="ab-eye">Made by a player</span><h1>Aurelius_Draco</h1></div></div>
@@ -2077,15 +2078,15 @@ async function renderAbout() {
 
   <section class="sec ab-two"><div><h2 class="ab-h">Ground rules</h2><div class="ab-rules">
       <div><b>Reads, never touches</b><span>Only your screen's overlay, Game.log and the game's text file. Never the game's memory or network traffic, never your mouse or keyboard.</span></div>
-      <div><b>Nothing leaves unless you say so</b><span>Sharing is off until you switch it on, and you see the summary before it goes. Never your handle, other players' names or your IP.</span></div>
+      <div><b>Nothing leaves unless you say so</b><span>Sharing is off until you switch it on, and you can see exactly what was last sent. Never your handle, other players' names or your IP.</span></div>
       <div><b>No accounts</b><span>Verse Shards stores no IP addresses. The app uses a random install id, never your handle, so nothing is counted twice.</span></div>
       <div><b>You file the reports</b><span>Issue Council reports are drafts. You check them and submit them yourself.</span></div></div>
       <p class="sub" style="margin:var(--s2) 0 0">Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.</p></div>
     <div><h2 class="ab-h">The org</h2><div class="frame ab-org">${shot("img/centaurus-pyro.webp", "The Centaurus over ArcCorp")}
       <div class="ab-orgb"><div class="ab-orgt"><b>Shardwatch</b><code>SHARDWATCH</code></div><p>Watching shards and giving each other a heads-up. New, founded by Aurelius_Draco, and the first home for org tools when they land.</p>
-        <a class="btn ghost sm" href="https://robertsspaceindustries.com/orgs/SHARDWATCH" target="_blank" rel="noopener">See the org on RSI</a></div></div></div></section>
+</div></div></div></section>
 
-  <section class="sec ab-two"><div><h2 class="ab-h">Coming up</h2><div class="frame ab-road">${road.map(([t, st], i) => `<div class="${st.toLowerCase()}${i === 0 ? " first" : ""}"><i></i><span>${t}</span><b>${st}</b></div>`).join("")}</div></div>
+  <section class="sec ab-two"><div><h2 class="ab-h">Coming up</h2><div class="frame ab-road">${road.map(([t, st], i) => `<div class="${st.toLowerCase()}${i === 0 ? " first" : ""}${st === "Next" && road.findIndex(r => r[1] === "Next") === i ? " now" : ""}"><i></i><span>${t}</span><b>${st}</b></div>`).join("")}</div></div>
     <div><h2 class="ab-h">Thanks</h2><ul class="ab-thanks"><li>Every player sharing readings from the PC companion</li><li>The testers and Discord members who report bugs and suggest fixes</li><li>The players adding workarounds and Issue Council links on Known issues</li><li>UEX, for the trade and price data</li></ul></div></section>
 
   <section class="sec"><div class="notice teal"><p><b>Help wanted.</b> Testers with 1440p, 4K or ultrawide screens, and moderators and admins for the community side.</p><a class="btn ghost" href="https://verseshards.com/help" target="_blank" rel="noopener">See what's needed</a></div></section>
@@ -2154,7 +2155,7 @@ async function openWizard(all) {
       `"What's gone wrong?" checks your Game.log against a library of known issues. New entries are added as players send errors for review and patches change things. Yes fetches the newest copy from the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community site</a> every 6 hours. It's a plain download; nothing is sent about you.`,
       yn("library", "Yes, keep it current", "No, use the one that came with the app") + now(st.library)],
     ["errors", "This app", "Send a report when something in the app itself goes wrong?",
-      `So faults in SC Shard Status get found and fixed. Where in the app it went wrong and the error, with every file path cut down to the file name and anything in quotes taken out. Never Game.log lines, your handle, your files or screenshots. At most every 30 minutes.`,
+      `So faults in Verse Shards for PC get found and fixed. Where in the app it went wrong and the error, with every file path cut down to the file name and anything in quotes taken out. Never Game.log lines, your handle, your files or screenshots. At most every 30 minutes.`,
       yn("errors", "Yes, send them", "No") + now(st.errors)],
   ].filter(([k]) => !ask || ask.includes(k));
   if (!qs.length) return;
