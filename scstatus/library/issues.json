@@ -1,5 +1,5 @@
 {
- "version": "2026-10-29.2",
+ "version": "2026-10-31.1",
  "rules": [
   {
    "id": "cargo-no-resource-container",
@@ -195,11 +195,11 @@
    "title": "An inventory request finished with a failure",
    "explain": "Summary line for a failed inventory request. See the matching 'inventory action failed' finding for which kind.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "inventory-op-over-budget",
@@ -253,10 +253,10 @@
    "title": "",
    "explain": "The game found and fixed sort-order errors in its own cached inventory grid. Items aren't lost.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "disconnect-30016-spawn",
@@ -292,12 +292,12 @@
    "title": "You left the server",
    "explain": "Code 30016 is a normal, player-requested disconnect (quit to desktop or exit to menu): \"{reason}\".",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "disconnect-30010",
@@ -311,12 +311,12 @@
    "title": "Menu to universe hand-over",
    "explain": "Code 30010 'Nub destroyed' is the game closing its local menu connection when you join the universe. Normal.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "loading-long-wait",
@@ -467,7 +467,7 @@
    "ic_title": "Client crash: out of {which} memory",
    "links": [],
    "general_knowledge": true,
-   "notes": "General knowledge: the crash handler prints this flag, but every crash seen so far had 'No'.",
+   "notes": "General knowledge: the crash handler prints this flag, but every crash in this corpus had 'No'.",
    "builds_seen": []
   },
   {
@@ -488,7 +488,7 @@
    "ic_title": "Client GPU crash",
    "links": [],
    "general_knowledge": true,
-   "notes": "General knowledge: the flag exists in the crash block, but every crash seen so far had 'No'.",
+   "notes": "General knowledge: the flag exists in the crash block, but every crash in this corpus had 'No'.",
    "builds_seen": []
   },
   {
@@ -502,10 +502,10 @@
    "title": "Memory at the time of the crash: {commit_mb} MB committed, {left_mb} MB left",
    "explain": "Memory use when the game crashed. Under about 2 GB left to commit means Windows was close to its limit (RAM plus page file).",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "audio-queue-overflow",
@@ -605,12 +605,12 @@
    "title": "Quantum travel blocked",
    "explain": "The game told you the destination is obstructed. Move to a clear spot and try again.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "qt-other-player-state",
@@ -623,12 +623,35 @@
    "title": "",
    "explain": "Another player's quantum drive state got out of step on your client. It's about their ship, not yours.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
+   ]
+  },
+  {
+   "id": "vehicle-lost-control-slow-collision",
+   "kind": "problem",
+   "severity": "high",
+   "area": "Vehicles",
+   "match": {
+    "tag": "FatalCollision",
+    "regex": "Fatal Collision occured for vehicle (?P<vehicle>[A-Za-z0-9_]+?)_\\d+ \\[.*PlayerPilot: 1\\].*Relative Vel: x: -?[01]\\.\\d+, y: -?[01]\\.\\d+, z: -?[01]\\.\\d+,"
+   },
+   "title": "Your ship was destroyed by a 'collision' at walking pace",
+   "explain": "The game logged a fatal collision for the ship you were flying, at under about 2 m/s. A ship that hits the ground or another object for real does so far faster (in one player's logs every other crash was 3.5 to 1,100 m/s). This one usually means the server and your PC disagreed about the ship: flight inputs stop working, power cycling and re-seating don't help, and it falls or drifts until the server destroys it. It's most often seen on a struggling server, around take-off.",
+   "fixes": [
+    "Check the server fps on the Now tab before take-off. Under about 8, wait or server hop before flying anything you can't afford to lose.",
+    "If the controls stop responding, leaving the seat and coming back rarely helps. Note the time and press Mark this moment so the report has it.",
+    "Claim the ship back at the ASOP terminal. If the claim is stuck, relog.",
+    "Report it: the Issue Council draft includes the server fps at the time, which is what CIG need to reproduce it."
    ],
-   "fixes": []
+   "ic_title": "Ship loses flight control after take-off, then falls",
+   "links": [],
+   "builds_seen": [
+    "12913470"
+   ]
   },
   {
    "id": "asop-atc-timeout",
@@ -773,10 +796,10 @@
    "title": "You were queued for a hangar",
    "explain": "All hangars were busy so you were put in a queue. The wait is in the notification.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "hangar-elevator-no-platform",
@@ -922,10 +945,10 @@
    "title": "",
    "explain": "The game checked a zone that isn't an elevator carriage. Harmless bookkeeping.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "transit-gateway-schedule",
@@ -938,11 +961,11 @@
    "title": "",
    "explain": "An elevator or tram stop has no timetable on your client. Shows up in many healthy sessions.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "transit-spline-in-manager",
@@ -955,10 +978,10 @@
    "title": "",
    "explain": "A transit path was set up in an unexpected zone. Seen once, no effect on the player.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "shop-authority-error",
@@ -993,10 +1016,10 @@
    "title": "The game showed 'Transaction Error'",
    "explain": "On-screen transaction error: {reason}. See the shop finding for details.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "commodity-location-missing",
@@ -1051,11 +1074,11 @@
    "title": "A contract was dropped ({reason})",
    "explain": "A contract ended without finishing. 'Player left' is what the game logs when you abandon it or leave its server.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "contract-failed",
@@ -1069,10 +1092,10 @@
    "title": "A contract failed",
    "explain": "The game ended a contract as failed.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "contract-left",
@@ -1086,11 +1109,11 @@
    "title": "You were removed from a contract",
    "explain": "The mission service removed you from a contract. It happens when you abandon a contract and when you leave the server; some contracts (Wikelo's, for example) have to be accepted again afterwards.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "player-died",
@@ -1104,10 +1127,10 @@
    "title": "You died",
    "explain": "Your character died (logged when the body was ejected from a destroyed ship).",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "player-incapacitated",
@@ -1121,12 +1144,12 @@
    "title": "You were incapacitated",
    "explain": "You were downed and could be revived before the timer ran out.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "vehicle-destroyed",
@@ -1140,10 +1163,10 @@
    "title": "A ship was destroyed in a collision",
    "explain": "{vehicle} was destroyed by a collision.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "vehicle-impounded",
@@ -1157,10 +1180,10 @@
    "title": "A vehicle was impounded",
    "explain": "Your vehicle was impounded: {reason}.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "align-no-vehicle",
@@ -1173,10 +1196,10 @@
    "title": "",
    "explain": "A jump drive tried to align after its ship was destroyed. Follows a ship loss; no extra effect.",
    "links": [],
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-particle-limit",
@@ -1187,12 +1210,12 @@
     "tag": "CPU Particle Limit reached"
    },
    "explain": "The client hit its particle budget and skipped some effects. Purely visual.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-particle-multiview",
@@ -1203,12 +1226,12 @@
     "tag": "Particle Emitter Rendered from multiple views!"
    },
    "explain": "A particle effect was drawn in more than one view (e.g. a screen and the world). Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-particle-max-count",
@@ -1219,10 +1242,10 @@
     "tag": "Max count exceeds limit"
    },
    "explain": "A particle effect asked for more particles than allowed and was clamped. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-particle-kidnap",
@@ -1233,12 +1256,12 @@
     "tag": "[Particle System] Kidnapping Child Effect"
    },
    "explain": "Effect data warning about shared child effects. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-morton-index",
@@ -1249,12 +1272,12 @@
     "tag": "Previous index is larger than current"
    },
    "explain": "Internal rendering ordering warning. No visible effect.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-glow-negative",
@@ -1265,11 +1288,11 @@
     "tag": "Glow amount is negative"
    },
    "explain": "A light effect got a negative glow value and was ignored. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-render-node",
@@ -1280,12 +1303,12 @@
     "tag": "ModifyRenderNodeParamsFailed"
    },
    "explain": "Renderer fell back to a default planet lookup. Happens in many healthy sessions.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-raindrops",
@@ -1296,11 +1319,11 @@
     "tag": "Zone Host Missing Surface Raindrops"
    },
    "explain": "A ship interior has no rain-on-glass effect set up. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-sdf-texture",
@@ -1311,10 +1334,10 @@
     "tag": "Invalid Physics SDF Texture"
    },
    "explain": "A ship part's distance-field texture didn't load. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12660092"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-fire-cb",
@@ -1325,10 +1348,10 @@
     "tag": "Invalid Fire Effect Dynamic Room Data - PostEffect"
    },
    "explain": "Fire effect buffer missed a frame. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-fire-snapshot",
@@ -1339,10 +1362,10 @@
     "tag": "Fire Snapshot Size Mismatch - Output Too Large"
    },
    "explain": "Saved fire state for a ship room didn't match its size and was skipped. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12660092"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-damage-maps",
@@ -1353,10 +1376,10 @@
     "tag": "[Damage Maps] Exceeded Max impacts in a single frame"
    },
    "explain": "Too many hit decals in one frame; extras were dropped. Visual only.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-effect-code-param",
@@ -1367,12 +1390,12 @@
     "tag": "Linking Invalid Code Parameter"
    },
    "explain": "An effect was given a missing parameter. Data warning, no effect on play.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-effect-tag",
@@ -1383,10 +1406,10 @@
     "tag": "Enabling Invalid Effect Tag"
    },
    "explain": "An effect was given a missing tag. Data warning, no effect on play.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-duplicated-item-ports",
@@ -1397,12 +1420,12 @@
     "tag": "DuplicatedItemPorts"
    },
    "explain": "Two items tried to fit the same slot during a loadout or UI preview; the duplicate is dropped. Every session has these.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-creation-refused",
@@ -1413,12 +1436,12 @@
     "tag": "CreationRefusedEntity"
    },
    "explain": "The game refused to create a duplicate or incomplete entity (usually the duplicated item port case). Routine.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-aggregate-bind",
@@ -1429,11 +1452,11 @@
     "tag": "AggregateBindParentOutOfSync"
    },
    "explain": "Attached items (undersuit parts, eyebrows, magazines) had a parent link out of step. Routine, no visible effect.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-failed-attachment",
@@ -1444,12 +1467,12 @@
     "tag": "Failed attachment"
    },
    "explain": "An item couldn't find the port it was meant to attach to (missing MFD screens and the like). Routine.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-attach-destroy",
@@ -1460,12 +1483,12 @@
     "tag": "Failed to attach to itemport, destroying entity"
    },
    "explain": "A part (often an MFD screen or a missile) couldn't attach and was removed. Routine in healthy sessions.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-port-from-id",
@@ -1476,11 +1499,11 @@
     "tag": "CAttachableComponent::GetPortFromId"
    },
    "explain": "An attachment looked for a parent that hasn't streamed in yet. Routine.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-finalize-parent",
@@ -1491,12 +1514,12 @@
     "tag": "FinalizeParentNotAvailable"
    },
    "explain": "Something spawned before its parent had streamed in; the game retries. Routine.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-spawn-params",
@@ -1507,11 +1530,11 @@
     "tag": "SpawnParamsValidationFailed"
    },
    "explain": "Bar booth tables (Table_Booth_..._Bar) have no entity class and are skipped. Every 4.9 and 4.10 session that loads them.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-local-entity-class",
@@ -1522,11 +1545,11 @@
     "tag": "SpawningLocalEntityMissingClass"
    },
    "explain": "Same bar booth tables as above, skipped at spawn. Harmless.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-serialized-overwrite",
@@ -1537,12 +1560,12 @@
     "tag": "SerializedOverwrite"
    },
    "explain": "Developer warning about initial values; logged in every session.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-replicated-batch-callback",
@@ -1553,12 +1576,12 @@
     "tag": "ReplicatedCreationBatchNoCallback"
    },
    "explain": "Developer warning from the main menu prompt. Every session.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-linked-entity",
@@ -1569,12 +1592,12 @@
     "tag": "Linked entity initializing!"
    },
    "explain": "An NPC was linked to a seat or idle spot while still loading. Routine.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-subsumption",
@@ -1585,12 +1608,12 @@
     "tag": "[Subsumption::ErrorReporter]"
    },
    "explain": "NPC behaviour script errors logged at startup in every session. Not something you can fix or notice.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-actor-physics",
@@ -1601,12 +1624,12 @@
     "tag": "Actor Physics"
    },
    "explain": "Hidden comms and UI preview characters can't be given physics. Every session.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-carryable",
@@ -1617,12 +1640,12 @@
     "tag": "[Carryable]"
    },
    "explain": "An item lacks data for a carry state. Data warning, routine.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-invalid-manager",
@@ -1633,10 +1656,10 @@
     "tag": "Invalid manager ID"
    },
    "explain": "Developer warning during setup. No effect.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-loading-platform-lights",
@@ -1647,12 +1670,12 @@
     "tag": "CSCLoadingPlatformManager::TransitionLightGroupState"
    },
    "explain": "An elevator platform has no light group linked. The lights don't change; the elevator still works.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-obstruction-bounds-xml",
@@ -1664,12 +1687,12 @@
     "regex": "ChildNodeName\\[ObstructionCheckBounds\\]"
    },
    "explain": "Elevator data has no ObstructionCheckBounds entry. Logged for almost every elevator; they still work.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-obstruction-bounds-entity",
@@ -1681,12 +1704,12 @@
     "regex": "Failed to find entity from XML node 'ObstructionCheckBounds'"
    },
    "explain": "Same missing ObstructionCheckBounds entry, from the platform manager side. Harmless.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-docking-tube",
@@ -1697,11 +1720,11 @@
     "tag": "CSCItemDockingTube::AddLocalDockingAnimator"
    },
    "explain": "Docking tube data differs from export time. Developer warning.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-fuel-tags",
@@ -1712,11 +1735,11 @@
     "tag": "CSCItemFuelTank::ApplyFuelTags"
    },
    "explain": "A UI preview fuel tank has no controller. Routine.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-dashboard-mfd",
@@ -1727,11 +1750,11 @@
     "tag": "Dashboard UI"
    },
    "explain": "A seat dashboard is missing an MFD screen port. Seen on several ships; the other screens work.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-location-manager-1",
@@ -1742,12 +1765,12 @@
     "tag": "CEntityComponentLocationManager::PostInitialize::<lambda_1>::operator ()"
    },
    "explain": "A station's location manager has no shop link at startup. Shops there still work.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-location-manager-2",
@@ -1758,12 +1781,12 @@
     "tag": "CEntityComponentLocationManager::PostInitialize::<lambda_2>::operator ()"
    },
    "explain": "Companion line to the one above. Harmless.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-atc-owner-inventory",
@@ -1774,10 +1797,10 @@
     "tag": "IATCTokenComponent::FindOwnerLocationInventoryId"
    },
    "explain": "The client can't query the shard graph (only the server can). Routine.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-warehouse-exit",
@@ -1788,10 +1811,10 @@
     "tag": "CWarehouseManager::PlayerExitedLocation"
    },
    "explain": "Server-only code called on the client. No effect.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-commodity-ammo-guid",
@@ -1802,10 +1825,10 @@
     "tag": "CEntityComponentCommodityUIProvider::CreateAmmoResourceContainerEntity"
    },
    "explain": "A commodity kiosk saw an unknown commodity record. The rest of the list still works.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-shop-selection",
@@ -1816,12 +1839,12 @@
     "tag": "CEntityComponentShopUIProvider::ClGetSelectedLocationData"
    },
    "explain": "Shop screen opened before an inventory was selected. Routine.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-shop-dropdown",
@@ -1832,10 +1855,10 @@
     "tag": "CEntityComponentShopUIProvider::ClOnSubLocationsChanged"
    },
    "explain": "Shop location dropdown index out of range. Cosmetic.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-inventory-view",
@@ -1846,10 +1869,10 @@
     "tag": "SBindings_InventoryView::TryAddItem"
    },
    "explain": "Inventory screen tried to add to a view that wasn't open. Cosmetic.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-comms-bindings",
@@ -1860,11 +1883,11 @@
     "tag": "Comms Bindings Init"
    },
    "explain": "Mission comms call has no face or stage data. You may get a blank comms window; the mission still works.",
+   "fixes": [],
    "builds_seen": [
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-comms-cleanup",
@@ -1875,10 +1898,10 @@
     "tag": "Comms Stage Clean up"
    },
    "explain": "A comms call was cleaned up after it had already stopped. Harmless.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-comms-flow",
@@ -1889,12 +1912,12 @@
     "tag": "Comms Notification Flow"
    },
    "explain": "A comms user spawned without a stage. Harmless.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-comms-guid",
@@ -1905,12 +1928,12 @@
     "tag": "SHUDEvent_OnCommsNotification"
    },
    "explain": "A comms notification had a missing record. You might miss a voice line, nothing else.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-mission-ui-subobjective",
@@ -1921,10 +1944,10 @@
     "tag": "MissionUILog"
    },
    "explain": "Mission log tried to show a sub-objective before its parent. Display only.",
+   "fixes": [],
    "builds_seen": [
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-objective-databank",
@@ -1935,12 +1958,12 @@
     "tag": "CObjectiveMarkerComponent::RemoveFromPlayerDataBank"
    },
    "explain": "An objective marker was removed for a player who'd already left. Harmless.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-chat-lobby",
@@ -1951,12 +1974,12 @@
     "tag": "Update Chat Lobby Error"
    },
    "explain": "Chat tried to update a channel that no longer exists (e.g. after leaving a ship). Harmless.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   },
   {
    "id": "noise-subscription-key",
@@ -1967,12 +1990,12 @@
     "tag": "GetSubscriptionKey Failed"
    },
    "explain": "An early startup call made before login finished. Logged in about half of sessions, no effect.",
+   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",
     "12913470"
-   ],
-   "fixes": []
+   ]
   }
  ]
 }

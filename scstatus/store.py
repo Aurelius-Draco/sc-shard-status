@@ -144,6 +144,7 @@ class Store:
             data = json.loads(d.pop("data") or "{}")
             d["contracts"] = [{"name": c["name"], "result": c["result"]} for c in data.get("contracts", [])]
             d["disconnect_causes"] = [x["cause"] for x in data.get("disconnects", [])]
+            d["disconnect_reasons"] = [{"cause": x["cause"], "reason": x.get("reason")} for x in data.get("disconnects", [])]
             d["crashed"] = bool(data.get("crash"))
             d["hardware"] = data.get("hardware", {})
             out.append(d)

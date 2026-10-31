@@ -112,5 +112,5 @@ def test_area_and_sessions_payloads():
             {"start": now - 10 * 86400, "build": "199"}, {"start": now - 100, "build": None}]
     r = sessions_report("0123456789abcdef", sess, since=0, now=now)
     assert len(r["sessions"]) == 1 and r["sessions"][0]["disconnects"] == [30000] and r["sessions"][0]["crashed"]
-    assert set(r["sessions"][0]) == {"start", "build", "region", "minutes", "load_s", "crashed", "disconnects"}
+    assert set(r["sessions"][0]) == {"start", "build", "region", "minutes", "load_s", "crashed", "disconnects", "reasons"}
     assert sessions_report("0123456789abcdef", sess, since=now, now=now) is None

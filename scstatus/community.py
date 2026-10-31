@@ -11,6 +11,7 @@ session id, no IP address, no file paths. Times are rounded to the minute.
 
 import hashlib
 import json
+import re
 import statistics as st
 import time
 import urllib.error
@@ -68,9 +69,30 @@ def sessions_report(install_id, sessions, since, now=None):
             continue
         rows.append({"start": int(start), "build": str(s["build"]), "region": s.get("region"),
                      "minutes": s.get("minutes"), "load_s": s.get("load_s"), "crashed": bool(s.get("crashed")),
-                     "disconnects": [c for c in s.get("disconnect_causes", []) if c not in NORMAL_CAUSES][:10]})
+                     "disconnects": [c for c in s.get("disconnect_causes", []) if c not in NORMAL_CAUSES][:10],
+                     # The game's own wording for each error, so codes nobody has explained yet can be looked into
+                     "reasons": _reasons(s.get("disconnect_reasons", []))})
     rows.sort(key=lambda r: r["start"])
     return {"v": PAYLOAD_VERSION, "kind": "sessions", "install": install_id, "sessions": rows[:20]} if rows else None
+
+
+REASON_KEEP = re.compile(r"[^A-Za-z .,:;'()_\-]")
+
+
+def _reasons(items):
+    """Error code + the game's reason text, cleaned: letters and punctuation only (no digits, so no ids or
+    addresses), at most 100 characters, and nothing that looks like a name in brackets or quotes."""
+    from .logparse import NORMAL_CAUSES
+    out, seen = [], set()
+    for x in items:
+        code = x.get("cause")
+        if not isinstance(code, int) or code in NORMAL_CAUSES or code in seen:
+            continue
+        seen.add(code)
+        text = re.sub(r"\[[^\]]*\]|'[^']*'|\"[^\"]*\"", "", str(x.get("reason") or ""))
+        text = re.sub(r"\s+", " ", REASON_KEEP.sub("", text)).strip()[:100]
+        out.append({"code": code, "reason": text or None})
+    return out[:10]
 
 
 SHARE_EVERY_S = 300
