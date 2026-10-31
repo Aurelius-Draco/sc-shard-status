@@ -1059,7 +1059,7 @@ const nudgeHidden = () => { try { return sessionStorage.getItem("nudgeNo") === "
 function pirHere(d) {
   const p = d.pirates_here; if (!p) return "";
   if (p.here) { const x = p.here, two = x.reporters >= 2;
-    return `<div class="pirate${two ? "" : " one"}"><i class="edge" aria-hidden="true"></i><b class="plab">Pirates</b><span class="ptxt">${two ? `${x.reporters} pirate reports` : "1 pirate report"} near ${esc(x.area_name)} in the last 45 min</span><span class="pclr">clears in ${minsLeft(x.expires)}</span></div>`; }
+    return `<div class="pirate"><i class="edge" aria-hidden="true"></i><b class="plab">Pirates</b><span class="ptxt">${two ? `${x.reporters} pirate reports` : "1 pirate report"} near ${esc(x.area_name)} in the last 45 min</span><span class="pclr">clears in ${minsLeft(x.expires)}</span></div>`; }
   if (p.elsewhere) return `<p class="pquiet">Nothing reported near ${esc(p.area_name || "you")}. ${p.elsewhere.reporters >= 2 ? `${p.elsewhere.reporters} reports` : "1 report"} near ${esc(p.elsewhere.area_name)} on this shard.</p>`;
   return "";
 }
