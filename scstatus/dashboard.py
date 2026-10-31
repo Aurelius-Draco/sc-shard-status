@@ -132,6 +132,14 @@ def start_server(app, open_browser=False):
             try:
                 n = int(self.headers.get("Content-Length") or 0)
                 if n > 1_500_000:               # the largest thing posted is a profile picture (about 900 KB)
+                    # Read and drop the body first (up to 20 MB), so the browser gets the answer instead of a broken pipe
+                    left = min(n, 20_000_000)
+                    while left > 0:
+                        chunk = self.rfile.read(min(left, 65536))
+                        if not chunk:
+                            break
+                        left -= len(chunk)
+                    self.close_connection = True
                     return self._send(413, {"error": "That's too big."})
                 body = json.loads(self.rfile.read(n) or b"{}")
             except Exception:
