@@ -28,7 +28,9 @@ SEVERITIES = ("Polish", "Playable", "Hardly Playable", "Critical")
 CATEGORY = {"Network": "Desynchronization", "Connection": "Network", "Loading": "Loading", "Game": "Game client",
             "Vehicles": "Vehicles", "Quantum": "Quantum travel", "Transit": "Transit", "Freight elevator": "Cargo",
             "Cargo": "Cargo", "Inventory": "Inventory", "Shops": "Shops", "Services": "Services", "Audio": "Audio",
-            "Character": "Character", "Contracts": "Missions"}
+            "Character": "Character", "Contracts": "Missions", "Server": "Server performance"}
+# Where a library entry is better described by something other than its area
+CATEGORY_BY_RULE = {"vehicle-lost-control-slow-collision": "Desynchronization"}
 
 
 def _utc(ts):
@@ -188,7 +190,7 @@ def draft(finding, result, snapshot=None, location_hint=None, session=None, plac
     sections = [
         {"key": "title", "label": "Issue title", "text": title, "limit": LIMITS["title"]},
         {"key": "version", "label": "Game version", "text": version},
-        {"key": "category", "label": "Issue category (suggested)", "text": CATEGORY.get(finding.get("area"), "Other"),
+        {"key": "category", "label": "Issue category (suggested)", "text": CATEGORY_BY_RULE.get(finding.get("rule_id")) or CATEGORY.get(finding.get("area"), "Other"),
          "note": "Pick the closest match in the Issue Council's list."},
         {"key": "severity", "label": "How bad is it? (suggested)", "text": severity_for(finding), "options": SEVERITIES},
         {"key": "doing", "label": "What were you doing?", "text": doing, "note": "From your Game.log. Edit it; it starts What happened."},

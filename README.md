@@ -42,12 +42,17 @@ These are from real Game.logs with every name, ID and address swapped for made-u
 
 ![What's gone wrong](docs/screenshots/4-whats-gone-wrong.png)
 
-**Issue Council draft.** Every part has its own Copy button, so you paste each one straight into the matching box.
+**Issue Council draft.** Laid out box by box like the form, inside its limits, with a Copy button for each part.
 
 ![Issue Council draft](docs/screenshots/5-issue-council-draft.png)
 
-<details><summary>More: History, My PC, Known issues, Set up, light theme, narrow window</summary>
+**Groups.** Recruit players or look for a group from the app, and see who's keen to join.
 
+![Groups](docs/screenshots/14-groups.png)
+
+<details><summary>More: Timeline, History, My PC, Known issues, Set up, light theme, narrow window</summary>
+
+![Timeline](docs/screenshots/13-timeline.png)
 ![History](docs/screenshots/6-history.png)
 ![My PC](docs/screenshots/7-my-pc.png)
 ![Known issues](docs/screenshots/8-known-issues.png)

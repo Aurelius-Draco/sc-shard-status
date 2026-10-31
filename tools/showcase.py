@@ -254,8 +254,12 @@ def fake_site(holder):
             pass
 
         def do_GET(self):
-            body = holder["board"] if self.path.startswith("/api/v1/board") else \
-                {"summary": "operational", "systems": [], "issues": [], "problem": False}
+            if self.path.startswith("/api/v1/posts"):
+                body = {"open": True, "posts": [], "pirates": [], "activities": ["RSI event", "Mining", "Salvage",
+                        "Cargo hauling", "Bounty hunting", "Mercenary", "Xenothreat / event", "Just flying together"]}
+            else:
+                body = holder["board"] if self.path.startswith("/api/v1/board") else \
+                    {"summary": "operational", "systems": [], "issues": [], "problem": False}
             data = _json.dumps(body).encode()
             self.send_response(200)
             self.send_header("content-type", "application/json")
@@ -390,6 +394,21 @@ def main():
             p.wait_for_timeout(1500)
             shot(p, n, full=tab not in ("issues", "setup", "timeline"), h=1400 if tab in ("issues", "setup", "timeline") else None)
             p.close()
+        # Groups: a made-up recruiting post with two made-up players keen to join
+        import json as _json
+        app.groups.open, app.groups.activities = True, ["RSI event", "Mining", "Salvage", "Cargo hauling", "Bounty hunting"]
+        app.store.set_meta("post_keys", _json.dumps([{"id": "0a1b2c3d4e5f", "key": "0" * 32, "kind": "recruit",
+            "activity": "Mining", "expires": time.time() + 6000, "spots": 3, "shard": "AU-90", "area_name": "Hurston"}]))
+        app.groups.interest = [{"post": "0a1b2c3d4e5f", "activity": "Mining", "handle": FAKE_OTHERS[0], "note": "got a Prospector",
+                                "created": time.time() - 120},
+                               {"post": "0a1b2c3d4e5f", "activity": "Mining", "handle": FAKE_OTHERS[3], "note": None,
+                                "created": time.time() - 600}]
+        app.groups.poll_at = time.time() + 3600         # no polling the made-up post
+        p = page()
+        p.click('[data-tab="groups"]')
+        p.wait_for_timeout(1500)
+        shot(p, "14-groups", full=True)
+        p.close()
         p = page("light")
         shot(p, "11-now-light-theme", full=True)
         p.close()
