@@ -12,11 +12,11 @@ import shutil
 import time
 from pathlib import Path
 
-from .config import APP_NAME, AUTHOR, DATA, REPO, VERSION
+from .config import AUTHOR, DATA, DISPLAY_NAME, REPO, VERSION
 
 ISSUE_COUNCIL = "https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN"
 
-DISCLAIMER = (f"Report data compiled by {APP_NAME} v{VERSION} (community tool by {AUTHOR}, {REPO}) "
+DISCLAIMER = (f"Report data compiled by {DISPLAY_NAME} v{VERSION} (community tool by {AUTHOR}, {REPO}) "
               "from the reporter's local Game.log and screenshots. Reviewed and submitted by the player.")
 # The same, short enough to fit inside the Issue Council's boxes
 CREDIT = "Compiled from my Game.log by SC Shard Status (Verse Shards); checked and sent by me."

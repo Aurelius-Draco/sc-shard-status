@@ -8,10 +8,11 @@ import string
 import sys
 from pathlib import Path
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 # The public community board (Cloudflare Worker in the admin repo)
 COMMUNITY_URL = "https://verseshards.com"
-APP_NAME = "SC Shard Status"
+APP_NAME = "SC Shard Status"          # install name: folders, shortcuts, data. Never changes.
+DISPLAY_NAME = "Verse Shards for PC"   # the name shown inside the app
 AUTHOR = "Aurelius_Draco"
 REPO = "https://github.com/Aurelius-Draco/sc-shard-status"
 

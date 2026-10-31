@@ -1,4 +1,6 @@
-# SC Shard Status
+# Verse Shards for PC
+
+The PC companion for [verseshards.com](https://verseshards.com). It installs as **SC Shard Status**, so that's the name you'll see in the Start menu and the installer.
 
 A free tool for Star Citizen players that tells you, in plain English, how healthy the shard you're on is and what's gone wrong when something breaks.
 
@@ -12,7 +14,7 @@ It reads two things the game already gives you: the debug overlay (`r_displayinf
 - **Copy for global chat.** Short lines about your shard (a quiet server, one that's struggling) to paste into chat in game.
 - **Groups.** Post a recruiting or looking-for-group notice on verseshards.com without leaving the game, and see who's keen to join. Got jumped? Report pirate activity in the area (never the exact spot) with one click.
 - **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
-- **My PC.** Your hardware and the game's own CPU and GPU test results from every launch, plus your frame rate by location.
+- **My pilot.** Your own pilot card (kept on this PC, never sent), a logbook from Game.log, your hardware and the game's own CPU and GPU test results, plus your frame rate by location.
 
 **Live community board:** https://verseshards.com shows the health of every shard players are reporting from, and a page for every known issue with Issue Council links, workarounds and votes.
 
@@ -50,16 +52,16 @@ These are from real Game.logs with every name, ID and address swapped for made-u
 
 ![Groups](docs/screenshots/14-groups.png)
 
-<details><summary>More: Timeline, History, My PC, Known issues, Set up, light theme, narrow window</summary>
+<details><summary>More: Timeline, History, My pilot, Known issues, Set up, light theme, narrow window</summary>
 
 ![Timeline](docs/screenshots/13-timeline.png)
 ![History](docs/screenshots/6-history.png)
-![My PC](docs/screenshots/7-my-pc.png)
+![My pilot](docs/screenshots/7-my-pc.png)
 ![Known issues](docs/screenshots/8-known-issues.png)
 ![Set up](docs/screenshots/9-set-up.png)
 ![About](docs/screenshots/10-about.png)
 ![Light theme](docs/screenshots/11-now-light-theme.png)
-![A narrow window beside the game](docs/screenshots/12-phone-width.png)
+![A narrow window beside the game](docs/screenshots/12-narrow-window.png)
 
 </details>
 

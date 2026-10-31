@@ -135,6 +135,21 @@ class Store:
                              s["errors"], int(s["clean_exit"]), json.dumps(s, default=str)))
             self.db.commit()
 
+    def ships_retrieved(self, build):
+        """Ship retrievals counted in past sessions on one build: {ship class: times}."""
+        out = {}
+        if not build:
+            return out
+        with self.lock:
+            rows = self.db.execute("SELECT data FROM sessions WHERE build=?", (build,)).fetchall()
+        for r in rows:
+            try:
+                for k, n in (json.loads(r["data"] or "{}").get("ships_retrieved") or {}).items():
+                    out[k] = out.get(k, 0) + int(n)
+            except (ValueError, TypeError, AttributeError):
+                continue
+        return out
+
     def sessions(self, limit=200):
         with self.lock:
             rows = self.db.execute("SELECT * FROM sessions ORDER BY start DESC LIMIT ?", (limit,)).fetchall()

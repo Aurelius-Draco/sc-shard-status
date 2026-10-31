@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.4.0
+
+The app is now **Verse Shards for PC**, with a new look that matches verseshards.com. Your install, settings and history stay where they are (it still installs as SC Shard Status).
+
+- **Now tab, cockpit view:** a health bar across the top, then your score and six gauges, each with an hour of small bars: server fps (with the low), players on your server, players on the shard, ping, packet loss (with hitches and restarts) and your own fps. The card's edge reacts: calm when healthy, a slow amber breath when it's slowing, a red beacon when it's bad.
+- **What to do next, up front:** the verdict, the top two reasons (the rest folded), a hop suggestion when a healthier shard in your region has at least two players sharing, and What's gone wrong? as the main button when there's trouble.
+- **Crash alarm:** when Game.log ends with the game's crash handler, the Now tab says so, names the crash it matched if it knows one, and puts What's gone wrong? first.
+- **Pirate reports near you:** with the community board on, a line on Now says if pirate activity was reported in your area or elsewhere on your shard in the last 45 minutes, and "Pirates near <area>" files the report. Reports are still only ever sent when you press the button, and only the area goes.
+- **Your region on the board:** pips for players sharing on each shard. Not sharing? Your shard shows as a dashed row with a short note on what sharing does and what's sent. Sharing? "Fed the board N times this week" from Verse Shards' own count.
+- **Groups:** your post shows exactly as it does on verseshards.com. Add optional details (voice or text, experience, play style, bringing a ship or need a seat, language, org) and pick Playing for 1, 2 or 3 hours. Mark keen players filled or "not this time" (with Undo); they see where they stand on the site. +1 hour on a post, up to 3 hours in all. A full crew closes itself 10 minutes after it fills. "N groups recruiting on your shard" links to the site.
+- **My pilot** (was My PC): your own pilot card with handle, org, ships (tap one to make it your main), what you fly for, play times and a picture. It stays on this PC and is never sent anywhere. Below it, a logbook from Game.log: hours played this patch, contracts completed, shards played on, server fps on your sessions, ships you retrieved most, and your PC and fps by place as before.
+- **Set up:** a systems check across the top (game folder, overlay, live reading, board, sharing, alerts, updates, library) with each lamp jumping to its setting. No settings or wording changed.
+- **Known issues and your reviews:** traffic lights for how serious each problem is (Critical, Major, Minor), Critical first.
+- **Copy for global chat:** the best line, then "Found this on Verse Shards: verseshards.com" as its own line with its own Copy button. After copying: "Copied. In game press Enter, then Ctrl+V."
+- **About** matches the site's About: who made it and why, how it works, the ground rules, the org, what's coming and thanks, plus the app's own extras.
+- Clearer text: lighter grey for secondary text and nothing smaller than 14 px.
+- The tab bar wraps onto a second row in a narrow window instead of hiding Set up and About.
+- Works with the site before and after its own update: anything the site can't do yet says so and changes nothing.
+
 ## 1.3.0
 
 - Cleaner readings. The overlay is read off the screen, so now and then one value comes out wrong (a restart counter of 435, packet loss of 9%). A value now only counts once it repeats, restarts must hold and never drop back, and each server stint is judged on its own: a server hop, relog or long gap starts afresh. No more false restart alerts or 519-hitch spikes, in the app or on verseshards.com.

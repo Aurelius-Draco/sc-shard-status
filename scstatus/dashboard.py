@@ -74,8 +74,12 @@ def start_server(app, open_browser=False):
                 html = (STATIC / "index.html").read_text(encoding="utf-8")
                 html = html.replace("__TOKEN__", token).replace("__VERSION__", VERSION)
                 return self._send(200, html.encode("utf-8"), "text/html")
-            if re.fullmatch(r"/img/[a-z0-9-]+\.jpg", path) and (STATIC / path.lstrip("/")).is_file():
-                return self._send(200, (STATIC / path.lstrip("/")).read_bytes(), "image/jpeg")
+            m = re.fullmatch(r"/img/[a-z0-9-]+\.(jpg|png|webp)", path)
+            if m:
+                f = STATIC / path.lstrip("/")
+                if not f.is_file():         # e.g. a screenshot Ray hasn't added yet: the page shows a placeholder
+                    return self._send(404, b"", "text/plain")
+                return self._send(200, f.read_bytes(), {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[m.group(1)])
             if path == "/favicon.ico":
                 ico = STATIC.parent / "assets" / "status.ico"
                 return self._send(200, ico.read_bytes(), "image/x-icon") if ico.exists() else self._send(404, {})
@@ -102,8 +106,10 @@ def start_server(app, open_browser=False):
                         g.poll_at = 0
                         g.tick()
                     return self._send(200, {"open": g.open, "activities": g.activities, "context": g.context(),
-                                            "handle": g.handle(), "mine": g.mine(), "interest": g.interest[:20],
+                                            "handle": g.handle(), "mine": g.mine(), "interest": g.interest_rows()[:20],
                                             "offer": g.pirate_offer(), "error": g.error})
+                if path == "/api/profile":
+                    return self._send(200, {"profile": app.profiles.get()})
                 if path == "/api/reviews":
                     return self._send(200, app.store.reviews())
                 if path == "/api/about":
@@ -125,6 +131,8 @@ def start_server(app, open_browser=False):
                 return self._send(403, {"error": "not allowed"})
             try:
                 n = int(self.headers.get("Content-Length") or 0)
+                if n > 1_500_000:               # the largest thing posted is a profile picture (about 900 KB)
+                    return self._send(413, {"error": "That's too big."})
                 body = json.loads(self.rfile.read(n) or b"{}")
             except Exception:
                 return self._send(400, {"error": "bad request"})
@@ -165,10 +173,17 @@ def handle_post(app, path, body):
         kind = body.get("kind")
         if kind not in ("recruit", "lfg", "pirate"):
             raise ValueError("Unknown post type.")
-        msg = app.groups.post(kind, body.get("activity"), body.get("note"), body.get("spots"), body.get("handle"))
+        msg = app.groups.post(kind, body.get("activity"), body.get("note"), body.get("spots"), body.get("handle"),
+                              details=body.get("details"), hours=body.get("hours"))
         if kind == "pirate":
             app.groups.pirate_done()
         return {"message": msg}
+    if path == "/api/groups/extend":
+        return app.groups.extend(str(body.get("id", "")))
+    if path == "/api/groups/decide":
+        return app.groups.decide(str(body.get("post") or ""), str(body.get("handle", "")), body.get("verdict"))
+    if path == "/api/profile":
+        return {"message": "Profile saved on this PC.", "profile": app.profiles.save(body.get("profile"))}
     if path == "/api/groups/close":
         return {"message": app.groups.close(str(body.get("id", "")))}
     if path == "/api/groups/dismiss":

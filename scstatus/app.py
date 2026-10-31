@@ -45,6 +45,8 @@ class App:
         self.libsync = LibrarySync(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
         from .groups import Groups
         self.groups = Groups(self, self.community)
+        from .profile import Profiles
+        self.profiles = Profiles()
         from . import errors
         errors.install()
         self.errors = errors.ErrorReports(self, self.community)
@@ -235,17 +237,21 @@ class App:
             return
         files = sorted(folder.glob("*.log"), key=lambda p: p.stat().st_mtime)
         new = 0
+        # 1.4 adds ships retrieved to each session's summary, so read every file once more
+        again = self.store.meta("summary_v") != "2"
         for i, p in enumerate(files):
             self.import_status = f"reading past sessions ({i + 1}/{len(files)})"
             size = p.stat().st_size
-            if self.store.session_known(p.name, size):
+            if self.store.session_known(p.name, size) and not again:
                 continue
             try:
                 self.store.save_session(parse_file(p).summary(), size)
                 new += 1
             except Exception as e:
                 say(f"Couldn't read {p.name} ({e}).")
-        self.import_status = f"{len(files)} past sessions" + (f" ({new} new)" if new else "")
+        self.import_status = f"{len(files)} past sessions" + (f" ({new} new)" if new and not again else "")
+        if again:
+            self.store.set_meta("summary_v", "2")
 
     # -- what the dashboard shows
     def now(self):
@@ -266,7 +272,7 @@ class App:
             "health": a, "compare": cmp, "spark": spark,
             "overlay_status": self.watcher.status if self.watcher else "off",
             "screenshot_readings": self.shots.count if self.shots else None,
-            "session": {k: sess.get(k) for k in ("build", "version", "shard_id", "start", "load_s", "minutes",
+            "session": {k: sess.get(k) for k in ("build", "version", "shard_id", "start", "end", "load_s", "minutes",
                                                   "joins", "bad_disconnects", "errors", "clean_exit")},
             "shard": {"id": shard, "name": community.shard_name(shard), "region": region_name(_region(shard)),
                       "region_code": _region(shard)},
@@ -276,13 +282,20 @@ class App:
             "user_cfg": self.user_cfg_state(), "import_status": self.import_status,
             "library": {"version": self.library.version, **self.library.counts()},
             "community": self.community.region_view(shard, _region(shard)) if self.cfg.get("community_board") else None,
-            "sharing": self.community.share_status if self.cfg.get("share_readings") else "off",
+            # {on, fed_week, status}: fed_week is how many of your summaries the site counted this week (None: unknown)
+            "sharing": {"on": bool(self.cfg.get("share_readings")),
+                        "fed_week": self.community.fed_week if self.cfg.get("share_readings") else 0,
+                        "status": self.community.share_status if self.cfg.get("share_readings") else "off"},
+            "pirates_here": self.groups.pirates_here() if self.cfg.get("community_board")
+            else {"here": None, "elsewhere": None, "area_name": None},
+            "groups_on_shard": self.groups.groups_on_shard() if self.cfg.get("community_board") else 0,
+            "crash": self.crash_state(),
             "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
             "update": self.updater.info(), "patch": self.patch_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
             "marks": self.marks(), "hotkey": self.hotkey.status,
             "readings_paused": bool(self.watcher and self.watcher.status.startswith("overlay off")),
-            "groups": {"open": self.groups.open, "mine": self.groups.mine(), "interest": self.groups.interest[:10],
+            "groups": {"open": self.groups.open, "mine": self.groups.mine(), "interest": self.groups.interest_rows()[:10],
                        "offer": self.groups.pirate_offer()},
         }
         from .groups import chat_lines
@@ -361,7 +374,36 @@ class App:
 
     def history(self):
         return {"sessions": self.store.sessions(), "shards": self.store.shard_history(),
-                "hourly": self.store.hourly(), "import_status": self.import_status}
+                "hourly": self.store.hourly(), "import_status": self.import_status,
+                "ships_retrieved": self.ships_retrieved()}
+
+    def ships_retrieved(self):
+        """Ships you called from an ASOP terminal on this patch, most first: past sessions plus this one."""
+        from .timeline import ship_name
+        build = self.build or (self.session.build if self.session else None)
+        counts = self.store.ships_retrieved(build)
+        if self.session:
+            for k, n in self.session.ships_retrieved().items():
+                counts[k] = counts.get(k, 0) + n
+        return [{"ship": ship_name(k), "times": n} for k, n in sorted(counts.items(), key=lambda x: -x[1])][:12]
+
+    def crash_state(self):
+        """The game log ended with the crash handler taking over: when, and the library entry it matched, if any."""
+        s = self.session
+        if not s or not s.crash:
+            return None
+        ts = s.crash.get("ts") or s.end
+        key = (s.name, ts)
+        if getattr(self, "_crash_key", None) != key:
+            code = None
+            try:
+                from .diagnose import crash_findings
+                found = [f for f in crash_findings(self.game_dir / "Game.log", self.library, s) if f.get("rule_id")]
+                code = found[0]["rule_id"] if found else None
+            except Exception:
+                code = None
+            self._crash_key, self._crash_code = key, code
+        return {"ts": ts, "after_code": self._crash_code}
 
     def pc(self):
         hw = dict(self.session.hardware) if self.session else {}

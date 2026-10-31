@@ -243,8 +243,26 @@ def fake_board(mine, kind="healthy"):
                        "busy": [pick(*p) for p in sorted(allv, key=lambda p: -p[1]["players"])[:3]]}]}
 
 
+def fake_posts(shard):
+    """A made-up public groups feed: pirate reports and groups on your shard, for the Now tab's lines."""
+    now = int(time.time())
+    from scstatus.community import shard_name
+    base = shard.rsplit("_", 1)[0]
+    return {"open": True, "updated": now, "activities": ["RSI event", "Mining", "Salvage", "Cargo hauling", "Bounty hunting",
+            "Mercenary", "Combat / PvP", "Exploration", "Medical / rescue", "Racing", "Xenothreat / event", "Missions (any)",
+            "Just flying together"], "events": [],
+            "posts": [{"id": "1a2b3c4d5e6f", "kind": "recruit", "shard_id": shard, "shard": shard_name(shard), "server": "02",
+                       "activity": "Salvage", "spots": 2, "filled": 0, "full": False, "created": now - 900, "expires": now + 6300},
+                      {"id": "6f5e4d3c2b1a", "kind": "recruit", "shard_id": f"{base}_110", "shard": shard_name(f"{base}_110"),
+                       "server": "04", "activity": "Bounty hunting", "spots": 3, "filled": 1, "full": False,
+                       "created": now - 300, "expires": now + 6900}],
+            "pirates": [{"shard_id": shard, "shard": shard_name(shard), "system": "stanton", "area": "hurston",
+                         "area_name": "Hurston", "server": "02", "reporters": 2, "created": now - 1200, "latest": now - 240,
+                         "expires": now + 1500}]}
+
+
 def fake_site(holder):
-    """Answers the companion's board and RSI requests on this PC, so the screenshots never touch verseshards.com."""
+    """Answers the companion's board, RSI, groups and sharing requests on this PC, so demos never touch verseshards.com."""
     import json as _json
     import threading
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -253,20 +271,36 @@ def fake_site(holder):
         def log_message(self, *a):
             pass
 
-        def do_GET(self):
-            if self.path.startswith("/api/v1/posts"):
-                body = {"open": True, "posts": [], "pirates": [], "activities": ["RSI event", "Mining", "Salvage",
-                        "Cargo hauling", "Bounty hunting", "Mercenary", "Xenothreat / event", "Just flying together"]}
-            else:
-                body = holder["board"] if self.path.startswith("/api/v1/board") else \
-                    {"summary": "operational", "systems": [], "issues": [], "problem": False}
+        def _json(self, body, code=200):
             data = _json.dumps(body).encode()
-            self.send_response(200)
+            self.send_response(code)
             self.send_header("content-type", "application/json")
             self.end_headers()
             self.wfile.write(data)
 
-        def do_POST(self):                 # sharing stays off, but answer politely if anything tries
+        def do_GET(self):
+            if self.path.startswith("/api/v1/posts"):
+                return self._json(holder.get("posts") or {"open": True, "posts": [], "pirates": [], "activities": []})
+            if self.path.startswith("/api/v1/fed"):
+                return self._json({"install": "0" * 16, "week": holder.get("fed", 38), "since": int(time.time()) - 6 * 86400})
+            if self.path.startswith("/api/v1/board"):
+                return self._json(holder["board"])
+            return self._json({"summary": "operational", "systems": [], "issues": [], "problem": False})
+
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            try:
+                body = _json.loads(self.rfile.read(n) or b"{}")
+            except ValueError:
+                body = {}
+            if self.path == "/api/v1/report":         # sharing in a demo goes nowhere but here
+                return self._json({"ok": True, "next_s": 300})
+            if self.path == "/api/v1/posts/mine":
+                return self._json({"posts": holder.get("mine", [])})
+            if self.path.endswith("/extend"):
+                return self._json({"ok": True, "expires": int(time.time()) + 7200, "hours": 3})
+            if self.path.endswith("/decide"):
+                return self._json({"ok": True, "filled": 1, "full": False})
             self.send_response(403)
             self.end_headers()
     srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
@@ -320,6 +354,7 @@ def main():
 
     class Reading:                       # the overlay pill shows what a player with it switched on sees
         status = "reading"
+        tries, failed, screen = 0, 0, "2560x1440"     # what the sharing summary's reading-quality counts read
     app.watcher = Reading()
     for _ in range(600):
         if "past sessions" in (app.import_status or ""):
@@ -330,9 +365,11 @@ def main():
     past_readings(app, rnd, now)
     shard = (app.session.shard_id if app.session and app.session.shard_id else "pub_apse2a_43711962_090")
     # The region card on the Now tab: a made-up board served from this PC (sharing stays off)
-    holder = {"board": fake_board(shard)}
+    holder = {"board": fake_board(shard), "posts": fake_posts(shard)}
     app.cfg.update(community_url=fake_site(holder), community_board=True)
     app.community.url = app.cfg["community_url"]
+    # Sharing on as well, so the Now tab shows the transmitting card (summaries go to the fake site above only)
+    app.cfg["share_readings"] = True
     app.community.tick()
     print("Board for the region card:", "loaded" if app.community.board else "missing", flush=True)
 
@@ -396,9 +433,14 @@ def main():
             p.close()
         # Groups: a made-up recruiting post with two made-up players keen to join
         import json as _json
-        app.groups.open, app.groups.activities = True, ["RSI event", "Mining", "Salvage", "Cargo hauling", "Bounty hunting"]
+        app.groups.open, app.groups.activities = True, holder["posts"]["activities"]
         app.store.set_meta("post_keys", _json.dumps([{"id": "0a1b2c3d4e5f", "key": "0" * 32, "kind": "recruit",
-            "activity": "Mining", "expires": time.time() + 6000, "spots": 3, "shard": "AU-90", "area_name": "Hurston"}]))
+            "activity": "Mining", "expires": time.time() + 6000, "spots": 3, "shard": "AU-90", "shard_id": shard, "server": "07",
+            "area_name": "Hurston", "note": "Prospector run, bring a pick", "created": time.time() - 1200, "hours": 2,
+            "details": {"voice": "voice", "exp": "regular", "ship": "Prospector", "lang": "English", "style": "chill"}}]))
+        app.groups.keen = {"0a1b2c3d4e5f": 2}
+        app.groups.filled = {"0a1b2c3d4e5f": 1}
+        app.groups.status = {("0a1b2c3d4e5f", FAKE_OTHERS[3]): "in"}
         app.groups.interest = [{"post": "0a1b2c3d4e5f", "activity": "Mining", "handle": FAKE_OTHERS[0], "note": "got a Prospector",
                                 "created": time.time() - 120},
                                {"post": "0a1b2c3d4e5f", "activity": "Mining", "handle": FAKE_OTHERS[3], "note": None,
@@ -412,8 +454,9 @@ def main():
         p = page("light")
         shot(p, "11-now-light-theme", full=True)
         p.close()
-        p = page(w=390, h=844)
-        shot(p, "12-phone-width", h=844)
+        # A narrow window beside the game (the companion is a PC app, so no phone layout)
+        p = page(w=960, h=1000)
+        shot(p, "12-narrow-window", h=1000)
         p.close()
         b.close()
     print("Done:", out)

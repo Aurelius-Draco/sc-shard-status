@@ -493,7 +493,16 @@ class Session:
             "crash": self.crash, "quit": self.quit,
             "contracts": list(self.contracts.values()), "hardware": self.hardware,
             "freight_cycles": len(self.freight_cycles),
+            # ships you called from an ASOP terminal this session, by class (names only, never a handle)
+            "ships_retrieved": self.ships_retrieved(),
         }
+
+    def ships_retrieved(self):
+        out = {}
+        for t in self.travel:
+            if t["kind"] == "ship_retrieved" and t.get("ship"):
+                out[t["ship"]] = out.get(t["ship"], 0) + 1
+        return out
 
 
 def parse_file(path, name=None):

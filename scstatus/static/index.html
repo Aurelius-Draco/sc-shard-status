@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shard status</title>
+<title>Verse Shards for PC</title>
+<meta name="app" content="SC Shard Status v__VERSION__">
 <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
 :root {
   color-scheme: dark;
   --bg: #0b0e12; --panel: #12161c; --raise: #181d24; --raise2: #1e242c; --well: #0e1115; --thead: #1a1f27;
-  --line: #262d36; --line2: #3a434f; --text: #e7eaee; --muted: #9ea7b3;
+  --line: #262d36; --line2: #3a434f; --text: #e7eaee; --muted: #c3cad3;
   --amber: #f2a93b; --on-amber: #1a1103; --teal: #4cc4b0; --rust: #ec7a5e; --fresh: #a9c0d8;
   --amber-bg: rgba(242,169,59,.10); --amber-line: rgba(242,169,59,.55); --teal-bg: rgba(76,196,176,.11); --rust-bg: rgba(236,122,94,.12); --fresh-bg: rgba(169,192,216,.10);
   --ghost: #242b35; --ghost-line: #5b6674; --hover: rgba(255,255,255,.045); --zebra: rgba(255,255,255,.018); --sel: rgba(242,169,59,.10); --sel-hover: rgba(242,169,59,.15);
@@ -128,13 +129,13 @@ select { background: var(--field); border: 1px solid var(--line2); border-radius
 
 /* Sections and cells */
 .sec { margin-top: var(--s6); }
-.sec > h3 { display: flex; align-items: baseline; gap: var(--s3); margin: 0 0 var(--s3); font-size: .75rem; font-weight: 700; color: var(--muted); }
+.sec > h3 { display: flex; align-items: baseline; gap: var(--s3); margin: 0 0 var(--s3); font-size: .8125rem; font-weight: 700; color: var(--muted); }
 .sec > h3 span { text-transform: none; letter-spacing: 0; font-weight: 500; }
 .intro { color: var(--muted); max-width: 75ch; margin: var(--s2) 0 0; }
-.sub { color: var(--muted); font-size: .8125rem; }
+.sub { color: var(--muted); font-size: .875rem; }
 .readout { display: flex; flex-wrap: wrap; gap: var(--s4) var(--s7); margin: 0; }
 .cell { min-width: 0; padding-left: var(--s3); border-left: 2px solid var(--line2); }
-.cell.good { border-left-color: var(--teal); } .cell.warn { border-left-color: var(--amber); } .cell.rust { border-left-color: var(--rust); }
+.cell.good { border-left-color: var(--st-good); } .cell.warn { border-left-color: var(--st-poor); } .cell.rust { border-left-color: var(--st-bad); }
 .cell dt { font-size: .6875rem; font-weight: 600; color: var(--muted); }
 .cell dd { margin: 2px 0 0; font-size: 1.375rem; font-weight: 600; line-height: 1.25; white-space: nowrap; }
 .cell dd small { font-size: .8125rem; color: var(--muted); font-weight: 500; margin-left: 4px; }
@@ -153,11 +154,7 @@ select { background: var(--field); border: 1px solid var(--line2); border-radius
 .dial .val span { font-size: .8125rem; color: var(--muted); }
 .hmain { position: relative; z-index: 1; display: grid; gap: var(--s3); min-width: 0; }
 .verdict { display: inline-flex; align-items: center; gap: var(--s2); font-size: .8125rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.verdict i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
-.v-good { color: var(--teal); } .v-good i { background: var(--teal); }
-.v-ok { color: var(--fresh); } .v-ok i { background: var(--fresh); }
-.v-poor { color: var(--amber); } .v-poor i { background: var(--amber); }
-.v-bad { color: var(--rust); } .v-bad i { background: var(--rust); }
+.v-good { color: var(--st-good); } .v-ok { color: var(--st-ok); } .v-poor { color: var(--st-poor); } .v-bad { color: var(--st-bad); }
 .summary { font-size: 1.375rem; font-weight: 600; line-height: 1.35; margin: 0; max-width: 60ch; }
 .tips { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s2); }
 .notice { display: flex; gap: var(--s2); align-items: flex-start; margin: 0; padding: var(--s2) var(--s3); border: 1px solid var(--line2); border-left: 2px solid var(--amber); background: var(--raise); border-radius: var(--r-sm); font-size: .875rem; }
@@ -187,12 +184,12 @@ select { background: var(--field); border: 1px solid var(--line2); border-radius
 .headline { margin: var(--s5) 0 0; font-size: 1.25rem; font-weight: 600; }
 .finds { display: grid; gap: var(--s3); margin-top: var(--s4); }
 .find { padding: var(--s4) var(--s5); border-left: 3px solid var(--line2); }
-.find.high { border-left-color: var(--rust); } .find.medium { border-left-color: var(--amber); } .find.low { border-left-color: var(--fresh); }
+.find.high { border-left-color: var(--st-bad); } .find.medium { border-left-color: var(--st-poor); } .find.low { border-left-color: var(--st-ok); }
 .fh { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: baseline; }
 .fh h4 { margin: 0; font-size: 1.0625rem; flex: 1 1 24rem; }
 .chip { display: inline-flex; align-items: center; height: 1.25rem; font-size: .6875rem; padding: 0 6px; border-radius: 2px; font-weight: 700; white-space: nowrap; letter-spacing: .05em; text-transform: uppercase; }
-.chip.high { color: var(--rust); background: var(--rust-bg); } .chip.medium { color: var(--amber); background: var(--amber-bg); }
-.chip.low, .chip.info { color: var(--fresh); background: var(--fresh-bg); } .chip.area, .chip.unknown { color: var(--muted); box-shadow: inset 0 0 0 1px var(--line2); }
+.chip.high { color: var(--st-bad); background: var(--st-bad-bg); } .chip.medium { color: var(--st-poor); background: var(--st-poor-bg); }
+.chip.low, .chip.info { color: var(--st-ok); background: var(--st-ok-bg); } .chip.area, .chip.unknown { color: var(--muted); box-shadow: inset 0 0 0 1px var(--line2); }
 .find p { margin: var(--s2) 0 0; max-width: 85ch; }
 .find ul { margin: var(--s2) 0 0; padding-left: 1.2rem; }
 .find li { margin: 2px 0; }
@@ -250,9 +247,7 @@ td.bad { color: var(--rust); font-weight: 600; } td.okc { color: var(--teal); }
 .tile:hover { border-color: var(--amber-line); color: var(--text); }
 .tile b { font-size: 1rem; } .tile span { color: var(--muted); font-size: .875rem; }
 .tile .go { color: var(--teal); font-weight: 600; font-size: .875rem; }
-table.comm .score { display: inline-flex; align-items: center; gap: var(--s2); font-weight: 700; }
-table.comm .score i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
-table.comm .score.good i { background: var(--teal); } table.comm .score.ok i { background: var(--fresh); } table.comm .score.poor i { background: var(--amber); } table.comm .score.bad i { background: var(--rust); }
+table.comm .score, .score { display: inline-flex; align-items: center; gap: var(--s2); font-weight: 700; }
 table.comm tr.me td { background: var(--sel); }
 .promo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--s5); align-items: center; padding: var(--s4) var(--s5); text-decoration: none; color: var(--text); }
 .promo:hover { border-color: var(--amber-line); color: var(--text); }
@@ -365,6 +360,464 @@ button.pill.mark:hover { background: var(--teal); color: #06221d; }
 .gform label { display: grid; gap: 4px; font-size: .8125rem; color: var(--muted); font-weight: 600; flex: 1 1 12rem; }
 .starline { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); align-items: center; padding: var(--s3) var(--s4); border-left: 2px solid var(--amber); }
 .starline p { margin: 0; flex: 1 1 20rem; }
+
+/* 1.4: status colours, each with its own shape, the same as on Verse Shards */
+:root { --st-good: #4cc4b0; --st-ok: #c9d1db; --st-poor: #ffd166; --st-bad: #ec7a5e; --ctl: #5f6b79;
+  --st-good-bg: rgba(76,196,176,.12); --st-ok-bg: rgba(201,209,219,.10); --st-poor-bg: rgba(255,209,102,.12); --st-bad-bg: rgba(236,122,94,.13); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --st-good: #0a6b5f; --st-ok: #6f7a88; --st-poor: #9a6b00; --st-bad: #a23a22; --ctl: #77818d;
+  --st-good-bg: rgba(10,107,95,.09); --st-ok-bg: rgba(111,122,136,.10); --st-poor-bg: rgba(154,107,0,.10); --st-bad-bg: rgba(162,58,34,.09); } }
+:root[data-theme="light"] { --st-good: #0a6b5f; --st-ok: #6f7a88; --st-poor: #9a6b00; --st-bad: #a23a22; --ctl: #77818d;
+  --st-good-bg: rgba(10,107,95,.09); --st-ok-bg: rgba(111,122,136,.10); --st-poor-bg: rgba(154,107,0,.10); --st-bad-bg: rgba(162,58,34,.09); }
+.verdict i, .score i, i.st { display: inline-block; flex: none; width: 11px; height: 11px; border-radius: 50%; background: var(--line2); }
+.v-good i, .score.good i, i.st.good { background: var(--st-good); }
+.v-ok i, .score.ok i, i.st.ok { background: linear-gradient(90deg, var(--st-ok) 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px var(--st-ok); }
+.v-poor i, .score.poor i, i.st.poor { border-radius: 0; background: var(--st-poor); clip-path: polygon(50% 4%, 100% 96%, 0 96%); }
+.v-bad i, .score.bad i, i.st.bad { border-radius: 0; background: var(--st-bad); clip-path: polygon(20% 0, 50% 30%, 80% 0, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0 80%, 30% 50%, 0 20%); }
+
+/* Header: status reads as status, not buttons */
+.stat { display: inline-flex; align-items: center; gap: var(--s2); font-size: .8125rem; color: var(--muted); white-space: nowrap; }
+.stat i { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); }
+.stat.on { color: var(--text); } .stat.on i { background: var(--st-good); } .stat.warn i { background: var(--st-poor); }
+.top .hlink { font-size: .875rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.top .hlink:hover { text-decoration: underline; }
+
+/* Now: the next step sits under the verdict */
+.bestmove { display: grid; gap: 2px; max-width: 62ch; padding: var(--s3) var(--s4); border: 1px solid var(--st-good); border-left-width: 3px; background: var(--st-good-bg); border-radius: var(--r-sm); }
+.bestmove .eyebrow { color: var(--st-good); font-size: .75rem; font-weight: 700; }
+.bestmove p { margin: 0; }
+.hacts { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+details.why { max-width: 62ch; }
+details.why > summary { cursor: pointer; color: var(--muted); font-size: .875rem; width: fit-content; }
+details.why > summary:hover { color: var(--text); }
+details.why[open] > summary { margin-bottom: var(--s2); }
+.goodline { margin: 0; color: var(--st-good); font-weight: 600; }
+
+/* Copy for chat: one line, more behind a fold */
+.chatbox { display: grid; gap: var(--s2); padding: var(--s3) var(--s4); }
+.chatbox h4 { margin: 0; font-size: .875rem; }
+.chatbox .rhd { flex-wrap: wrap; }
+.chatbox label { display: inline-flex; gap: 6px; align-items: center; }
+.chatline { display: flex; gap: var(--s3); align-items: center; padding: var(--s2) var(--s3); background: var(--well); border: 1px solid var(--line); border-radius: var(--r-sm); font: .875rem/1.4 var(--mono); }
+.chatline span { flex: 1; overflow-wrap: anywhere; }
+.chatline .btn { font-family: var(--font); }
+.chatmore { display: grid; gap: var(--s2); margin-top: var(--s2); }
+.chatbox details.ex { margin: 0; }
+.chatbox details.ex > summary { cursor: pointer; color: var(--muted); font-size: .8125rem; width: fit-content; }
+
+/* Groups: the same card as on Verse Shards */
+.gcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--s3); }
+.gcard { padding: var(--s4); display: grid; gap: var(--s2); align-content: start; }
+.gcard .gh { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s3); align-items: center; }
+.gcard .gt { font-weight: 600; font-size: 1rem; }
+.gcard .gf { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--line); }
+.gicon { flex: none; width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border: 1px solid var(--line2); border-radius: var(--r-sm); background: var(--raise2); font: 700 .75rem var(--font); color: var(--amber); letter-spacing: .04em; }
+.gicon.sm { width: 1.5rem; height: 1.5rem; font-size: .625rem; }
+.pips { display: inline-flex; gap: 3px; margin-right: var(--s2); vertical-align: middle; }
+.pips i { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ctl); }
+.pips i.on { background: var(--st-good); box-shadow: none; }
+.tleft { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.tleft i { display: block; height: 100%; background: var(--st-good); }
+.tleft.ending i { background: var(--st-poor); }
+.achips { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.achip { display: inline-flex; align-items: center; gap: var(--s2); height: 2rem; padding: 0 var(--s3) 0 4px; border: 1px solid var(--ctl); border-radius: 99px; background: var(--field); color: var(--text); font-size: .8125rem; font-weight: 600; }
+.achip:hover { border-color: var(--amber); }
+.achip[aria-pressed="true"] { border-color: var(--amber); background: var(--amber-bg); box-shadow: inset 0 0 0 1px var(--amber); }
+.achip .gicon { border-radius: 50%; }
+.stepper { display: inline-flex; align-items: center; height: var(--h); border: 1px solid var(--ctl); border-radius: var(--r-sm); background: var(--field); width: fit-content; }
+.stepper button { width: 2.25rem; height: 100%; background: none; border: 0; font-size: 1.125rem; font-weight: 700; color: var(--text); }
+.stepper button:hover { background: var(--hover); }
+.stepper output { min-width: 2rem; text-align: center; font-weight: 700; color: var(--text); }
+.gform .lbl { display: grid; gap: 4px; font-size: .8125rem; color: var(--muted); font-weight: 600; flex: 0 0 auto; }
+.gform .hint { font-weight: 400; color: var(--muted); }
+.gform .rhd h4 { margin: 0; }
+.pline { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); align-items: center; justify-content: space-between; padding: var(--s3) var(--s4); }
+.pline p { margin: 0; flex: 1 1 20rem; }
+.keen .cl > span { display: flex; gap: var(--s2); align-items: center; }
+
+/* ===== Design pass, Oct 2026 (Claude). Port as a block; every rule here is new or overrides one above. ===== */
+.dial .val span, .readout dt { font-size: .8125rem; }
+/* tab bar: wraps onto a second row instead of cutting Set up and About off in a narrow window */
+@media (max-width: 1180px) {
+  .tabbar { flex-wrap: wrap; height: auto; overflow: visible; row-gap: 0; }
+  .tabbar button { height: 2.75rem; padding: 0 var(--s2); font-size: .875rem; }
+  .tabbar .tsetup { height: 2rem; padding: 0 var(--s3); }
+}
+.seg button, .achip { white-space: nowrap; }
+/* score ring: sweep once per run, marker on the tip, dotted track for what's missing */
+.dial circle.track { stroke-opacity: .2; }
+.dial .tip { transform-box: view-box; transform-origin: 60px 60px; transform: rotate(var(--ang)); transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+.dial circle.arc { transition: stroke-dasharray .8s cubic-bezier(.2,.8,.2,1); }
+.dial svg.sweep circle.arc { animation: ringArc 1.1s cubic-bezier(.2,.7,.2,1) both; }
+.dial svg.sweep .tip { animation: ringTip 1.1s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes ringArc { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+@keyframes ringTip { from { transform: rotate(0deg); } to { transform: rotate(var(--ang)); } }
+/* pirate line on Now: same strip as the site's board */
+.pirate { position: relative; overflow: hidden; display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--s3); max-width: 62ch; padding: 6px var(--s3) 6px calc(var(--s3) + 4px); border-radius: var(--r-sm); background: rgba(236,122,94,.13); border: 1px solid rgba(236,122,94,.38); animation: pirGlow 1s ease-in-out 3, pirGlowCycle 6s ease-in-out 4s infinite; }
+.pirate .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--st-bad); animation: pirBlink .5s steps(1) 6, pirBlinkCycle 6s steps(1) 4s infinite; }
+.pirate .plab { font: 700 .75rem/1 var(--font); letter-spacing: .1em; text-transform: uppercase; font-stretch: semi-condensed; background: var(--st-bad); color: #1a1103; padding: 4px 6px; border-radius: 2px; }
+.pirate .ptxt { flex: 1 1 14rem; font-size: .9375rem; }
+.pirate .pclr { font-size: .8125rem; color: #f4a48f; white-space: nowrap; }
+.pirate.one { background: rgba(255,209,102,.12); border-color: rgba(255,209,102,.38); animation: none; }
+.pirate.one .edge, .pirate.one .plab { background: var(--st-poor); } .pirate.one .edge { animation: pirBlink .5s steps(1) 4; } .pirate.one .pclr { color: var(--st-poor); }
+@keyframes pirGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(236,122,94,0); } 50% { box-shadow: 0 0 0 4px rgba(236,122,94,.28); } }
+@keyframes pirGlowCycle { 0%, 10%, 100% { box-shadow: 0 0 0 0 rgba(236,122,94,0); } 5% { box-shadow: 0 0 0 4px rgba(236,122,94,.28); } }
+@keyframes pirBlink { 0% { opacity: 1; } 50% { opacity: .15; } }
+@keyframes pirBlinkCycle { 0% { opacity: 1; } 2% { opacity: .15; } 4% { opacity: 1; } 6% { opacity: .15; } 8%, 100% { opacity: 1; } }
+.chatline.src span { color: var(--muted); }
+/* my pilot */
+.pilot { display: grid; gap: var(--s4); }
+.pcard { padding: var(--s5); display: grid; gap: var(--s4); background: radial-gradient(900px 300px at 100% 0, var(--amber-bg), transparent 60%), var(--panel); border-color: var(--amber-line); }
+.pc-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s4); align-items: center; }
+.pc-pic { width: 5.5rem; height: 5.5rem; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--raise2); border: 2px solid var(--amber); box-shadow: 0 0 0 4px var(--amber-bg); }
+.pc-pic img { width: 100%; height: 100%; object-fit: cover; } .pc-pic span { font: 700 1.75rem var(--font); color: var(--amber); letter-spacing: .04em; }
+.pc-id h2 { margin: 2px 0; font: 700 2rem/1.1 var(--mono); letter-spacing: .01em; } .pc-sub { color: var(--muted); }
+.pc-bio { margin: 0; font-size: 1.0625rem; max-width: 70ch; }
+.pc-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--s5); }
+@media (max-width: 860px) { .pc-grid { grid-template-columns: 1fr; } .pc-top { grid-template-columns: auto minmax(0, 1fr); } .pc-top .btn { grid-column: 1 / -1; justify-self: start; } }
+.pc-main { display: grid; gap: var(--s2); } .pc-main b { font-size: 1.25rem; }
+.pc-main .shot { aspect-ratio: 16 / 7; border: 1px solid var(--line2); border-radius: var(--r); display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--well) 0 12px, var(--panel) 12px 24px); }
+.pc-main .shot span { font: .8125rem var(--mono); color: var(--muted); }
+.pc-side { display: grid; gap: var(--s4); align-content: start; } .pc-side > div { display: grid; gap: 6px; }
+.pc-note { margin: 0; }
+.pc-h { margin: var(--s3) 0 0; }
+.pc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--s3); }
+.pc-stats > div { padding: var(--s3) var(--s4); display: grid; gap: 2px; }
+.pc-stats dt { font: 600 .75rem var(--font); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; }
+.pc-stats dd { margin: 0; font: 700 1.75rem/1.1 var(--font); }
+.pc-stats > div { align-content: start; grid-template-rows: 2.25rem auto auto; }
+.pc-stats dt { line-height: 1.1rem; }
+.pedit .lbl .hint { font-weight: 400; margin-left: 6px; } .pc-stats .fed { border-color: rgba(76,196,176,.4); } .pc-stats .fed dd { color: var(--st-good); }
+.pc-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--s3); }
+.pc-list { margin: var(--s2) 0 0; padding: 0; list-style: none; counter-reset: pc; display: grid; }
+.pc-list li { counter-increment: pc; display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: var(--s2); padding: 6px 0; border-top: 1px solid var(--line); }
+.pc-list li:first-child { border-top: 0; } .pc-list li::before { content: counter(pc); color: var(--amber); font-weight: 700; }
+.pedit { padding: var(--s5); display: grid; gap: var(--s4); }
+.pedit label { display: grid; gap: 4px; font-size: .8125rem; font-weight: 600; color: var(--muted); }
+.pedit .lbl { display: block; margin-bottom: 6px; font-size: .8125rem; font-weight: 600; color: var(--muted); }
+.pe-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--s3) var(--s4); }
+.pe-ships .dopt.main { border-color: var(--amber); background: var(--amber); color: var(--on-amber); }
+
+/* round 14 */
+.sevl { display: inline-flex; align-items: center; gap: 6px; font: 700 .75rem/1 var(--font); letter-spacing: .06em; text-transform: uppercase; font-stretch: semi-condensed; white-space: nowrap; }
+.sevl.info { color: var(--muted); }
+.tlights { display: inline-flex; gap: 3px; }
+.tlights i { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.14); }
+.sevl.high { color: #ff8a70; } .sevl.high .tlights i:nth-child(1) { background: radial-gradient(circle at 35% 30%, #ffd2c4 0 15%, #ff6a4a 45%, #c43e22 100%); box-shadow: 0 0 8px rgba(255,106,74,.75); }
+.sevl.medium { color: #ffc35a; } .sevl.medium .tlights i:nth-child(2) { background: radial-gradient(circle at 35% 30%, #fff0c8 0 15%, #ffb52e 45%, #c97f0a 100%); box-shadow: 0 0 8px rgba(255,181,46,.6); }
+.sevl.low { color: #5fdcc6; } .sevl.low .tlights i:nth-child(3) { background: radial-gradient(circle at 35% 30%, #d8fff6 0 15%, #4cc4b0 45%, #23806f 100%); box-shadow: 0 0 8px rgba(76,196,176,.6); }
+.lib summary { display: grid; grid-template-columns: minmax(0, 1fr) 7rem 9rem; gap: var(--s2) var(--s4); align-items: center; }
+.lib summary .chip.area { justify-self: start; }
+@media (max-width: 640px) { .lib summary { grid-template-columns: minmax(0, 1fr) auto; } .lib summary .chip.area { display: none; } }
+.lib details.crit, .rvt tr.crit td:first-child { box-shadow: inset 3px 0 0 var(--st-bad); }
+.lib details.maj, .rvt tr.maj td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
+.lib details.crit { border-color: rgba(236,122,94,.4); }
+.rvt td.rvl { width: 7.5rem; white-space: nowrap; }
+/* alerts as rows */
+.alist { padding: 0; gap: 0; }
+.alist .arow { display: grid; grid-template-columns: 4.25rem 10px minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border-top: 1px solid var(--line); }
+.alist .arow:first-child { border-top: 0; }
+.alist .at { color: var(--muted); font-variant-numeric: tabular-nums; }
+.alist .ad { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); }
+.alist .arow.group .ad { background: var(--teal); } .alist .arow.fps .ad, .alist .arow.restart .ad, .alist .arow.disconnect .ad { background: var(--st-bad); }
+.alist .ab { display: grid; gap: 2px; } .alist .ab span { color: var(--muted); }
+/* hero: verdict in the middle, where you are + charts on the right */
+.hero { grid-template-columns: auto minmax(0, 1fr) minmax(16rem, 22rem); align-items: start; }
+.hside { position: relative; z-index: 1; display: grid; gap: var(--s3); min-width: 0; }
+.where { margin: 0; display: grid; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--well); }
+.where > div { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: var(--s2); padding: 6px var(--s3); border-top: 1px solid var(--line); font-size: .875rem; }
+.where > div:first-child { border-top: 0; }
+.where dt { color: var(--muted); font: 600 .75rem/1.4rem var(--font); letter-spacing: .06em; text-transform: uppercase; font-stretch: semi-condensed; } .where dd { margin: 0; }
+.mchart { display: grid; gap: 2px; } .mchart .mh { display: flex; flex-wrap: wrap; gap: 4px var(--s2); align-items: baseline; font-size: .875rem; }
+.mchart .chart { height: 5rem; margin: 0; }
+@media (max-width: 1100px) { .hero { grid-template-columns: auto minmax(0, 1fr); } .hside { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); } }
+@media (max-width: 700px) { .hero { grid-template-columns: 1fr; } }
+.hacts2 { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; }
+.pirbtn { background: var(--st-bad-bg); border: 1px solid rgba(236,122,94,.55); color: #ffb3a1; }
+.pirbtn:hover:not(:disabled) { background: var(--st-bad); color: #1a1103; filter: none; }
+:root[data-theme="light"] .pirbtn { color: var(--st-bad); border-color: var(--st-bad); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .pirbtn { color: var(--st-bad); border-color: var(--st-bad); } }
+/* groups: prominent pirate card */
+.pline.pbig { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3) var(--s4); align-items: center; padding: var(--s4) var(--s5); border-color: rgba(236,122,94,.45); background: linear-gradient(90deg, rgba(236,122,94,.12), transparent 70%), var(--panel); box-shadow: inset 3px 0 0 var(--st-bad); }
+.pline.pbig .plab { font: 700 .75rem/1 var(--font); letter-spacing: .1em; text-transform: uppercase; font-stretch: semi-condensed; background: var(--st-bad); color: #1a1103; padding: 5px 7px; border-radius: 2px; }
+.pline.pbig p { display: grid; gap: 2px; } .pline.pbig p b { font-size: 1.0625rem; }
+@media (max-width: 640px) { .pline.pbig { grid-template-columns: 1fr; } }
+/* groups: tidy post form */
+.gform { gap: var(--s3); padding: var(--s5); }
+.ghead { display: grid; gap: 4px; padding-bottom: var(--s3); border-bottom: 1px solid var(--line); } .ghead h4 { margin: 0; font-size: 1.125rem; } .ghead p { margin: 0; }
+.gstep { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s2); }
+.gn { display: inline-grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--amber-bg); border: 1px solid var(--amber-line); color: var(--amber); font: 700 .75rem var(--font); flex: none; }
+.gl { font: 700 .8125rem var(--font); letter-spacing: .08em; text-transform: uppercase; font-stretch: semi-condensed; color: var(--text); }
+.gkind { justify-self: start; width: fit-content; }
+.gdetw { border: 1px dashed var(--line2); border-radius: var(--r-sm); padding: var(--s2) var(--s3); }
+.gdetw > summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); cursor: pointer; list-style: none; font-weight: 600; } .gdetw > summary::-webkit-details-marker { display: none; }
+.gdetw[open] > summary { margin-bottom: var(--s3); }
+.gfoot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-top: var(--s2); padding-top: var(--s4); border-top: 1px solid var(--line); }
+.gfoot .grow { flex: 1; }
+/* Issue Council drawer: sharing note */
+.icshare { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; margin: var(--s3) 0; padding: var(--s3) var(--s4); border: 1px dashed var(--line2); border-radius: var(--r-sm); }
+.icshare > i { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); flex: none; } .icshare.on { border-style: solid; border-color: rgba(76,196,176,.35); background: var(--teal-bg); } .icshare.on > i { background: var(--teal); }
+.icshare p { margin: 0; flex: 1 1 20rem; }
+.pquiet { margin: 0; font-size: .875rem; color: var(--muted); }
+.impact { display: flex; align-items: center; gap: var(--s2); margin: var(--s2) 0 0; font-size: .875rem; color: var(--st-good); }
+.impact i { width: 7px; height: 7px; border-radius: 50%; background: var(--st-good); }
+.nudge { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; padding: var(--s3) var(--s4); border: 1px dashed var(--line2); border-radius: var(--r); background: var(--panel); }
+.nudge p { margin: 0; flex: 1 1 24rem; } .nudge .sub { display: block; }
+.grpline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-bottom: 0; }
+/* group card, matching the site */
+.gcard { display: flex; flex-direction: column; gap: var(--s3); }
+.gcard .gt { font-size: 1.0625rem; }
+.gline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--s2); }
+.hpill { display: inline-flex; align-items: center; gap: 6px; height: 1.625rem; padding: 0 10px; border-radius: 99px; background: var(--raise2); font-size: .875rem; white-space: nowrap; }
+.hpill i { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); } .hpill b { font-stretch: semi-condensed; letter-spacing: .03em; }
+.hpill.none span { color: var(--muted); }
+.hpill.good { background: var(--st-good-bg); } .hpill.good i { background: var(--st-good); } .hpill.good span { color: var(--st-good); }
+.hpill.ok { background: var(--st-ok-bg); } .hpill.ok i { background: var(--st-ok); }
+.hpill.poor { background: var(--st-poor-bg); } .hpill.poor i { background: var(--st-poor); } .hpill.poor span { color: var(--st-poor); }
+.hpill.bad { background: var(--st-bad-bg); } .hpill.bad i { background: var(--st-bad); } .hpill.bad span { color: var(--st-bad); }
+.gnote { margin: 0; }
+.dchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dchip { display: inline-flex; align-items: center; height: 1.5rem; padding: 0 8px; border-radius: var(--r-sm); background: var(--raise2); border: 1px solid var(--line2); font-size: .8125rem; white-space: nowrap; }
+.gbottom { margin-top: auto; display: grid; gap: var(--s3); }
+.gcrew { display: flex; align-items: center; gap: var(--s2); font-size: .875rem; }
+.pips i { width: 11px; height: 11px; } .pips i.keen { background: rgba(242,169,59,.3); box-shadow: inset 0 0 0 1.5px var(--amber); }
+.gtime { display: grid; gap: 5px; } .gtime .sub { display: flex; justify-content: space-between; gap: var(--s2); }
+.gcard.full { opacity: .8; }
+/* keen list */
+.keenl .cl { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); }
+.keenl .cl > span:first-child { flex: 1 1 18rem; }
+.keenl .ka { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.keenl .cl.out { opacity: .6; }
+i.st.new { background: var(--amber); }
+/* composer details */
+.gdet { display: grid; gap: 6px; } .gdet .lbl { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: baseline; font-size: .8125rem; color: var(--muted); font-weight: 600; }
+.dgroups { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.dg { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.dopt { height: 2rem; padding: 0 var(--s3); border: 1px solid var(--ctl, var(--line2)); border-radius: 99px; background: var(--field); color: var(--text); font-size: .8125rem; white-space: nowrap; }
+.dopt:hover { border-color: var(--amber); }
+.dopt[aria-pressed="true"] { border-color: var(--amber); background: var(--amber-bg); box-shadow: inset 0 0 0 1px var(--amber); }
+.dinp { height: 2rem; width: 11rem; font-size: .8125rem; }
+@media (prefers-reduced-motion: reduce) { .pirate, .pirate *, .dial svg.sweep * { animation: none !important; } }
+/* ===== Now tab: cockpit HUD (direction 1b). Port as a block. ===== */
+.hud { margin-top: var(--s5); border-radius: var(--r); background: var(--panel); overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+.hud.calm { animation: hudCalm 5s ease-in-out infinite; }
+.hud.breath { animation: hudBreath 3s ease-in-out infinite; }
+.hud.beacon { animation: hudBeacon 5s ease-in-out infinite; }
+/* Crash: a flashing red alarm edge and a hazard stripe that runs along the top */
+.hud.alarm { position: relative; animation: hudAlarm 1s ease-in-out infinite; }
+/* Crash alarm, as approved in Now Tab Directions (edgeAlarm and hazard) */
+@keyframes hudAlarm { 0%, 100% { box-shadow: 0 0 0 2px rgba(236,122,94,1), 0 0 30px 4px rgba(236,122,94,.4); } 50% { box-shadow: 0 0 0 2px rgba(236,122,94,.25), 0 0 0 0 rgba(236,122,94,0); } }
+.hazard { height: 8px; border-radius: 3px; background: repeating-linear-gradient(135deg, #ec7a5e 0 10px, #1a1103 10px 20px); background-size: 28px 8px; animation: hazardRun .8s linear infinite; }
+@keyframes hazardRun { from { background-position: 0 0; } to { background-position: 28px 0; } }
+.crashline { margin: 0; padding: var(--s3) var(--s4); border: 1px solid var(--st-bad); border-left-width: 3px; background: var(--st-bad-bg); border-radius: var(--r-sm); font-size: .9375rem; }
+.crashline b { color: var(--text); }
+.tx .txa { grid-column: 2; display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); align-items: center; }
+.pempty .pc-top { align-items: center; }
+@keyframes hudCalm { 0%, 100% { box-shadow: 0 0 0 1px rgba(76,196,176,.3); } 50% { box-shadow: 0 0 0 1px rgba(76,196,176,.55); } }
+@keyframes hudBreath { 0%, 100% { box-shadow: 0 0 0 1px rgba(255,209,102,.35), 0 0 0 0 rgba(255,209,102,0); } 50% { box-shadow: 0 0 0 1px rgba(255,209,102,.85), 0 0 18px 0 rgba(255,209,102,.18); } }
+@keyframes hudBeacon { 0%, 8%, 16%, 100% { box-shadow: 0 0 0 1px rgba(236,122,94,.5), 0 0 0 0 rgba(236,122,94,0); } 4%, 12% { box-shadow: 0 0 0 2px rgba(236,122,94,1), 0 0 26px 2px rgba(236,122,94,.35); } }
+.hbar { height: 4px; background: var(--raise2); } .hbar i { display: block; height: 100%; transition: width .8s; } .hbar.sweep i { animation: hbarFill 1.1s cubic-bezier(.2,.7,.2,1); }
+@keyframes hbarFill { from { width: 0; } }
+.hg { display: grid; grid-template-columns: 9.5rem repeat(6, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+@media (max-width: 1100px) { .hg { grid-template-columns: repeat(4, minmax(0, 1fr)); } .hg .gscore { grid-row: span 2; } }
+@media (max-width: 640px) { .hg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hg .gscore { grid-row: auto; grid-column: 1 / -1; } }
+.gg { background: var(--panel); padding: var(--s3) var(--s4); display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.gl { font: 600 .8125rem var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gscore .gl { font-weight: 700; font-size: .75rem; letter-spacing: .1em; }
+.gl.good { color: var(--st-good); } .gl.ok { color: var(--st-ok); } .gl.poor { color: var(--st-poor); } .gl.bad { color: var(--st-bad); }
+.gbig { font: 700 3rem/1 var(--font); font-stretch: semi-condensed; }
+.gv { font: 600 1.5rem/1.1 var(--font); white-space: nowrap; } .gv small { font-size: .8125rem; color: var(--muted); font-weight: 400; }
+.gv.good { color: var(--st-good); } .gv.poor { color: var(--st-poor); } .gv.bad { color: var(--st-bad); }
+.gs { font-size: .875rem; color: var(--muted); }
+.gbars { display: flex; align-items: flex-end; gap: 2px; height: 24px; } .gbars i { flex: 1; border-radius: 1px; min-height: 3px; }
+.hud2 { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: var(--s4); margin-top: var(--s4); }
+@media (max-width: 900px) { .hud2 { grid-template-columns: 1fr; } }
+.hl { font: 700 .8125rem var(--font); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; }
+.hsit { padding: var(--s5); display: grid; gap: var(--s3); align-content: start; }
+.hv { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.4; text-wrap: pretty; }
+.hwhy { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.hwhy li { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: var(--s3); font-size: .9375rem; }
+.hwhy li::before { content: ""; width: 6px; height: 6px; margin-top: 8px; border-radius: 50%; background: var(--amber); }
+.hsit .why summary { font-size: .875rem; color: var(--muted); cursor: pointer; }
+.hhop { padding: var(--s3) var(--s4); border-left: 3px solid var(--st-good); background: var(--st-good-bg); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: .9375rem; }
+.hhop b { color: var(--st-good); }
+.hacts { display: flex; flex-wrap: wrap; gap: var(--s2); } .hacts .btn { white-space: nowrap; }
+.hreg { padding: var(--s4); display: grid; gap: var(--s2); align-content: start; }
+.hrh { display: flex; justify-content: space-between; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-bottom: 2px; }
+.hme { display: inline-flex; align-items: center; gap: 6px; font-size: .8125rem; color: var(--muted); } .hme i { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); }
+.hme.on { color: var(--st-good); } .hme.on i { background: var(--st-good); animation: lampPulse 2.4s ease-in-out infinite; }
+.hr { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: 8px var(--s3); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.hr.me.off { border: 1px dashed rgba(242,169,59,.6); background: var(--amber-bg); } .hr.me.on { border-color: rgba(76,196,176,.45); background: var(--teal-bg); }
+.hs { font-size: 1.0625rem; } .hs.good { color: var(--st-good); } .hs.ok { color: var(--st-ok); } .hs.poor { color: var(--st-poor); } .hs.bad { color: var(--st-bad); }
+.hn { display: grid; gap: 1px; min-width: 0; } .hn b { font-stretch: semi-condensed; letter-spacing: .03em; } .hn span { font-size: .8125rem; color: var(--muted); }
+.hpips { display: flex; gap: 3px; }
+.hp { position: relative; width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line2); }
+.hp.lit { background: var(--st-good); box-shadow: none; }
+.hp.you.off { background: rgba(242,169,59,.22); box-shadow: inset 0 0 0 1.5px var(--amber); animation: youPulse 2.4s ease-in-out infinite; }
+.hp.you.on { background: var(--st-good); box-shadow: 0 0 0 2px rgba(76,196,176,.35); }
+.hp.you.on::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--st-good); animation: txRing 2.4s ease-out infinite; }
+@keyframes youPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: .65; } }
+@keyframes lampPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(76,196,176,.55); } 50% { opacity: .6; box-shadow: 0 0 0 6px rgba(76,196,176,0); } }
+@keyframes txRing { from { transform: scale(1); opacity: .9; } to { transform: scale(3); opacity: 0; } }
+/* share: transmitting (on) or dashed invite (off) */
+.tx { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s2) var(--s3); align-items: center; margin-top: var(--s2); padding: var(--s3); border-radius: var(--r-sm); }
+.tx.on { border: 1px solid rgba(76,196,176,.4); background: var(--teal-bg); }
+.tx.off { border: 1px dashed rgba(242,169,59,.6); background: var(--amber-bg); }
+.tx .txt { font-size: .875rem; line-height: 1.45; } .tx .txt .sub { display: block; }
+.txl { position: relative; width: 26px; height: 26px; display: grid; place-items: center; }
+.txl i { position: absolute; width: 8px; height: 8px; border-radius: 50%; }
+.tx.on .txl i:first-child { background: var(--st-good); }
+.tx.on .txl i:nth-child(2), .tx.on .txl i:nth-child(3) { border: 2px solid var(--st-good); animation: txRing 2.4s ease-out infinite; }
+.tx.on .txl i:nth-child(3) { animation-delay: 1.2s; }
+.tx.off .txl i { background: rgba(242,169,59,.25); box-shadow: inset 0 0 0 1.5px var(--amber); animation: youPulse 2.4s ease-in-out infinite; }
+.txbar { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: rgba(76,196,176,.18); overflow: hidden; }
+.txbar i { display: block; height: 100%; background: var(--st-good); animation: txFill 300s linear infinite; }
+@keyframes txFill { from { width: 0; } to { width: 100%; } }
+.txn { grid-column: 1 / -1; font-size: .875rem; color: var(--muted); }
+.tx.off .btn { grid-column: 2; justify-self: start; white-space: nowrap; }
+/* Groups HUD */
+.hud.idle { box-shadow: 0 0 0 1px var(--line); }
+.ghg { grid-template-columns: minmax(11rem, 1.4fr) repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .ghg { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ghg .gscore { grid-row: auto; } }
+@media (max-width: 640px) { .ghg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ghg .gscore { grid-column: 1 / -1; } }
+.gpost { display: flex; align-items: center; gap: var(--s2); font-size: 1.375rem; } .gpost .gicon { width: 2.25rem; height: 2.25rem; }
+.gpips { margin: 2px 0 0; } .gwhere { font-size: 1.125rem; }
+.gg.gnew { background: linear-gradient(180deg, rgba(242,169,59,.10), transparent 70%), var(--panel); }
+.gping { position: relative; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--amber); vertical-align: middle; }
+.gping::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--amber); animation: txRing 1.8s ease-out infinite; }
+.ghud2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; }
+@media (max-width: 1000px) { .ghud2 { grid-template-columns: 1fr; } }
+.gcolL, .gcolR { display: grid; gap: var(--s4); align-content: start; min-width: 0; }
+.gcolL .keen .copyl { padding: 0; border: 0; background: none; box-shadow: none; }
+.gcolL .gcards { grid-template-columns: 1fr; }
+.gcolR .gform { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .hud, .hud *, .hreg * { animation: none !important; } }
+/* About: same as the site */
+/* about */
+.ab-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--s7); align-items: center; margin-top: var(--s6); }
+@media (max-width: 900px) { .ab-hero { grid-template-columns: 1fr; } }
+.ab-me { display: grid; gap: var(--s4); }
+.ab-who { display: flex; align-items: center; gap: var(--s4); }
+.ab-who img { width: 4.5rem; height: 4.5rem; border-radius: 50%; object-fit: cover; border: 2px solid var(--line2); }
+.ab-eye { font: var(--t-label); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; }
+.ab-who h1 { margin: 2px 0 0; font-size: 2.25rem; line-height: 1; letter-spacing: .03em; font-stretch: semi-condensed; }
+.ab-story { margin: 0; font-size: 1.125rem; line-height: 1.6; max-width: 62ch; }
+.ab-acts { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.ab-ship { margin: 0; display: grid; gap: var(--s2); }
+.ab-ship figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s2); font-size: .9375rem; }
+.shot { position: relative; aspect-ratio: 16 / 7; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--well) 0 12px, var(--panel) 12px 24px); }
+.shot.wide { aspect-ratio: 16 / 9; }
+.shot span { font: .8125rem var(--mono); color: var(--muted); padding: var(--s3); text-align: center; }
+.shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ab-h { margin: 0 0 var(--s3); font: 700 .875rem/1.2 var(--font); letter-spacing: .1em; text-transform: uppercase; color: var(--amber); font-stretch: semi-condensed; }
+.ab-how { display: grid; grid-template-columns: minmax(0, 1fr) 1.5rem minmax(0, 1fr) 1.5rem minmax(0, 1fr); gap: var(--s2); align-items: stretch; }
+@media (max-width: 900px) { .ab-how { grid-template-columns: 1fr; } .ab-arrow { transform: rotate(90deg); } }
+.ab-how .frame { padding: var(--s4); display: grid; gap: var(--s3); align-content: start; }
+.ab-how p { margin: 0; font-size: .9375rem; color: var(--muted); }
+.ab-step { display: flex; align-items: baseline; gap: var(--s3); } .ab-step b.n { font-size: 1.5rem; color: var(--amber); line-height: 1; } .ab-step b:last-child { font-size: 1.0625rem; }
+.ab-arrow { display: grid; place-items: center; color: var(--amber); font-size: 1.5rem; }
+.ab-ov { display: flex; flex-direction: column; align-items: flex-end; padding: var(--s3) var(--s4); background: #05070a; border-radius: var(--r-sm); font: .75rem/1.7 var(--mono); color: #d9e1ea; }
+.ab-img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border-radius: var(--r-sm); border: 1px solid var(--line); }
+.ab-mini { display: grid; background: var(--well); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: .875rem; }
+.ab-mini > div { display: flex; justify-content: space-between; padding: 7px var(--s3); } .ab-mini > div + div { border-top: 1px solid var(--line); }
+.ab-mini span { display: inline-flex; align-items: center; gap: 6px; }
+.ab-two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--s6); align-items: start; }
+@media (max-width: 900px) { .ab-two { grid-template-columns: 1fr; } }
+.ab-rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+@media (max-width: 560px) { .ab-rules { grid-template-columns: 1fr; } }
+.ab-rules > div { display: grid; gap: 4px; align-content: start; padding: var(--s4); background: var(--panel); }
+.ab-rules span { font-size: .9375rem; color: var(--muted); }
+.ab-org { overflow: hidden; } .ab-org .shot { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.ab-orgb { padding: var(--s4); display: grid; gap: var(--s2); justify-items: start; } .ab-orgb p { margin: 0; }
+.ab-orgt { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); } .ab-orgt b { font-size: 1.5rem; letter-spacing: .04em; font-stretch: semi-condensed; }
+.ab-orgt code { font-size: .75rem; padding: 2px 7px; border: 1px solid var(--line2); border-radius: 2px; }
+.ab-road { display: grid; } .ab-road > div { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border-top: 1px solid var(--line); }
+.ab-road > div.first { border-top: 0; }
+.ab-road i { width: 12px; height: 12px; border-radius: 50%; justify-self: center; box-shadow: inset 0 0 0 2px var(--ghost-line); }
+.ab-road .next i { box-shadow: inset 0 0 0 2px var(--amber); } .ab-road .next.first i { background: var(--amber); }
+.ab-road b { font: 700 .75rem var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; } .ab-road .next b { color: var(--amber); }
+.ab-thanks { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s3); }
+.ab-thanks li { display: flex; gap: var(--s3); } .ab-thanks li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); margin-top: .55em; flex: none; }
+.ab-ref { border-color: var(--amber-line); }
+.ab-ref a.btn { width: 100%; }
+.refcard { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s6); padding: var(--s5); border-bottom: 1px solid var(--line); background: var(--amber-bg); }
+.refcard .rtext { flex: 1 1 22rem; display: grid; gap: 4px; }
+.refcard small { font: var(--t-label); letter-spacing: .08em; text-transform: uppercase; color: var(--amber); font-stretch: semi-condensed; }
+.refcard b { font-size: 1.25rem; } .refcard .rtext span { color: var(--muted); font-size: .9375rem; }
+.refcard .rcode { display: grid; gap: var(--s2); }
+.refcard .rrow { display: flex; gap: var(--s2); align-items: stretch; }
+.refcard code { font: 600 1.25rem/1 var(--mono); letter-spacing: .04em; padding: var(--s3) var(--s4); border: 1px dashed var(--amber); border-radius: var(--r); background: var(--field); color: var(--amber); white-space: nowrap; }
+.refcard .rrow .btn { height: auto; }
+table.sb .fps-low { font-size: .8125rem; }
+.refcard .rcode > .btn { width: 100%; }
+.abwrap .muted { color: var(--muted); }
+:root { --t-label: 600 .8125rem/1.1rem var(--font); }
+.abwrap .ab-ref { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s4) var(--s6); border-bottom: 1px solid var(--amber-line); }
+.abwrap .ab-ref .rcode { min-width: 0; }
+@media (max-width: 760px) { .abwrap .ab-ref { grid-template-columns: 1fr; } }
+
+/* ===== Set up: systems check + grouped cards ===== */
+.sghud { margin-top: var(--s5); }
+.sgg { grid-template-columns: 10rem repeat(8, minmax(0, 1fr)); }
+@media (max-width: 1200px) { .sgg { grid-template-columns: repeat(5, minmax(0, 1fr)); } .sgg .gscore { grid-row: span 2; } }
+@media (max-width: 700px) { .sgg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sgg .gscore { grid-row: auto; grid-column: 1 / -1; } }
+.gbig small { font-size: 1.125rem; color: var(--muted); font-weight: 600; }
+a.sgc { text-decoration: none; color: var(--text); cursor: pointer; transition: background .15s; } a.sgc:hover { background: var(--raise); color: var(--text); }
+.sgv { display: flex; align-items: center; gap: 8px; font: 600 1rem/1.2 var(--font); }
+.sgv i { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--line2); }
+.sgc.on .sgv i { background: var(--st-good); box-shadow: 0 0 8px rgba(76,196,176,.6); }
+.sgc.warn .sgv i { background: var(--amber); box-shadow: 0 0 8px rgba(242,169,59,.55); animation: youPulse 2.4s ease-in-out infinite; } .sgc.warn .sgv { color: var(--amber); }
+.sgc.off .sgv { color: var(--muted); }
+.sgshare { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); border: 1px dashed rgba(242,169,59,.6); border-radius: var(--r); background: var(--amber-bg); }
+.sgshare p { margin: 0; } .sgshare .txl i { background: rgba(242,169,59,.25); box-shadow: inset 0 0 0 1.5px var(--amber); animation: youPulse 2.4s ease-in-out infinite; }
+@media (max-width: 640px) { .sgshare { grid-template-columns: auto 1fr; } .sgshare .btn { grid-column: 2; justify-self: start; } }
+.sgnav { position: sticky; top: 3rem; z-index: 5; display: flex; gap: 4px; margin-top: var(--s4); padding: var(--s2) 0; overflow-x: auto; scrollbar-width: none; background: var(--bg); border-bottom: 1px solid var(--line); }
+.sgnav::-webkit-scrollbar { display: none; }
+.sgnav a { flex: none; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line2); color: var(--muted); font-size: .8125rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.sgnav a:hover { color: var(--text); border-color: var(--amber); background: var(--amber-bg); }
+.sgroup { margin: var(--s7) 0 0; font: 700 .875rem/1.2 var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--amber); font-stretch: semi-condensed; display: flex; align-items: center; gap: var(--s3); }
+.sgroup::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--amber-line), transparent); }
+.setcard { position: relative; padding: var(--s5) var(--s5) var(--s5) calc(var(--s5) + 4px); gap: var(--s3); scroll-margin-top: 7rem; }
+.setcard::before { content: ""; position: absolute; left: 0; top: var(--s4); bottom: var(--s4); width: 3px; border-radius: 0 2px 2px 0; background: var(--line2); }
+.setcard:has(.state.on)::before, .setcard:has(.onoff [data-v="1"][aria-pressed="true"])::before { background: var(--st-good); }
+.setcard h4 { font-size: 1.125rem; display: flex; align-items: center; gap: var(--s2); }
+.setcard p, .setcard li { color: var(--muted); } .setcard p b, .setcard li b { color: var(--text); }
+.cmd { font-size: 1rem; padding: var(--s3) var(--s4); background: #05070a; border-color: var(--line2); color: #d9e1ea; width: fit-content; }
+.cmd::before { content: "›"; color: var(--amber); font-weight: 700; }
+code.cmdsm { background: #05070a; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--line); }
+.swlist { display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.swrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s4); align-items: center; padding: var(--s3) var(--s4); border-top: 1px solid var(--line); background: var(--well); }
+.swrow:first-child { border-top: 0; } .swrow .swl { display: grid; gap: 2px; }
+.onoff { border-radius: 99px; } .onoff button { min-width: 3.75rem; height: 2rem; }
+.onoff button[data-v="1"][aria-pressed="true"] { background: var(--st-good); color: #06231e; }
+#commCard { border-color: rgba(242,169,59,.5); background: radial-gradient(700px 200px at 100% 0, var(--amber-bg), transparent 60%), var(--panel); }
+#commCard:has(.onoff [data-sw="share"][data-v="1"][aria-pressed="true"]) { border-color: rgba(76,196,176,.45); background: radial-gradient(700px 200px at 100% 0, var(--teal-bg), transparent 60%), var(--panel); }
+#commCard pre.lines { max-height: 16rem; overflow: auto; }
+.setcard .tscroll { max-height: none; overflow-x: auto; overflow-y: visible; }
+.setcard table.switches { width: 100%; } .setcard table.switches td { padding: var(--s3); }
+.setcard table.switches td:last-child { white-space: nowrap; }
+/* use the full card width: no 80ch cap, commands never wrap, no inner scrollbars */
+.setcard p, .setcard li, .setcard .intro { max-width: none; }
+.setcard ul.rules { max-width: none; columns: 2 26rem; column-gap: var(--s6); }
+.setcard ul.rules li { break-inside: avoid; margin-bottom: var(--s2); }
+.cmd, code.cmdsm, .setcard code { white-space: nowrap; }
+.setcard .tscroll { overflow: visible !important; max-height: none !important; }
+.setcard table.switches th, .setcard table.switches td { white-space: nowrap; }
+.setcard table.switches td:first-child { white-space: normal; }
+@media (max-width: 900px) { .setcard .tscroll { overflow-x: auto !important; } }
+/* commands and their USER.cfg state sit on one line */
+.setcard .cmd + p { margin-top: 0; }
+.setcard .fa { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.setcard table.switches td:last-child .state { margin-right: var(--s2); vertical-align: middle; }
+
+/* ===== v3 type floor (brief section 1): small text at least 14px, labels and buttons at least 13px. Port with the design-pass block. ===== */
+.brand p, .tl .t, code, pre.lines, summary, .dchip, .hint, .achip, .dopt, .gform label, .gform .lbl, .hme, small, .about a, .foot, .gtime .sub span, output { font-size: .875rem; }
+.sub span, .sub b, .sub a, .sub code { font-size: inherit; }
+.btn.sm, .seg button, .count, .chip, th, .sevl, .gl, .plab, .ab-eye, li.day, .gn, dt, .tabbar .count, .eyebrow { font-size: .8125rem; }
+.chart .axis text { font-size: 13px; }
+.sgg .gl, .hg .gl { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
+.rhd h4, .tl .x, .tl li.day, .wq .qn, .cnt, .bestmove .eyebrow, .pirate .plab, .pc-stats dt, .where dt, .pline.pbig .plab, .gscore .gl, .ab-road b, .tip b { font-size: .8125rem; }
+.refcard small { font-size: .8125rem; }
+.ab-orgt code, .ab-ov, .ab-ov span, .ab-ov small, .about-sub, details.why > summary, .chatbox details.ex > summary { font-size: .875rem; }
 </style>
 </head>
 <body>
@@ -372,15 +825,14 @@ button.pill.mark:hover { background: var(--teal); color: #06221d; }
 <header class="top">
   <div class="brand">
     <span class="mark" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="15" cy="15" r="12"/><path d="M5 17h5l3-7 4 12 3-7h5" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
-    <div><h1>Shard status</h1><p>SC Shard Status v__VERSION__ · by Aurelius_Draco</p></div>
+    <div><h1>Verse Shards</h1><p>for PC · v__VERSION__</p></div>
   </div>
+  <span class="stat" id="shardPill"><i></i><span>No shard yet</span></span>
+  <span class="stat" id="ovPill" title="Reading the game's debug overlay"><i></i><span>Overlay</span></span>
   <span class="grow"></span>
-  <a class="pill plink comm" href="https://verseshards.com" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">Community site: verseshards.com</a>
-  <a class="pill plink" href="https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest" target="_blank" rel="noopener" title="Free download on GitHub">Get SC Inventory Tracker</a>
-  <button type="button" class="pill plink upd" id="updPill" hidden></button>
-  <button type="button" class="pill mark" id="markBtn" title="Something just went wrong? Mark it and keep playing. What's gone wrong? looks at this moment later.">Mark this moment</button>
-  <span class="pill" id="shardPill"><i></i><span>No shard yet</span></span>
-  <span class="pill" id="ovPill" title="Reading the game's debug overlay"><i></i><span>Overlay</span></span>
+  <button type="button" class="pill plink upd" data-protected="true" id="updPill" hidden></button>
+  <button type="button" class="btn sm ghost" data-protected="true" id="markBtn" title="Something just went wrong? Mark it and keep playing. What's gone wrong? looks at this moment later.">Mark this moment</button>
+  <a class="hlink" href="https://verseshards.com" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">verseshards.com ↗</a>
 </header>
 
 <nav class="tabbar" role="tablist" aria-label="Sections">
@@ -389,7 +841,7 @@ button.pill.mark:hover { background: var(--teal); color: #06221d; }
   <button role="tab" data-tab="timeline">Timeline</button>
   <button role="tab" data-tab="groups">Groups <span class="count" id="grpCount"></span></button>
   <button role="tab" data-tab="history">History</button>
-  <button role="tab" data-tab="pc">My PC</button>
+  <button role="tab" data-tab="pc">My pilot</button>
   <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
   <button role="tab" data-tab="setup" class="t2 tsetup"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Set up <i class="dot" id="setupDot" hidden></i></button>
   <button role="tab" data-tab="about">About</button>
@@ -421,11 +873,12 @@ async function api(path, body) {
   return j;
 }
 function toast(msg, err) {
+  document.querySelectorAll("body > .toast").forEach(x => x.remove());
   const t = document.createElement("div"); t.className = "toast" + (err ? " err" : ""); t.setAttribute("role", "status"); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), 5000);
 }
 
-let tab = "now", nowData = null, lastCheck = null, timer = null;
+let tab = "now", nowData = null, lastCheck = null, timer = null, autoCheck = false;
 try { tab = sessionStorage.getItem("tab") || "now"; } catch (e) {}
 document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => show(b.dataset.tab));
 
@@ -449,12 +902,12 @@ function show(t) {
 function header(d) {
   const sp = $("shardPill"), op = $("ovPill");
   const sh = d.shard || {};
-  sp.className = "pill" + (sh.id ? " on" : "");
-  sp.querySelector("span").textContent = sh.id ? `${sh.name || sh.id}  ·  ${sh.region}` : (d.game_found ? "Not in the PU yet" : "Game.log not found");
+  sp.className = "stat" + (sh.id ? " on" : "");
+  sp.querySelector("span").textContent = sh.id ? `${sh.name || sh.id} · ${sh.region}` : (d.game_found ? "Not in the PU yet" : "Game.log not found");
   sp.title = sh.id || "";
   const st = d.overlay_status || "off";
-  op.className = "pill" + (st === "reading" ? " on" : st === "off" ? "" : " warn");
-  op.querySelector("span").textContent = st === "reading" ? "Overlay: reading" : st === "off" ? "Overlay: off" : st.startsWith("overlay off") ? "Overlay off, readings paused" : "Overlay: " + st.split(" (")[0];
+  op.className = "stat" + (st === "reading" ? " on" : st === "off" ? "" : " warn");
+  op.querySelector("span").textContent = st === "reading" ? "Overlay reading" : st === "off" ? "Overlay off" : st.startsWith("overlay off") ? "Overlay off, readings paused" : "Overlay: " + st.split(" (")[0];
   op.title = st;
   $("libCount").textContent = d.library && d.library.problem ? d.library.problem : "";
   const u = d.update || {}, up = $("updPill");
@@ -468,16 +921,32 @@ function header(d) {
 $("markBtn").onclick = async () => {
   try { const r = await api("/api/mark", {}); toast(r.message); if (tab === "check") renderCheck(); } catch (e) { toast(e.message, true); }
 };
-// Lines for global chat: each its own Copy button, then a separate "Found this on Verse Shards"
-function chatBox(lines, title = "Copy for global chat") {
+// Lines for global chat: the best one up front, then "Found this on Verse Shards: verseshards.com" as its own row, the rest folded.
+let FTS = true;
+try { FTS = localStorage.getItem("fts") !== "0"; } catch (e) {}
+// Folds that stay open when the Now tab redraws every few seconds
+const keepOpen = new Set();
+document.addEventListener("toggle", e => { const k = e.target.dataset && e.target.dataset.keep; if (k) { if (e.target.open) keepOpen.add(k); else keepOpen.delete(k); } }, true);
+const kept = k => `data-keep="${k}" ${keepOpen.has(k) ? "open" : ""}`;
+function chatBox(lines, title = "Copy for global chat", key = "chat") {
   if (!lines || !lines.length) return "";
-  const all = lines.concat(["Found this on Verse Shards"]);
-  return `<div class="frame copyl"><div class="rhd"><h4>${esc(title)}</h4></div>${all.map((l, i) => `<div class="cl ${i === all.length - 1 ? "fts" : ""}"><span>${esc(l)}</span><button class="btn sm ghost" type="button" data-chat="${esc(l)}">Copy</button></div>`).join("")}</div>`;
+  const row = l => `<div class="chatline"><span>${esc(l)}</span><button class="btn sm ghost" type="button" data-protected="true" data-chat="${esc(l)}">Copy</button></div>`;
+  const more = lines.length - 1;
+  return `<div class="frame chatbox"><div class="rhd"><h4>${esc(title)}</h4><span class="sub">Paste the first line, then the second so people know where it came from.</span></div>
+    ${row(lines[0])}<div class="chatline src"><span>Found this on Verse Shards: verseshards.com</span><button class="btn sm ghost" type="button" data-protected="true" data-chat="Found this on Verse Shards: verseshards.com">Copy</button></div>${more ? `<details class="ex" ${kept(key)}><summary>${more} more line${more > 1 ? "s" : ""}</summary><div class="chatmore">${lines.slice(1).map(row).join("")}</div></details>` : ""}</div>`;
 }
+function chatText(line) { return line; } // the source line is its own row now, so nothing is appended
+document.addEventListener("change", e => {
+  if (!e.target.matches("[data-fts]")) return;
+  FTS = e.target.checked;
+  try { localStorage.setItem("fts", FTS ? "1" : "0"); } catch (x) {}
+  document.querySelectorAll("[data-fts]").forEach(x => x.checked = FTS);
+});
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-chat]"); if (!b) return;
-  try { await navigator.clipboard.writeText(b.dataset.chat); } catch (x) { const ta = document.createElement("textarea"); ta.value = b.dataset.chat; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
-  toast("Copied. Paste it into chat in game.");
+  const plain = b.hasAttribute("data-plain"), t = plain ? b.dataset.chat : chatText(b.dataset.chat);
+  try { await navigator.clipboard.writeText(t); } catch (x) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  toast(plain ? `✓ Copied ${t}. Send them a party invite in game.` : "✓ Copied. In game press Enter, then Ctrl+V.");
 });
 
 /* ---------- updates ---------- */
@@ -490,7 +959,7 @@ function updNotice(u) {
   const notes = u.notes ? `<details class="ex" id="updNotes" ${notesOpen ? "open" : ""}><summary>What's new in ${esc(u.latest)}</summary><pre class="relnotes">${esc(u.notes)}</pre></details>` : "";
   const err = u.state === "failed" && u.error ? `<br><span class="sub">${esc(u.error)}</span>` : "";
   return u.can_install
-    ? `<div class="notice"><div class="nt"><b>Version ${esc(u.latest)} is out</b> (you have ${esc(u.current)}). Update now and the app closes, installs it and starts again in about a minute. Your settings and history stay as they are.${err}${notes}</div><button class="btn sm" data-upd="install">Update now</button></div>`
+    ? `<div class="notice"><div class="nt"><b>Version ${esc(u.latest)} is out</b> (you have ${esc(u.current)}). Update now and the app closes, installs it and starts again in about a minute. Your settings and history stay as they are.${err}${notes}</div><button class="btn sm" data-protected="true" data-upd="install">Update now</button></div>`
     : `<div class="notice"><p><b>Version ${esc(u.latest)} is out</b> (you have ${esc(u.current)}). ${u.installed_app ? "" : "From this version on there's a proper installer that keeps itself up to date. Download it once and it brings your settings across from this folder by itself."}${err}${notes}</div><a class="btn sm" href="${esc(u.installed_app ? u.url : u.download_page)}" target="_blank" rel="noopener">${u.installed_app ? "Open the release" : "Get the installer"}</a></div>`;
 }
 let restartWatch = null, notesOpen = false;
@@ -578,6 +1047,29 @@ function barChart(el, rows, key, color, unit) {
 function cls(v, good, warn) { if (v === null || v === undefined) return ""; return v >= good ? "good" : v >= warn ? "warn" : "rust"; }
 function clsLow(v, good, warn) { if (v === null || v === undefined) return ""; return v <= good ? "good" : v <= warn ? "warn" : "rust"; }
 
+// Traffic lights, same as the site: high = Critical (red), medium = Major (amber), low = Minor (green); info is neutral
+const SEV_WORD = {high: "Critical", medium: "Major", low: "Minor"};
+const sevTag = (sev, kind) => kind === "info" ? `<span class="sevl info">Info</span>` : (k => `<span class="sevl ${k}"><span class="tlights" aria-hidden="true"><i></i><i></i><i></i></span>${SEV_WORD[k]}</span>`)(SEV_WORD[sev] ? sev : "low");
+const sevRank = (sev, kind) => kind === "info" ? 3 : ({high: 0, medium: 1, low: 2}[sev] ?? 2);
+/* NEW in v3 on /api/now: pirates_here {here, elsewhere, area_name}, groups_on_shard, sharing {on, fed_week, status}, crash {ts, after_code} */
+let dialSwept = false;
+const nudgeHidden = () => { try { return sessionStorage.getItem("nudgeNo") === "1"; } catch (e) { return false; } };
+// Pirate reports in the area you're in, as one line; if none here but some elsewhere on your shard, a quieter line
+function pirHere(d) {
+  const p = d.pirates_here; if (!p) return "";
+  if (p.here) { const x = p.here, two = x.reporters >= 2;
+    return `<div class="pirate${two ? "" : " one"}"><i class="edge" aria-hidden="true"></i><b class="plab">Pirates</b><span class="ptxt">${two ? `${x.reporters} pirate reports` : "1 pirate report"} near ${esc(x.area_name)} in the last 45 min</span><span class="pclr">clears in ${minsLeft(x.expires)}</span></div>`; }
+  if (p.elsewhere) return `<p class="pquiet">Nothing reported near ${esc(p.area_name || "you")}. ${p.elsewhere.reporters >= 2 ? `${p.elsewhere.reporters} reports` : "1 report"} near ${esc(p.elsewhere.area_name)} on this shard.</p>`;
+  return "";
+}
+const groupsHere = d => d.groups_on_shard || 0;
+const sharing = d => d.sharing || {on: false, fed_week: 0};
+// Library titles, for the crash line ("after the graphics driver crashed"); loaded once
+let libTitles = null;
+function libTitle(id) {
+  if (!libTitles) { libTitles = {}; api("/api/issues").then(L => { (L.rules || []).forEach(r => libTitles[r.id] = generic(r.title)); if (tab === "now") renderNow(); }).catch(() => {}); }
+  return libTitles[id] || "";
+}
 async function renderNow() {
   let d;
   try { d = await api("/api/now"); } catch (e) { $("view").innerHTML = `<div class="empty"><h3>Lost contact with the app</h3><p>${esc(e.message)}. Is the SC Shard Status window still open?</p></div>`; return; }
@@ -585,59 +1077,112 @@ async function renderNow() {
   if (tab !== "now") return;
   const h = d.health, s = d.session || {}, sh = d.shard || {};
   const score = h.score, circ = 2 * Math.PI * 52, frac = score === null ? 0 : score / 100;
-  const col = {good: "var(--teal)", ok: "var(--fresh)", poor: "var(--amber)", bad: "var(--rust)"}[h.cls] || "var(--line2)";
+  const col = {good: "var(--st-good)", ok: "var(--st-ok)", poor: "var(--st-poor)", bad: "var(--st-bad)"}[h.cls] || "var(--line2)";
+  // The ring sweeps up to the score once per run, not on every 5-second refresh
+  const sweep = !dialSwept && score !== null; if (score !== null) dialSwept = true;
+  const pir = pirHere(d), gOn = groupsHere(d), share = sharing(d);
+  const comm0 = d.community, mineB = comm0 && comm0.mine, myRep = mineB ? mineB.reporters : 0;
+  let nudge = "";
+  if (share && share.on === false && !nudgeHidden()) {
+    const nm = esc((d.shard && d.shard.name) || "your shard");
+    if (h.cls === "poor" || h.cls === "bad" || (h.restarts || 0) > 0) nudge = `${nm} is having a rough time. Sharing lets other players see it before they start a run.`;
+    else if (comm0 && !myRep) nudge = `Nobody's sharing from ${nm} right now. Turn on sharing and you're the first.`;
+    else if (comm0 && myRep === 1) nudge = `Your readings would take ${nm} from First look to Fair.`;
+  }
   const setup = [];
   const un = updNotice(d.update);
   if (un) setup.push(un);
   if (d.rsi) setup.push(`<div class="notice rust"><p><b>RSI reports a problem right now:</b> ${esc((d.rsi.issues || []).map(i => i.system + ": " + i.title).join("; ") || "see their status page")}.</p><a class="btn sm ghost" href="https://status.robertsspaceindustries.com/" target="_blank" rel="noopener">RSI status</a></div>`);
-  if (d.patch && d.patch.new) setup.push(`<div class="notice"><p><b>New game build today</b> (${esc(d.patch.build)}, was ${esc(d.patch.previous)}). The first day after a patch, servers are often busier and slower than usual. Your "usual fps on this patch" starts again from nothing, so that comparison shows once you've played a while. Some known issues may be fixed and new ones may turn up; <a href="${esc(COMMUNITY_SITE)}/issues" target="_blank" rel="noopener">the community site</a> marks which ones players are still hitting.</p><button class="btn sm ghost" data-dismiss="patch">Got it</button></div>`);
-  if (d.migrated_from) setup.push(`<div class="notice teal"><p><b>Your settings and history came across</b> from the copy you unzipped before, in <code>${esc(d.migrated_from)}</code>. That folder isn't used any more, so delete it when you're ready.</p><button class="btn sm ghost" data-dismiss="migrated">Got it</button></div>`);
+  if (d.patch && d.patch.new) setup.push(`<div class="notice"><p><b>New game build today</b> (${esc(d.patch.build)}, was ${esc(d.patch.previous)}). The first day after a patch, servers are often busier and slower than usual. Your "usual fps on this patch" starts again from nothing, so that comparison shows once you've played a while. Some known issues may be fixed and new ones may turn up; <a href="${esc(COMMUNITY_SITE)}/issues" target="_blank" rel="noopener">the community site</a> marks which ones players are still hitting.</p><button class="btn sm ghost" data-protected="true" data-dismiss="patch">Got it</button></div>`);
+  if (d.migrated_from) setup.push(`<div class="notice teal"><p><b>Your settings and history came across</b> from the copy you unzipped before, in <code>${esc(d.migrated_from)}</code>. That folder isn't used any more, so delete it when you're ready.</p><button class="btn sm ghost" data-protected="true" data-dismiss="migrated">Got it</button></div>`);
   if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game folder not found yet.</b> Start Star Citizen and the app picks it up by itself, or paste the folder on the Set up tab.</p><button class="btn sm" id="goSetup3">Set up</button></div>`);
   if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
-    setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on. The Set up tab explains both settings.</p><button class="btn sm ghost" id="addCfg">Add to USER.cfg</button><button class="btn sm ghost" id="goSetup">Set up</button></div>`);
+    setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on. The Set up tab explains both settings.</p><button class="btn sm ghost" data-protected="true" id="addCfg">Add to USER.cfg</button><button class="btn sm ghost" id="goSetup">Set up</button></div>`);
   if (d.readings_paused) setup.push(`<div class="notice"><p><b>Overlay off, readings paused.</b> The numbers below are from before. Type <code>r_displayinfo 3</code> in the console to start again (bright scenery behind the text pauses it too).</p></div>`);
   const g = d.groups || {};
-  if (g.offer) setup.push(`<div class="notice rust"><p><b>Your ${esc(g.offer.ship)} was destroyed near ${esc(g.offer.area_name)}${g.offer.ts ? " at " + tm(g.offer.ts) : ""}.</b> Was it another player? Report pirate activity in this area so others can take care. Only the area is sent, never the exact spot, and it clears after 45 minutes.</p><button class="btn sm" data-pirate="post">Report pirate activity here</button><button class="btn sm ghost" data-pirate="no">No, it wasn't</button></div>`);
+  if (g.offer) setup.push(`<div class="notice rust"><p><b>Your ${esc(g.offer.ship)} was destroyed near ${esc(g.offer.area_name)}${g.offer.ts ? " at " + tm(g.offer.ts) : ""}.</b> Was it another player? Report pirate activity in this area so others can take care. Only the area is sent, never the exact spot, and it clears after 45 minutes.</p><button class="btn sm" data-protected="true" data-pirate="post">Report pirate activity here</button><button class="btn sm ghost" data-protected="true" data-pirate="no">No, it wasn't</button></div>`);
   if ((g.interest || []).length) setup.push(`<div class="notice teal"><p><b>${g.interest.length === 1 ? "Someone's" : g.interest.length + " players are"} keen to join:</b> ${g.interest.slice(0, 5).map(i => `<b>${esc(i.handle)}</b>${i.note ? ` ("${esc(i.note)}")` : ""}`).join(", ")}. Send them a party invite in game.</p><button class="btn sm ghost" id="goGroups">Groups</button></div>`);
   const cmp = d.compare;
   const cmpTxt = cmp ? `${Math.abs(cmp.diff_pct)}% ${cmp.diff_pct >= 0 ? "above" : "below"} your usual ${cmp.your_median} fps on this patch` : "";
+  // The next step goes straight under the verdict, so it's on screen in a small window beside the game
+  const trouble = h.cls === "poor" || h.cls === "bad" || !!d.crash;
+  const hop = hopTo(d);
+  const smooth = h.cls === "good" && cmp && cmp.diff_pct >= 5;
+  const pts = h.points || [];
+  const lines = d.chat_lines || [];
+  // ---- Cockpit HUD (Now tab, direction 1b) ----
+  const crash = d.crash || null;
+  const edgeCls = crash ? "alarm" : {good: "calm", ok: "calm", poor: "breath", bad: "beacon"}[h.cls] || "idle";
+  const sp = (d.spark || []).filter((p, k, a) => (a.length - 1 - k) % 5 === 0).slice(-14);
+  const gb = (key, cf, max) => { const v = sp.map(p => p[key]).filter(x => x !== null && x !== undefined); if (v.length < 2) return `<span class="gbars"></span>`; const mx = max || Math.max(1, ...v) * 1.1;
+    return `<span class="gbars">${v.map(x => `<i style="height:${Math.max(3, Math.round(x / mx * 24))}px;background:${cf(x)}"></i>`).join("")}</span>`; };
+  const fpsC = x => x >= 15 ? "var(--st-good)" : x >= 9 ? "var(--st-poor)" : "var(--st-bad)";
+  const pingC = x => x <= 80 ? "var(--st-good)" : x <= 200 ? "var(--st-poor)" : "var(--st-bad)";
+  const flat = () => "#4a7f9a";
+  const tone = (v, good, bad, low) => v === null || v === undefined ? "" : low ? (v <= good ? "good" : v <= bad ? "poor" : "bad") : (v >= good ? "good" : v >= bad ? "poor" : "bad");
+  const gauge = (l, v, t, bars, sub) => `<div class="gg"><span class="gl">${l}</span><span class="gv ${t}">${v}</span>${bars}${sub ? `<span class="gs">${sub}</span>` : ""}</div>`;
+  const srvName = h.server_name ? h.server_name.split("-").slice(-1)[0] : "";
+  const areaName = d.where && d.where.area_name;
+  const c0 = d.community, shareOn = share ? share.on : false;
+  const pip = (cl) => `<i class="hp ${cl}"></i>`;
+  const regRow = x => {
+    const me = mineB && x.shard_id === mineB.shard_id, n = Math.min(5, x.reporters || 0);
+    const conf = x.reporters >= 3 ? "Solid" : x.reporters === 2 ? "Fair" : "First look";
+    const others = me && shareOn ? Math.max(0, n - 1) : n;
+    const pips = Array.from({length: others}, () => pip("lit")).join("") + (me ? pip(shareOn ? "you on" : "you off") : "") + Array.from({length: Math.max(0, 5 - others - (me ? 1 : 0))}, () => pip("")).join("");
+    const areas = [...new Set((x.servers || []).flatMap(v => v.areas.map(a => a.name)))].slice(0, 2).join(", ");
+    return `<div class="hr${me ? (shareOn ? " me on" : " me off") : ""}"><b class="hs ${x.cls}">${x.score}</b><span class="hn"><b>${esc(x.name || x.shard_id)}${me ? " · you" : ""}</b><span>${esc(areas)}${areas ? " · " : ""}${conf}, ${x.reporters} sharing${me && !shareOn ? " · you could be next" : ""}</span></span><span class="hpips">${pips}</span></div>`;
+  };
+  const sinceSend = Math.floor(Date.now() / 1000) % 300;
+  const txCrash = `<div class="tx off"><span class="txl"><i></i></span><span class="txt"><b>Nothing going out.</b> The game isn't running, so there's nothing to share. Sharing picks up again when you're back in the 'verse.</span></div>`;
+  const txOn = `<div class="tx on"><span class="txl"><i></i><i></i><i></i></span><span class="txt"><b>On the board.</b> ${trouble ? "Your readings are warning players off this shard right now." : "Your readings help players pick a healthy shard."}${share && share.fed_week ? ` Fed it ${share.fed_week} times this week.` : ""}</span>
+    <span class="txbar"><i style="animation-delay:-${sinceSend}s"></i></span><span class="txn">Next summary in about ${Math.max(1, Math.round((300 - sinceSend) / 60))} min</span></div>`;
+  const txOff = `<div class="tx off"><span class="txl"><i></i></span><span class="txt">${nudge || (mineB ? `<b>The dashed pip is you.</b> Share readings and ${esc((d.shard && d.shard.name) || "your shard")} gets one more pilot on the board.` : "<b>Your shard isn't on the board.</b> Share readings and you're the first.")} <span class="sub">One summary every 5 minutes, never your handle.</span></span>
+    <span class="txa"><button class="btn sm" type="button" id="goShare">Put ${esc((d.shard && d.shard.name) || "it")} on the board</button><button class="link" type="button" id="seeSent">See what's sent</button>${nudge ? `<button class="link" type="button" id="nudgeNo">Not now</button>` : ""}</span></div>`;
   $("view").innerHTML = `
-  <section class="hero frame">
-    <div class="dial" role="img" aria-label="Shard health ${score ?? "unknown"} out of 100">
-      <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="9"/>
-        <circle cx="60" cy="60" r="52" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(circ * frac).toFixed(1)} ${circ.toFixed(1)}"/></svg>
-      <div class="val"><b>${score ?? "–"}</b><span>health / 100</span></div>
-    </div>
-    <div class="hmain">
-      <span class="verdict v-${h.cls}"><i></i>${esc(h.label)}</span>
-      <p class="summary">${esc(h.summary)}</p>
-      ${h.points && h.points.length ? `<ul class="tips">${h.points.map(p => `<li class="notice"><p>${esc(p)}</p></li>`).join("")}</ul>` : ""}
-      <div class="shardline">${sh.id ? `<span title="${esc(sh.id)}">Shard <b>${esc(sh.name || sh.id)}</b></span><span>${esc(sh.region)}</span>` : ""}
-        ${h.server_name ? `<span>Server <code>${esc(h.server_name.split("-").slice(-2).join("-"))}</code>${d.where && d.where.area_name ? `, running ${esc(d.where.area_name)}` : ""}</span>` : ""}
-        ${d.where ? `<span>At ${esc(d.where.place)}</span>` : h.location ? `<span>At <code>${esc(h.location)}</code></span>` : ""}
-        ${h.ts ? `<span>Last reading ${ago(h.ts)}</span>` : ""}${cmpTxt ? `<span>${esc(cmpTxt)}</span>` : ""}</div>
+  <section class="hud ${edgeCls}">
+    ${crash ? `<div class="hazard" aria-hidden="true"></div>` : ""}
+    <div class="hbar${sweep ? " sweep" : ""}"><i style="width:${score === null ? 0 : score}%;background:${col}"></i></div>
+    <div class="hg">
+      <div class="gg gscore"><span class="gl ${crash ? "bad" : h.cls}">${crash ? "Crashed" : esc(h.label)}</span><span class="gbig">${score ?? "–"}</span><span class="gs">${crash ? "game closed at " + tm(crash.ts) : "health / 100"}</span></div>
+      ${gauge("Server fps", fmt(h.server_fps, 1), tone(h.server_fps, 15, 9), gb("server_fps", fpsC, 30), h.server_fps_low != null ? `low ${fmt(h.server_fps_low, 1)}` : "")}
+      ${gauge("On your server", fmt(h.pop_srv), "", gb("pop_srv", flat), "")}
+      ${gauge("On the shard", fmt(h.pop_shard), "", gb("pop_shard", flat), "")}
+      ${gauge("Ping", h.ping_ms == null ? "–" : fmt(h.ping_ms) + "<small> ms</small>", tone(h.ping_ms, 80, 200, true), gb("ping_ms", pingC, 300), "")}
+      ${gauge("Packet loss", h.loss_pct == null ? "–" : h.loss_pct + "%", tone(h.loss_pct, 0.4, 2, true), "", `${h.hitches || 0} ${(h.hitches || 0) === 1 ? "hitch" : "hitches"} · ${plural(h.restarts || 0, "restart")}`)}
+      ${gauge("Your fps", fmt(h.client_fps), "", gb("client_fps", flat), "")}
     </div>
   </section>
+  <section class="hud2">
+    <div class="frame hsit">
+      <span class="hl">Situation${sh.id ? ` · ${esc(sh.name || sh.id)}` : ""}${srvName ? ` · server ${esc(srvName)}` : ""}${areaName ? `, ${esc(areaName)}` : ""}</span>
+      ${crash ? `<div class="crashline" role="alert"><b>Star Citizen closed without a clean exit at ${tm(crash.ts)}.</b> ${crash.after_code && libTitle(crash.after_code) ? `Just before, the log shows: ${esc(libTitle(crash.after_code))}.` : "Game.log stops without the usual shutdown lines."} What's gone wrong? looks at the last few minutes before it closed.</div>`
+        : `<p class="hv">${esc(h.summary)}</p>`}
+      ${smooth ? `<p class="goodline">Smooth flying. ${esc(cmpTxt.charAt(0).toUpperCase() + cmpTxt.slice(1))}.</p>` : ""}
+      ${pts.length ? `<ul class="hwhy">${pts.slice(0, 2).map(p => `<li>${esc(p)}</li>`).join("")}</ul>${pts.length > 2 ? `<details class="why"><summary>${pts.length - 2} more</summary><ul class="hwhy">${pts.slice(2).map(p => `<li>${esc(p)}</li>`).join("")}</ul></details>` : ""}` : ""}
+      ${hop ? `<div class="hhop"><b>Hop:</b> ${esc(hop.name || hop.shard_id)} is at ${hop.score} with ${fmt(hop.server_fps, 1)} fps, from ${hop.reporters} players. A server hop could land you there, though the game picks the shard.</div>` : ""}
+      ${pir || ""}
+      <div class="hacts">${trouble ? `<button class="btn" data-protected="true" id="goCheck">What's gone wrong?</button>` : `<button class="btn ghost" data-protected="true" id="markNow">Mark this moment</button>`}
+        ${lines.length ? `<button class="btn ghost" type="button" data-protected="true" data-chat="${esc(lines[0])}">Copy for chat</button>` : ""}
+        <button class="btn pirbtn" type="button" data-protected="true" id="pirNow" ${areaName ? "" : "disabled"}>Pirates near ${esc(areaName || "here")}</button></div>
+      <span class="sub">${esc([d.where ? `At ${d.where.place}` : "", h.ts ? `last reading ${ago(h.ts)}` : "", cmpTxt && !smooth ? cmpTxt : ""].filter(Boolean).join(" · "))}</span>
+    </div>
+    <div class="frame hreg">
+      ${c0 ? `<div class="hrh"><span class="hl">${esc(c0.region || "Your region")} on the board</span><span class="hme ${shareOn ? "on" : ""}"><i></i>${shareOn ? "You: on the board" : "You: not on the board"}</span></div>
+        ${(() => { const rows = (c0.shards || []).slice(0, 5).map(regRow);
+          // Not sharing and nobody else is either: show your shard from your own readings, dashed, so the gap is visible
+          if (!mineB && !shareOn && sh.id && score !== null) rows.push(`<div class="hr me off"><b class="hs ${h.cls}">${score}</b><span class="hn"><b>${esc(sh.name || sh.id)} · you</b><span>Not on the board · nobody sharing from it</span></span><span class="hpips">${pip("you off")}${pip("")}${pip("")}${pip("")}${pip("")}</span></div>`);
+          return rows.join("") || `<p class="sub">Nobody in your region is sharing right now.</p>`; })()}
+        ${shareOn ? (d.crash ? txCrash : txOn) : txOff}
+        <a class="sub" href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">Open the full board ↗</a>`
+      : `<span class="hl">Your region on the board</span><p class="sub" style="margin:0">Turn on the community board to see which shard in your region is running best, from players' own readings. It sends nothing about you.</p><button class="btn sm ghost" id="goSetup4">Turn it on</button>`}
+    </div>
+  </section>
+  ${gOn ? `<p class="sec grpline"><span class="gicon sm" aria-hidden="true">G</span><span>${plural(gOn, "group")} recruiting on your shard right now.</span> <a href="${esc(COMMUNITY_SITE)}/groups" target="_blank" rel="noopener">Open on Verse Shards</a></p>` : ""}
   ${setup.length ? `<div class="sec" style="display:grid;gap:var(--s2)">${setup.join("")}</div>` : ""}
-  ${d.alerts && d.alerts.length ? `<section class="sec"><h3>Alerts this run <span>also sent as Windows notifications</span></h3><div class="frame alist">${d.alerts.map(a => `<div><b>${tm(a.ts)}</b><span><b>${esc(a.title)}</b> ${esc(a.body)}</span></div>`).join("")}</div></section>` : ""}
-  <section class="sec"><h3>Live numbers <span>from the game's overlay, median of the last 5 minutes</span></h3>
-    <dl class="readout">
-      <div class="cell ${cls(h.server_fps, 18, 10)}"><dt>Server fps</dt><dd>${fmt(h.server_fps, 1)}${h.server_fps_low != null ? `<small>low ${fmt(h.server_fps_low, 1)}</small>` : ""}</dd></div>
-      <div class="cell"><dt>Players on shard</dt><dd>${fmt(h.pop_shard)}</dd></div>
-      <div class="cell"><dt>On your server</dt><dd>${fmt(h.pop_srv)}</dd></div>
-      <div class="cell ${clsLow(h.ping_ms, 80, 200)}"><dt>Ping</dt><dd>${fmt(h.ping_ms)}<small>ms</small></dd></div>
-      <div class="cell ${clsLow(h.loss_pct, 0.4, 2)}"><dt>Packet loss</dt><dd>${h.loss_pct == null ? "–" : h.loss_pct + "%"}</dd></div>
-      <div class="cell ${clsLow(h.hitches, 0, 3)}"><dt>Hitches</dt><dd>${fmt(h.hitches)}</dd></div>
-      <div class="cell ${clsLow(h.restarts, 0, 0)}"><dt>Restarts while on</dt><dd>${fmt(h.restarts)}</dd></div>
-      <div class="cell"><dt>Your fps</dt><dd>${fmt(h.client_fps)}</dd></div>
-    </dl>
-  </section>
-  ${d.chat_lines && d.chat_lines.length ? `<section class="sec">${chatBox(d.chat_lines)}</section>` : ""}
-  ${commSection(d)}
-  <section class="sec grid2">
-    <div class="frame card"><h4>Server fps</h4><span class="sub">Last hour. About 20 is normal on 4.10.</span><div class="chart" id="cFps"></div></div>
-    <div class="frame card"><h4>Players on your server</h4><span class="sub">Last hour. The server node you're on, not the whole shard.</span><div class="chart" id="cPop"></div></div>
-  </section>
+  ${d.alerts && d.alerts.length ? `<section class="sec"><h3>Alerts this run <span>also sent as Windows notifications</span></h3><div class="frame alist">${d.alerts.slice().reverse().map(a => { const hm = a.key === "group" && /^(\S+) wants to join/.exec(a.body || ""); return `<div class="arow ${esc(a.key || "")}"><span class="at">${tm(a.ts)}</span><i class="ad"></i><span class="ab"><b>${esc(a.title)}</b><span>${esc(a.body)}</span></span>${hm ? `<button class="btn sm" type="button" data-protected="true" data-chat="${esc(hm[1])}" data-plain>Copy ${esc(hm[1])}</button>` : "<span></span>"}</div>`; }).join("")}</div></section>` : ""}
+
+  ${lines.length ? `<section class="sec">${chatBox(lines)}</section>` : ""}
   <section class="sec grid2">
     <div class="frame card"><h4>This session</h4>
       <dl class="readout" style="margin-top:var(--s3)">
@@ -657,37 +1202,52 @@ async function renderNow() {
   ${h.score !== null ? `<p class="sub" style="margin-top:var(--s5)">Overlay in the way? Press <kbd>~</kbd> and type <code>r_displayinfo 0</code> to hide it; <code>r_displayinfo 3</code> brings it back. <button class="link" id="goSetup2">More on the switches</button></p>` : ""}
   <p class="sub" style="margin-top:var(--s4)">Finding this useful? A star on GitHub helps other players find it and trust it. <a href="https://github.com/Aurelius-Draco/sc-shard-status" target="_blank" rel="noopener">★ Star on GitHub</a></p>
   <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
-  lineChart($("cFps"), d.spark, "server_fps", "var(--amber)", "fps", "Server fps");
-  lineChart($("cPop"), d.spark, "pop_srv", "var(--teal)", "players", "Players on your server");
   const b = $("addCfg");
   if (b) b.onclick = async () => { try { const r = await api("/api/usercfg", {name: "r_displayinfo"}); toast(r.message); renderNow(); } catch (e) { toast(e.message, true); } };
   if ($("goSetup")) $("goSetup").onclick = () => show("setup");
   if ($("goSetup2")) $("goSetup2").onclick = () => show("setup");
   if ($("goSetup3")) $("goSetup3").onclick = () => show("setup");
   if ($("goGroups")) $("goGroups").onclick = () => show("groups");
+  if ($("goCheck")) $("goCheck").onclick = () => { autoCheck = true; show("check"); };
   $("view").querySelectorAll("[data-pirate]").forEach(b => b.onclick = async () => {
     try {
       const r = b.dataset.pirate === "post" ? await api("/api/groups/post", {kind: "pirate"}) : await api("/api/groups/dismiss", {});
       if (b.dataset.pirate === "post") toast(r.message); b.closest(".notice").remove();
     } catch (e) { toast(e.message, true); }
   });
+  if ($("markNow")) $("markNow").onclick = async () => { try { const r = await api("/api/mark", {}); toast(r.message); } catch (e) { toast(e.message, true); } };
+  if ($("pirNow")) $("pirNow").onclick = async e => { const b = e.currentTarget; b.disabled = true; try { const r = await api("/api/groups/post", {kind: "pirate"}); toast(r.message); b.textContent = "Reported. Thanks"; } catch (x) { toast(x.message, true); b.disabled = false; } };
+  if ($("goShare")) $("goShare").onclick = () => { show("setup"); setTimeout(() => { const c = $("commCard"); if (c) c.scrollIntoView({block: "start"}); }, 400); };
+  if ($("nudgeNo")) $("nudgeNo").onclick = () => { try { sessionStorage.setItem("nudgeNo", "1"); } catch (e) {} renderNow(); };
+  if ($("seeSent")) $("seeSent").onclick = () => { show("setup"); setTimeout(() => { const c = $("commCard"); if (c) { c.scrollIntoView({block: "start"}); const x = c.querySelector("details"); if (x) x.open = true; } }, 400); };
   if ($("goSetup4")) $("goSetup4").onclick = () => { show("setup"); setTimeout(() => { const c = $("commCard"); if (c) c.scrollIntoView({block: "start"}); }, 400); };
+}
+
+// A better shard in your region, worth a hop. A score from one player is a first look; don't suggest hopping on it.
+function hopTo(d) {
+  const c = d.community, best = c && c.best, mine = c && c.mine;
+  return best && mine && best.shard_id !== mine.shard_id && best.score - mine.score >= 20 && best.reporters >= 2 ? best : null;
+}
+// "Why: server restart · 4.0 fps · ping 265 ms": the short version of the advice, which opens on click
+function whyLabel(h, pts) {
+  const bits = [];
+  if (h.restarts) bits.push(h.restarts > 1 ? `${h.restarts} server restarts` : "server restart");
+  if (h.server_fps != null && h.server_fps < 12) bits.push(`${fmt(h.server_fps, 1)} fps`);
+  if (h.ping_ms != null && h.ping_ms > 200) bits.push(`ping ${fmt(h.ping_ms)} ms`);
+  if (h.loss_pct != null && h.loss_pct >= 2) bits.push(`${h.loss_pct}% packet loss`);
+  if (h.hitches != null && h.hitches > 3) bits.push(`${h.hitches} hitches`);
+  return bits.length ? bits.join(" · ") : `${pts.length} thing${pts.length > 1 ? "s" : ""} to know`;
 }
 
 // Other shards in your region, from the community board
 function commSection(d) {
   const c = d.community;
   if (!c) return `<section class="sec"><div class="notice teal"><p><b>Compare your shard with the rest of your region.</b> Turn on the community board to see which shard is running best right now, from players' own readings.</p><button class="btn sm ghost" id="goSetup4">Turn it on</button></div></section>`;
-  const mine = c.mine, best = c.best;
+  const mine = c.mine;
   const dot = x => `<span class="score ${x.cls}"><i></i>${x.score}</span>`;
-  let hop = "";
-  // A score from one player is a first look; don't suggest hopping on the strength of it
-  if (best && mine && best.shard_id !== mine.shard_id && best.score - mine.score >= 20 && best.reporters >= 2)
-    hop = `<div class="notice"><p><b>${esc(best.name || best.shard_id)} is running better</b> (${best.score}/100, server at ${fmt(best.server_fps, 1)} fps, from ${best.reporters} players). If yours is causing trouble, a server hop could land you somewhere healthier, though the game picks the shard, not you.</p></div>`;
   const rows = c.shards.map(x => `<tr class="${x.shard_id === (mine && mine.shard_id) ? "me" : ""}"><td>${dot(x)}</td><td title="${esc(x.shard_id)}"><b>${esc(x.name || x.shard_id)}</b>${x.shard_id === (mine && mine.shard_id) ? ` <span class="chip area">you</span>` : ""}${(x.servers || []).length ? `<span class="sub" style="display:block">${esc([...new Set(x.servers.flatMap(v => v.areas.map(a => a.name)))].slice(0, 4).join(", "))}</span>` : ""}</td>
     <td class="num">${fmt(x.server_fps, 1)}</td><td class="num">${fmt(x.pop_shard)}</td><td class="num">${x.reporters}${x.reporters < 2 ? ` <span class="sub" title="One player's readings: a first look, not a verdict">first look</span>` : ""}</td></tr>`).join("");
   return `<section class="sec"><h3>Your region right now <span>${esc(c.region || "")} on the community board${c.updated ? ", updated " + ago(c.updated) : ""}</span></h3>
-    ${hop}
     ${c.shards.length ? `<div class="frame" style="overflow-x:auto"><table class="comm"><thead><tr><th>Health</th><th>Shard</th><th class="num">Server fps</th><th class="num">Players</th><th class="num">Reporting</th></tr></thead><tbody>${rows}</tbody></table></div>`
       : `<p class="sub">${c.error ? esc(c.error) : "Nobody in your region is sharing readings right now."}</p>`}
     ${c.areas && c.areas.quiet && c.areas.quiet.length ? `<p class="sub" style="margin-top:var(--s3)"><b>Quieter areas right now:</b> ${c.areas.quiet.map(q => `${esc(q.area_name)} on ${esc(q.shard)} (${fmt(q.players)} players, ${fmt(q.server_fps, 1)} fps)`).join(" · ")}. Quieter means fewer players on that server, not safer.</p>` : ""}
@@ -700,7 +1260,7 @@ async function renderCheck() {
   const mins = (() => { try { return sessionStorage.getItem("mins") || "30"; } catch (e) { return "30"; } })();
   $("view").innerHTML = `
   <section class="checkbar frame">
-    <button class="btn big" id="runCheck">What's gone wrong?</button>
+    <button class="btn big" data-protected="true" id="runCheck">What's gone wrong?</button>
     <label class="sub">Look back <select id="mins">${[10, 30, 60, 120, 240].map(m => `<option value="${m}" ${m == mins ? "selected" : ""}>${m < 60 ? m + " minutes" : m / 60 + " hour" + (m > 60 ? "s" : "")}</option>`).join("")}</select></label>
     <p>Reads Game.log and the overlay readings for that period, matches them against the known-issues library and explains what it finds.</p>
     <div class="marks" id="marks"></div>
@@ -709,11 +1269,12 @@ async function renderCheck() {
   <div id="myReviews"></div>`;
   drawMyReviews();
   const marks = (nowData && nowData.marks) || (await api("/api/now").catch(() => ({marks: []}))).marks || [];
-  $("marks").innerHTML = marks.length ? `<span class="sub">Moments you marked:</span>${marks.slice().reverse().slice(0, 6).map(m => `<button class="btn sm ghost" data-mark="${m.ts}">Check ${tm(m.ts)}</button>`).join("")}`
+  $("marks").innerHTML = marks.length ? `<span class="sub">Moments you marked:</span>${marks.slice().reverse().slice(0, 6).map(m => `<button class="btn sm ghost" data-protected="true" data-mark="${m.ts}">Check ${tm(m.ts)}</button>`).join("")}`
     : `<span class="sub">Tip: press <b>Mark this moment</b> at the top${nowData && nowData.hotkey && nowData.hotkey.startsWith("on") ? ` (or ${esc(nowData.hotkey.slice(4))})` : ""} the moment something goes wrong, then check it here later.</span>`;
   $("marks").querySelectorAll("[data-mark]").forEach(b => b.onclick = () => runCheck(+b.dataset.mark));
   $("mins").onchange = e => { try { sessionStorage.setItem("mins", e.target.value); } catch (x) {} };
-  $("runCheck").onclick = runCheck;
+  $("runCheck").onclick = () => runCheck();
+  if (autoCheck) { autoCheck = false; runCheck(); }
   if (lastCheck) drawCheck(lastCheck);
 }
 
@@ -736,9 +1297,9 @@ function findCard(f, i, group) {
     ${f.links && f.links.length ? `<p class="sub">${f.links.map(l => `<a href="${esc(l.url || l)}" target="_blank" rel="noopener">${esc(l.title || l.url || l)}</a>`).join(" · ")}</p>` : ""}
     ${f.examples && f.examples.length ? `<details class="ex"><summary>Log lines (${f.examples.length})</summary><pre class="lines">${esc(f.examples.join("\n"))}</pre></details>` : ""}
     <div class="fa">
-      ${group === "unknown" ? `<button class="btn sm ghost" data-review="${i}">Prepare for review</button>` : ""}
-      <button class="btn sm ghost" data-report="${i}" data-group="${group}">Issue Council draft</button>
-      ${f.rule_id && group !== "unknown" ? `<button class="btn sm ghost" data-had="${esc(f.rule_id)}" title="Adds one to the count on the community board's page for this issue">I had this: count me</button>
+      ${group === "unknown" ? `<button class="btn sm ghost" data-protected="true" data-review="${i}">Prepare for review</button>` : ""}
+      <button class="btn sm ghost" data-protected="true" data-report="${i}" data-group="${group}">Issue Council draft</button>
+      ${f.rule_id && group !== "unknown" ? `<button class="btn sm ghost" data-protected="true" data-had="${esc(f.rule_id)}" title="Adds one to the count on the community board's page for this issue">I had this: count me</button>
         <a class="btn sm ghost" href="${esc(COMMUNITY_SITE)}/issues/${esc(f.rule_id)}" target="_blank" rel="noopener">Workarounds and Issue Council links</a>` : ""}
     </div></article>`;
 }
@@ -798,22 +1359,22 @@ function counter(el, limit) {
 
 function stepRow(text, n, limit = 150) {
   return `<div class="steprow"><span class="sn">${n}</span><input class="inp step" value="${esc(text)}" maxlength="${limit}" aria-label="Step ${n}">
-    <button class="btn sm ghost" data-copystep title="Copy step ${n}">Copy</button><button class="iconx" data-delstep aria-label="Remove step ${n}">✕</button></div>`;
+    <button class="btn sm ghost" data-protected="true" data-copystep title="Copy step ${n}">Copy</button><button class="iconx" data-protected="true" data-delstep aria-label="Remove step ${n}">✕</button></div>`;
 }
 
 function secHtml(sec) {
   const lim = sec.limit ? `<span class="cnt">${sec.text.length} / ${sec.limit}</span>` : "";
   const note = sec.note ? `<p class="note">${esc(sec.note)}</p>` : "";
   if (sec.key === "steps") return `<section class="rsec" data-sec="steps" data-label="${esc(sec.label)}" data-max="${sec.max}"><div class="rhd"><h4>${esc(sec.label)}</h4>
-      <button class="btn sm" data-copyall>Copy all steps</button></div>
+      <button class="btn sm" data-protected="true" data-copyall>Copy all steps</button></div>
       <p class="note">One step per box, up to ${sec.max} steps of ${sec.limit} characters. The first ones say where you were and how the server was doing, from Verse Shards.</p>
       <div class="steps-ed">${sec.steps.map((x, n) => stepRow(x, n + 1, sec.limit)).join("")}</div>
-      <button class="link" data-addstep>Add a step</button></section>`;
+      <button class="link" data-protected="true" data-addstep>Add a step</button></section>`;
   if (sec.options) return `<section class="rsec" data-sec="${esc(sec.key)}" data-label="${esc(sec.label)}"><div class="rhd"><h4>${esc(sec.label)}</h4></div>
       <select class="inp" aria-label="${esc(sec.label)}">${sec.options.map(o => `<option ${o === sec.text ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>${note}</section>`;
   const one = ["title", "version", "category", "c_version"].includes(sec.key);
   return `<section class="rsec" data-sec="${esc(sec.key)}" data-label="${esc(sec.label)}" data-limit="${sec.limit || ""}"><div class="rhd"><h4>${esc(sec.label)}</h4>
-      <span class="grow"></span>${lim}<button class="btn sm" data-copy>Copy</button></div>
+      <span class="grow"></span>${lim}<button class="btn sm" data-protected="true" data-copy>Copy</button></div>
       <textarea class="rta${one ? " one" : ""}"${one ? ' rows="1"' : ""} spellcheck="true" aria-label="${esc(sec.label)}"${sec.base !== undefined ? ` data-base="${esc(sec.base)}"` : ""}>${esc(sec.text)}</textarea>${note}</section>`;
 }
 
@@ -836,10 +1397,14 @@ async function openReport(group, i) {
       <li>Copy each part into the matching box, then attach the files from the report folder.</li>
     </ol>
     <div class="fa"><a class="btn ghost" href="${esc(d.url)}" target="_blank" rel="noopener">Open the Issue Council</a>
-      <button class="btn ghost" id="icFolder">Make report folder</button><button class="btn ghost" id="icAll">Copy whole report</button></div>
+      <button class="btn ghost" data-protected="true" id="icFolder">Make report folder</button><button class="btn ghost" data-protected="true" id="icAll">Copy whole report</button></div>
     ${contrib}
+    ${(() => { const sh = nowData ? sharing(nowData) : null; if (!sh) return ""; return sh.on
+      ? `<div class="icshare on"><i></i><p><b>This counts on the board too.</b> Because you share readings, Verse Shards adds it to “players hit it today” on the issue's page, so the next player knows it's not just them.</p></div>`
+      : `<div class="icshare"><i></i><p><b>Help the next player.</b> With sharing on, this issue counts on its Verse Shards page and on your shard's row, so others know it's not just them. Only the issue id and your shard are sent, never your handle.</p><button class="btn sm" type="button" id="icShare">See what's sent</button></div>`; })()}
     <p class="sub">This tool never sends anything to CIG. You submit the report yourself. What happened ends with a line saying this tool compiled it from your Game.log, so CIG knows where it came from. The report folder includes your own Game.log, which is fine: that's you reporting to them.</p>`);
   const body = $("dBody");
+  if ($("icShare")) $("icShare").onclick = () => { closeDrawer(); show("setup"); setTimeout(() => { const x = $("commCard"); if (x) x.scrollIntoView({block: "start"}); }, 400); };
   body.querySelectorAll("textarea.rta").forEach(t => { grow(t); const lim = +t.closest("[data-sec]").dataset.limit || 0; t.addEventListener("input", () => { grow(t); counter(t, lim); }); counter(t, lim); });
   // "What were you doing?" starts "What happened?": edit one and the other follows, inside 520 characters
   const doing = body.querySelector('#icMain [data-sec="doing"] textarea'), hap = body.querySelector('#icMain [data-sec="happened"] textarea');
@@ -873,7 +1438,7 @@ async function openReview(i) {
     <p>This goes to the review queue on the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community site</a>. Someone works out what the error means, adds it to the known-issues library for everyone, and the answer shows up here under <b>Your reviews</b> (ticket <code>${esc(d.ticket)}</code>).</p>
     <p class="sub">Your handle, other players' names, account and entity numbers, session ids, IP addresses and file paths have been replaced with placeholders like &lt;YOU&gt; and &lt;ID&gt;. ${p.checked_clean ? "A final check found nothing identifying left." : "<b>Warning:</b> the final check still found something identifying, so this one can't be sent or kept."}</p>
     <pre class="lines" style="max-height:28rem">${esc(JSON.stringify(p, null, 2))}</pre>
-    <div class="fa"><button class="btn" id="rvSend" ${p.checked_clean ? "" : "disabled"}>Send for review</button><button class="btn ghost" id="rvSave" ${p.checked_clean ? "" : "disabled"}>Keep it on my PC for now</button></div>`);
+    <div class="fa"><button class="btn" data-protected="true" id="rvSend" ${p.checked_clean ? "" : "disabled"}>Send for review</button><button class="btn ghost" data-protected="true" id="rvSave" ${p.checked_clean ? "" : "disabled"}>Keep it on my PC for now</button></div>`);
   $("rvSend").onclick = async () => {
     $("rvSend").disabled = true;
     try { const r = await api("/api/review", {i, send: true}); toast(r.answer ? "Sent, and it already has an answer: see Your reviews." : "Sent. The answer shows under Your reviews when there is one."); closeDrawer(); drawMyReviews(); }
@@ -883,15 +1448,18 @@ async function openReview(i) {
 }
 
 const RV_LABEL = {identified: "Identified", harmless: "Harmless", "need-more": "Need more info"};
+let libCache = null;
 async function drawMyReviews() {
   const el = $("myReviews"); if (!el) return;
+  if (!libCache) { try { libCache = (await api("/api/issues")).rules; } catch (e) { libCache = []; } }
   let rows; try { rows = await api("/api/reviews"); } catch (e) { return; }
   if (!rows.length) { el.innerHTML = ""; return; }
   el.innerHTML = `<section class="sec"><h3>Your reviews <span>unrecognised errors you kept or sent; answers are checked every 6 hours</span></h3>
-    <div class="frame" style="overflow-x:auto"><table class="rvt"><thead><tr><th>Error</th><th>Status</th><th>Answer</th></tr></thead><tbody>
-    ${rows.map(r => `<tr><td><code>${esc(r.sig)}</code><span class="sub" style="display:block">ticket ${esc(r.id)}, ${dtm(r.created)}</span></td>
-      <td>${r.answer_status ? `<span class="chip area">${esc(RV_LABEL[r.answer_status] || r.answer_status)}</span>` : r.status === "sent" ? "Sent, waiting" : `Kept on this PC <button class="btn sm" data-rvsend="${esc(r.id)}">Send</button>`}</td>
-      <td>${r.answer ? esc(r.answer) : ""}${r.rule_id ? ` <a href="${esc(COMMUNITY_SITE)}/issues/${esc(r.rule_id)}" target="_blank" rel="noopener">Known issue page</a>` : ""}</td></tr>`).join("")}
+    <div class="frame" style="overflow-x:auto"><table class="rvt"><thead><tr><th>Light</th><th>Error</th><th>Status</th><th>Answer</th></tr></thead><tbody>
+    ${rows.map(r => { const lib = r.rule_id && libCache && libCache.find(x => x.id === r.rule_id); const lt = r.answer_status === "harmless" ? "low" : r.answer_status === "need-more" ? "medium" : lib ? lib.severity : null;
+      return `<tr class="${lt === "high" ? "crit" : lt === "medium" ? "maj" : ""}"><td class="rvl">${lt ? sevTag(lt) : `<span class="sevl info">Waiting</span>`}</td><td><code>${esc(r.sig)}</code><span class="sub" style="display:block">ticket ${esc(r.id)}, ${dtm(r.created)}</span></td>
+      <td>${r.answer_status ? `<span class="chip area">${esc(RV_LABEL[r.answer_status] || r.answer_status)}</span>` : r.status === "sent" ? "Sent, waiting" : `Kept on this PC <button class="btn sm" data-protected="true" data-rvsend="${esc(r.id)}">Send</button>`}</td>
+      <td>${r.answer ? esc(r.answer) : ""}${r.rule_id ? ` <a href="${esc(COMMUNITY_SITE)}/issues/${esc(r.rule_id)}" target="_blank" rel="noopener">Known issue page</a>` : ""}</td></tr>`; }).join("")}
     </tbody></table></div></section>`;
   el.querySelectorAll("[data-rvsend]").forEach(b => b.onclick = async () => {
     b.disabled = true;
@@ -948,49 +1516,158 @@ async function renderTimeline() {
 
 /* ---------- Groups ---------- */
 // Recruiting, looking for a group and pirate reports on Verse Shards. Nothing goes until you press a button.
+// Composer choices survive a redraw
+let gKind = "recruit", gAct = null, gSpots = 2; let gDet = {voice: null, exp: null, style: null, seat: null, ship: "", lang: "", org: ""}, gHours = 2;
+const ACT_ICON = a => (a || "Group").replace(/[^A-Za-z ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "GR";
+const minsLeft = ts => { const m = Math.max(1, Math.round((ts - Date.now() / 1000) / 60)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+// Your post drawn the way players see it on verseshards.com/groups
+// Same card as verseshards.com/groups, so the poster sees exactly what others see.
+// NEW fields (not built yet): p.details {voice, exp, ship, seat, lang, style, org}, p.filled, p.hours. Extend and Mark filled need API calls.
+// details (NEW in v3): voice "voice" | "text", exp "new" | "regular" | "veteran", style "chill" | "focused", seat true or ship "<name>", lang, org
+const DWORD = {voice: "Voice", text: "Text only", new: "New players welcome", regular: "Regular", veteran: "Veteran", chill: "Chill", focused: "Focused"};
+function detailChips(d) {
+  if (!d) return [];
+  return [DWORD[d.voice] || "", d.exp ? (d.exp === "new" ? "New" : DWORD[d.exp]) : "", d.ship ? "Bringing a " + d.ship : d.seat ? "Need a seat" : "", d.lang || "", DWORD[d.style] || "", d.org ? "Org: " + d.org : ""].filter(Boolean);
+}
+function gcard(p) {
+  const comm = nowData && nowData.community, live = comm && (comm.shards || []).find(x => x.shard_id === p.shard_id);
+  const det = p.details; let filled = p.filled || 0;
+  const spots = p.spots || 0, keen = Math.max(0, (p.keen || 0) - filled); filled = Math.min(spots, filled);
+  // The time-left bar is sized to the post's own length (Playing for 1, 2 or 3 hours)
+  const full = spots > 0 && filled >= spots, hours = p.hours || Math.max(1, Math.round((p.expires - (p.created || p.expires - 7200)) / 3600)), life = hours * 3600;
+  const lf = Math.max(0, Math.min(1, (p.expires - Date.now() / 1000) / life)), ending = lf < .2;
+  const chips = p.kind === "recruit" ? detailChips(det) : [];
+  const pill = p.shard ? `<span class="hpill ${live ? live.cls : "none"}" title="${live ? "" : "Health shows when someone on this shard shares readings"}"><i></i><b>${esc(p.shard)}</b><span>${live ? live.score + " " + ({good: "healthy", ok: "OK", poor: "struggling", bad: "in a bad way"}[live.cls] || "") : "no readings yet"}</span></span>` : "";
+  return `<article class="frame gcard${full ? " full" : ""}"><div class="gh"><span class="gicon" aria-hidden="true">${esc(ACT_ICON(p.activity))}</span>
+      <div><div class="gt">${esc(p.activity || "Group")}${p.area_name ? ` near ${esc(p.area_name)}` : ""}</div><span class="sub">${p.kind === "lfg" ? "Looking for a group" : "Recruiting"}${p.created ? ` · posted ${ago(p.created)}` : ""}${p.handle ? ` by ${esc(p.handle)}` : ""}</span></div></div>
+    <div class="gline">${pill}${p.server ? `<span class="sub">server ${esc(p.server)}</span>` : ""}</div>
+    ${p.note ? `<p class="gnote">“${esc(p.note)}”</p>` : ""}
+    ${chips.length ? `<div class="dchips">${chips.map(x => `<span class="dchip">${esc(x)}</span>`).join("")}</div>` : ""}
+    <div class="gbottom">${p.kind === "recruit" && spots ? `<div class="gcrew"><span class="pips" aria-hidden="true">${Array.from({length: Math.min(spots, 12)}, (_, k) => `<i class="${k < filled ? "on" : k < filled + keen ? "keen" : ""}"></i>`).join("")}</span><span>${filled} of ${spots} filled${keen && !full ? ` · ${keen} keen` : ""}</span></div>` : ""}
+      <div class="gtime"><div class="tleft${ending ? " ending" : ""}" aria-hidden="true"><i style="width:${(lf * 100).toFixed(0)}%"></i></div><div class="sub"><span>Playing for ${plural(hours, "hour")}</span><span>${full ? "Crew full, closes itself" : (ending ? "Ends in " : "") + minsLeft(p.expires) + (ending ? "" : " left")}</span></div></div>
+      <div class="gf"><span class="sub">${p.kind === "lfg" ? "Recruiters copy your handle" : full ? "Crew full" : plural(keen, "player") + " keen"}</span><span style="display:flex;gap:var(--s2)">${!full && p.can_extend ? `<button class="btn sm ghost" type="button" data-protected="true" data-extend="${esc(p.id)}" title="Posts run for 3 hours at most">+1 hour</button>` : ""}<button class="btn sm ghost" type="button" data-protected="true" data-close="${esc(p.id)}">Take it down</button></span></div></div></article>`;
+}
 async function renderGroups() {
   const d = await api("/api/groups");
   if (tab !== "groups") return;
   const c = d.context || {}, acts = d.activities || [];
-  const where = [c.shard, c.server ? `server ${c.server}` : null, c.area_name].filter(Boolean).join(" · ");
-  const left = ts => { const m = Math.max(1, Math.round((ts - Date.now() / 1000) / 60)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
-  const closed = d.open === false;
-  $("view").innerHTML = `
+  const where = [c.shard, c.server ? `server ${c.server}` : null, c.area_name].filter(Boolean).join(", ");
+  const closed = d.open === false, cant = closed || !c.shard;
+  if (gAct && acts.length && !acts.includes(gAct)) gAct = null;
+  const mine = d.mine || [], posts = mine.filter(p => p.kind !== "pirate"), pirates = mine.filter(p => p.kind === "pirate");
+  const fresh = i => i.created && Date.now() / 1000 - i.created < 600;
+  // A full crew: no more Mark filled buttons for that post
+  const full0 = i => { const q = posts.find(x => x.id === i.post); return !!(q && q.full); };
+  // ---- Groups HUD: the same cockpit style as Now ----
+  const P = posts.find(p => p.kind === "recruit") || posts[0] || null, inter = d.interest || [];
+  const decided = i => i.status === "in" || i.status === "out";
+  const newKeen = inter.filter(i => fresh(i) && !decided(i)).length;
+  const spots = P && P.spots || 0, filled = Math.min(spots, P ? P.filled || 0 : 0), keenN = Math.max(0, inter.filter(i => !decided(i) && (!P || i.post === P.id)).length);
+  const life = P ? (P.hours || Math.max(1, Math.round((P.expires - (P.created || P.expires - 7200)) / 3600))) * 3600 : 1, left = P ? Math.max(0, Math.min(1, (P.expires - Date.now() / 1000) / life)) : 0;
+  const liveSh = nowData && nowData.community && (nowData.community.shards || []).find(x => x.shard_id === (P ? P.shard_id : null) || x.name === c.shard);
+  const gEdge = !P ? "idle" : newKeen ? "breath" : left < .2 ? "breath" : "calm";
+  const gPips = spots ? Array.from({length: Math.min(spots, 12)}, (_, k) => `<i class="${k < filled ? "on" : k < filled + keenN ? "keen" : ""}"></i>`).join("") : "";
+  const hudG = `<section class="hud ${gEdge}"><div class="hbar"><i style="width:${(left * 100).toFixed(0)}%;background:${left < .2 ? "var(--st-poor)" : "var(--st-good)"}"></i></div>
+    <div class="hg ghg">
+      <div class="gg gscore"><span class="gl ${P ? "good" : ""}">${P ? (P.kind === "lfg" ? "Looking for a group" : "Recruiting") : closed ? "Boards not open" : "No post up"}</span>
+        <span class="gpost">${P ? `<span class="gicon" aria-hidden="true">${esc(ACT_ICON(P.activity))}</span><b>${esc(P.activity || "Group")}</b>` : `<b>–</b>`}</span>
+        <span class="gs">${P ? (P.area_name ? "near " + esc(P.area_name) : "") : "Post below to find crew"}</span></div>
+      <div class="gg"><span class="gl">Crew</span><span class="gv">${spots ? `${filled}<small> of ${spots}</small>` : "–"}</span>${spots ? `<span class="pips gpips">${gPips}</span>` : `<span class="gs">set spots when you post</span>`}</div>
+      <div class="gg ${newKeen ? "gnew" : ""}"><span class="gl">Keen to join</span><span class="gv ${newKeen ? "poor" : ""}">${inter.length}</span><span class="gs">${newKeen ? `<b class="gping"></b>${newKeen} new, copy their handle` : inter.length ? "all seen" : "none yet"}</span></div>
+      <div class="gg"><span class="gl">Time left</span><span class="gv ${left < .2 && P ? "poor" : ""}">${P ? minsLeft(P.expires) : "–"}</span><span class="gs">${P ? `ends ${tm(P.expires)}` : "posts last 1 to 3 hours"}</span></div>
+      <div class="gg"><span class="gl">Your shard</span><span class="gv ${liveSh ? (liveSh.cls === "good" ? "good" : liveSh.cls === "bad" ? "bad" : "poor") : ""}">${liveSh ? liveSh.score : "–"}</span><span class="gs">${esc(c.shard || "not on a shard")}${liveSh ? "" : c.shard ? " · no readings yet" : ""}</span></div>
+      <div class="gg"><span class="gl">Posting from</span><span class="gv gwhere">${esc(c.server ? "Server " + c.server : "–")}</span><span class="gs">${esc(c.area_name || "join a shard in game")}</span></div>
+    </div></section>`;
+  $("view").innerHTML = hudG + `
   ${closed ? `<div class="sec notice"><p><b>The groups boards aren't open yet.</b> Recruiting, looking-for-group posts and pirate reports open on Verse Shards once there are moderators to look after them. Keen to help? <a href="${esc(COMMUNITY_SITE)}/help" target="_blank" rel="noopener">Help wanted</a></p></div>` : ""}
-  ${d.offer ? `<div class="sec notice rust"><p><b>Your ${esc(d.offer.ship)} was destroyed near ${esc(d.offer.area_name)}.</b> Was it another player? Report pirate activity here: only the area is sent, and it clears after 45 minutes.</p><button class="btn sm" data-gp="pirate">Report pirate activity here</button><button class="btn sm ghost" data-gp="nopirate">No, it wasn't</button></div>` : ""}
-  ${(d.interest || []).length ? `<section class="sec"><h3>Keen to join <span>handles sent to you by players on Verse Shards; send them a party invite in game</span></h3>
-    <div class="frame copyl">${d.interest.map(i => `<div class="cl"><span><b>${esc(i.handle)}</b>${i.note ? ` "${esc(i.note)}"` : ""} <span class="sub">for ${esc(i.activity || "your group")}, ${ago(i.created)}</span></span><button class="btn sm ghost" data-chat="${esc(i.handle)}">Copy handle</button></div>`).join("")}</div></section>` : ""}
-  ${(d.mine || []).length ? `<section class="sec"><h3>Your posts <span>on Verse Shards until they end</span></h3><div class="frame copyl">
-    ${d.mine.map(p => `<div class="cl"><span><b>${esc({recruit: "Recruiting", lfg: "Looking for a group", pirate: "Pirate report"}[p.kind])}</b>${p.activity ? ` · ${esc(p.activity)}` : ""} <span class="sub">ends in ${left(p.expires)}</span></span>${p.kind === "pirate" ? "" : `<button class="btn sm ghost" data-close="${esc(p.id)}">Take it down</button>`}</div>`).join("")}</div>
-    ${chatBox(d.mine.filter(p => p.chat).map(p => p.chat))}</section>` : ""}
-  <section class="sec"><h3>Where you are <span>filled in from the overlay and Game.log</span></h3>
-    <p class="intro">${c.shard ? esc(where) : "Join a shard in game first. Posts say which shard, server and area you're on (a planet, jump point or open space, never the exact place)."}</p>
-    <p class="sub">Global chat is per shard. To join someone on another server: accept their party invite, go back to the main menu, right-click their name in your party and join them on their server.</p></section>
-  <section class="sec grid2">
-    <form class="frame gform" id="fRecruit"><h4>Recruit players</h4>
-      <div class="row"><label>Activity<select class="inp" name="activity" required>${acts.map(a => `<option>${esc(a)}</option>`).join("")}</select></label>
-        <label style="flex:0 1 7rem">Spots<input class="inp" name="spots" type="number" min="1" max="50" value="2"></label></div>
-      <label>Note (optional)<input class="inp" name="note" maxlength="80" placeholder="e.g. Prospector run, bring a pick"></label>
-      <label>Your handle (optional)<input class="inp" name="handle" maxlength="30" placeholder="Leave blank and only keen players' handles come to you" value=""></label>
-      <div class="row"><button class="btn" type="submit" ${closed || !c.shard ? "disabled" : ""}>Post for 2 hours</button></div>
-      <p class="sub">Players press "I'm interested" on Verse Shards and their handle pops up here. Your post also gets a line to paste into global chat.</p></form>
-    <form class="frame gform" id="fLfg"><h4>Look for a group</h4>
-      <label>What you'd like to do<select class="inp" name="activity">${acts.map(a => `<option>${esc(a)}</option>`).join("")}</select></label>
-      <label>Your handle<input class="inp" name="handle" maxlength="30" required value="${esc(d.handle || "")}"></label>
-      <p class="sub">${d.handle ? "From your Game.log. Check it's yours before you post: recruiters copy it to send you a party invite." : "Type your RSI handle: recruiters copy it to send you a party invite."}</p>
-      <div class="row"><button class="btn" type="submit" ${closed || !c.shard ? "disabled" : ""}>Post for 2 hours</button></div></form>
-  </section>
-  <section class="sec"><div class="frame gform"><h4>Pirate activity</h4>
-    <p class="sub">Got jumped? Report the area (${c.area_name ? esc(c.area_name) : "where you are"}) so other players take care, and so Where to sell on Verse Shards reads the risk. Never the exact spot or anyone's name, and it clears after 45 minutes. Pirating is part of the game: this is a heads-up, not a complaint.</p>
-    <div class="row"><button class="btn ghost" data-gp="pirate" ${closed || !c.area ? "disabled" : ""}>Report pirate activity here</button></div></div></section>
+  ${d.offer ? `<div class="sec notice rust"><p><b>Your ${esc(d.offer.ship)} was destroyed near ${esc(d.offer.area_name)}.</b> Was it another player? Report pirate activity here: only the area is sent, and it clears after 45 minutes.</p><button class="btn sm" data-protected="true" data-gp="pirate">Report pirates near ${esc(d.offer.area_name)}</button><button class="btn sm ghost" data-protected="true" data-gp="nopirate">No, it wasn't</button></div>` : ""}
+  <section class="hud2 ghud2"><div class="gcolL">
+  ${(d.interest || []).length ? `<section class="frame hsit keen"><span class="hl">Keen to join · send them a party invite in game</span>
+    <div class="frame copyl keenl">${d.interest.map(i => { const st = decided(i) ? i.status : null; return `<div class="cl${st === "out" ? " out" : ""}"><span>${st === "in" ? `<i class="st good" title="In the crew"></i>` : fresh(i) && !st ? `<i class="st new" title="New"></i>` : `<i class="st"></i>`}<span><b style="font-family:var(--mono)">${esc(i.handle)}</b>${i.note ? ` “${esc(i.note)}”` : ""} <span class="sub">for ${esc(i.activity || "your group")}, ${ago(i.created)}${st === "in" ? " · in the crew" : st === "out" ? " · told not this time" : i.status === "seen" ? " · they can see you've seen them" : ""}</span></span></span>
+      <span class="ka">${st === "out" ? `<button class="link" type="button" data-protected="true" data-post="${esc(i.post)}" data-decide="${esc(i.handle)}" data-v="">Undo</button>` : `<button class="btn sm${fresh(i) && !st ? "" : " ghost"}" type="button" data-protected="true" data-chat="${esc(i.handle)}" data-plain>Copy handle</button>${st === "in" ? `<button class="link" type="button" data-protected="true" data-post="${esc(i.post)}" data-decide="${esc(i.handle)}" data-v="">Undo</button>` : full0(i) ? "" : `<button class="btn sm ghost" type="button" data-protected="true" data-post="${esc(i.post)}" data-decide="${esc(i.handle)}" data-v="in">Mark filled</button><button class="link" type="button" data-protected="true" data-post="${esc(i.post)}" data-decide="${esc(i.handle)}" data-v="out">Not this time</button>`}`}</span></div>`; }).join("")}</div>
+    <p class="sub" style="margin:var(--s2) 0 0">They see “Poster has seen you” on the site as soon as this app picks their handle up. Mark filled adds them to your crew; Not this time lets them know kindly.</p></section>` : `<section class="frame hsit"><span class="hl">Keen to join</span><p class="sub" style="margin:0">${P ? "Nobody yet. Their handles pop up here, with a Windows notification, as soon as they press I'm interested on the site." : "Post below and keen players' handles land here."}</p></section>`}
+  ${posts.length ? `<section><span class="hl" style="display:block;margin:0 0 var(--s2)">Your post, as others see it</span>
+    <div class="gcards">${posts.map(gcard).join("")}</div>
+    ${posts.some(p => p.chat) ? `<div style="margin-top:var(--s3)">${chatBox(posts.filter(p => p.chat).map(p => p.chat), "Copy for global chat", "gchat")}</div>` : ""}</section>` : ""}
+  ${pirates.length ? `<p class="sec sub">${pirates.map(p => `Pirate report near ${esc(p.area_name || "your area")}, clears in ${minsLeft(p.expires)}.`).join(" ")}</p>` : ""}
+  </div><div class="gcolR"><form class="frame gform" id="fPost" novalidate>
+    <div class="ghead"><h4>Post on Verse Shards</h4><p class="sub">${c.shard ? `Find crew or get invited. Your post shows on verseshards.com/groups with <b>${esc(where)}</b> filled in, never the exact spot.` : "Join a shard in game first. Posts say which shard, server and area you're on, never the exact place."}</p></div>
+    <div class="gstep"><span class="gn">1</span><span class="gl">What kind of post</span></div>
+      <div class="seg gkind" role="group" aria-label="Kind of post"><button type="button" data-protected="true" data-kind="recruit" aria-pressed="${gKind === "recruit"}">Recruit players</button><button type="button" data-protected="true" data-kind="lfg" aria-pressed="${gKind === "lfg"}">Look for a group</button></div>
+    <div class="gstep"><span class="gn">2</span><span class="gl">Activity</span></div>
+    ${acts.length ? `<div class="achips" role="group" aria-label="Activity">${acts.map(a => `<button type="button" class="achip" data-protected="true" data-act="${esc(a)}" aria-pressed="${a === gAct}"><span class="gicon sm" aria-hidden="true">${esc(ACT_ICON(a))}</span>${esc(a)}</button>`).join("")}</div>` : `<p class="sub">Activities load from Verse Shards once it answers.</p>`}
+    <div class="gstep"><span class="gn">3</span><span class="gl" data-for="recruit" ${gKind === "recruit" ? "" : "hidden"}>Your crew</span><span class="gl" data-for="lfg" ${gKind === "lfg" ? "" : "hidden"}>Your handle</span></div>
+    <div data-for="recruit" ${gKind === "recruit" ? "" : "hidden"} style="display:grid;gap:var(--s3)">
+      <div class="row"><div class="lbl" role="group" aria-labelledby="gSpotsL"><span id="gSpotsL">Spots</span><span class="stepper"><button type="button" data-protected="true" data-step="-1" aria-label="One fewer spot">−</button><output id="gSpots" aria-live="polite">${gSpots}</output><button type="button" data-protected="true" data-step="1" aria-label="One more spot">+</button></span></div>
+        <label>Note (optional)<input class="inp" name="note" maxlength="80" placeholder="e.g. Prospector run, bring a pick"></label></div>
+      <label>Your handle (optional)<input class="inp" name="rhandle" maxlength="30" placeholder="Your RSI handle"><span class="hint">Add your handle if you'd rather people message you directly. Leave it blank and keen players' handles come to you here.</span></label></div>
+    <div data-for="lfg" ${gKind === "lfg" ? "" : "hidden"} style="display:grid;gap:var(--s3)">
+      <label>Your handle<input class="inp" name="lhandle" maxlength="30" value="${esc(d.handle || "")}" placeholder="Your RSI handle"><span class="hint">${d.handle ? "From your Game.log. Check it's yours before you post: recruiters copy it to send you a party invite." : "Recruiters copy it to send you a party invite."}</span></label></div>
+    <details class="gdetw" ${Object.values(gDet).some(v => v) ? "open" : ""}><summary><span class="gn">+</span>Add details <span class="hint">optional: voice, experience, ship, language, play style, org</span></summary>
+    <div class="gdet">
+      <div class="dgroups">
+        <span class="dg" data-k="voice">${[["voice", "Voice"], ["text", "Text only"]].map(([v, t]) => `<button type="button" class="dopt" data-protected="true" data-dk="voice" data-dv="${v}" aria-pressed="${String(gDet.voice) === v}">${t}</button>`).join("")}</span>
+        <span class="dg">${[["new", "New players welcome"], ["regular", "Regular"], ["veteran", "Veteran"]].map(([v, t]) => `<button type="button" class="dopt" data-protected="true" data-dk="exp" data-dv="${v}" aria-pressed="${gDet.exp === v}">${t}</button>`).join("")}</span>
+        <span class="dg">${[["chill", "Chill"], ["focused", "Focused"]].map(([v, t]) => `<button type="button" class="dopt" data-protected="true" data-dk="style" data-dv="${v}" aria-pressed="${gDet.style === v}">${t}</button>`).join("")}</span>
+        <span class="dg" data-for="recruit" ${gKind === "recruit" ? "" : "hidden"}><button type="button" class="dopt" data-protected="true" data-dk="seat" data-dv="true" aria-pressed="${gDet.seat === true}">Need a seat</button><input class="inp dinp" name="ship" maxlength="25" placeholder="Bringing a… (ship)" value="${esc(gDet.ship || "")}" aria-label="Ship you're bringing"></span>
+        <span class="dg" data-for="lfg" ${gKind === "lfg" ? "" : "hidden"}><button type="button" class="dopt" data-protected="true" data-dk="seat" data-dv="true" aria-pressed="${gDet.seat === true}">Need a seat</button><input class="inp dinp" name="lship" maxlength="25" placeholder="Or bringing a… (ship)" value="${esc(gDet.ship || "")}" aria-label="Ship you're bringing"></span>
+        <input class="inp dinp" name="lang" maxlength="20" placeholder="Language" value="${esc(gDet.lang || "")}" aria-label="Language">
+        <input class="inp dinp" name="org" maxlength="30" placeholder="Org name" value="${esc(gDet.org || "")}" aria-label="Org name"></div></div></details>
+    <div class="gfoot"><span class="lbl" style="flex:none">Playing for</span><span class="seg" role="group" aria-label="Playing for">${[1, 2, 3].map(n => `<button type="button" data-protected="true" data-hours="${n}" aria-pressed="${gHours === n}">${n} h</button>`).join("")}</span>
+      <span class="grow"></span><button class="btn" type="submit" data-protected="true" ${cant ? "disabled" : ""}>Post for ${plural(gHours, "hour")}</button></div>
+  </form></div></section>
+  <section class="sec"><div class="frame pline pbig"><span class="plab">Pirates</span><p><b>Got jumped${c.area_name ? ` near ${esc(c.area_name)}` : ""}?</b><span class="sub">Warn everyone on your shard. Area only, never the spot or anyone's name. Clears in 45 min. A heads-up, not a complaint.</span></p>
+    <button class="btn pirbtn" type="button" data-protected="true" data-gp="pirate" ${closed || !c.area ? "disabled" : ""}>Report pirates ${c.area_name ? "near " + esc(c.area_name) : "here"}</button></div></section>
+  <p class="sec sub">Global chat is per shard. To join someone on another server: accept their party invite, go back to the main menu, right-click their name in your party and join them on their server.</p>
   <section class="sec"><div class="frame card"><h4>Coming soon: org tools</h4><p class="sub">Plan org events, pick the healthiest shard and server for them from live readings, and rally your members to the right place at the right time.</p></div></section>
   ${d.error ? `<p class="sub">${esc(d.error)}</p>` : ""}`;
   const send = async (body, b) => { if (b) b.disabled = true; try { const r = await api("/api/groups/post", body); toast(r.message); renderGroups(); } catch (e) { toast(e.message, true); if (b) b.disabled = false; } };
-  $("fRecruit").onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); send({kind: "recruit", ...f}, e.submitter); };
-  $("fLfg").onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); send({kind: "lfg", ...f}, e.submitter); };
+  const f = $("fPost");
+  f.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => {
+    gKind = b.dataset.kind;
+    f.querySelectorAll("[data-kind]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    f.querySelectorAll("[data-for]").forEach(x => x.hidden = x.dataset.for !== gKind);
+  });
+  f.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
+    gAct = b.dataset.act;
+    f.querySelectorAll("[data-act]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  });
+  f.querySelectorAll("[data-step]").forEach(b => b.onclick = () => { gSpots = Math.max(1, Math.min(50, gSpots + +b.dataset.step)); $("gSpots").textContent = gSpots; });
+  f.querySelectorAll("[data-dk]").forEach(b => b.onclick = () => {
+    const k = b.dataset.dk, v = b.dataset.dv === "true" ? true : b.dataset.dv === "false" ? false : b.dataset.dv;
+    gDet[k] = gDet[k] === v ? null : v;
+    f.querySelectorAll(`[data-dk="${k}"]`).forEach(x => x.setAttribute("aria-pressed", String(gDet[k]) === x.dataset.dv));
+  });
+  f.querySelectorAll("[data-hours]").forEach(b => b.onclick = () => {
+    gHours = +b.dataset.hours; f.querySelectorAll("[data-hours]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    f.querySelector("[type=submit]").textContent = "Post for " + plural(gHours, "hour");
+  });
+  f.onsubmit = e => {
+    e.preventDefault();
+    if (acts.length && !gAct) return toast("Pick an activity first.", true);
+    const v = Object.fromEntries(new FormData(f));
+    const details = {voice: gDet.voice || undefined, exp: gDet.exp || undefined, style: gDet.style || undefined, seat: gDet.seat || undefined,
+      ship: ((gKind === "lfg" ? v.lship : v.ship) || "").trim() || undefined, lang: (v.lang || "").trim() || undefined, org: (v.org || "").trim() || undefined};
+    if (gKind === "lfg") {
+      if (!(v.lhandle || "").trim()) { toast("Add your handle so recruiters can invite you.", true); return f.querySelector("[name=lhandle]").focus(); }
+      return send({kind: "lfg", activity: gAct, handle: v.lhandle, details, hours: gHours}, e.submitter);
+    }
+    send({kind: "recruit", activity: gAct, spots: String(gSpots), note: v.note, handle: v.rhandle, details, hours: gHours}, e.submitter);
+  };
   $("view").querySelectorAll("[data-gp]").forEach(b => b.onclick = async () => {
     if (b.dataset.gp === "pirate") return send({kind: "pirate"}, b);
     try { await api("/api/groups/dismiss", {}); renderGroups(); } catch (e) { toast(e.message, true); }
+  });
+  $("view").querySelectorAll("[data-decide]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { const r = await api("/api/groups/decide", {post: b.dataset.post, handle: b.dataset.decide, verdict: b.dataset.v || null}); toast(r.message); } catch (e) { toast(e.message, true); }
+    renderGroups();
+  });
+  $("view").querySelectorAll("[data-extend]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { const r = await api("/api/groups/extend", {id: b.dataset.extend}); toast(r.message); } catch (e) { toast(e.message, true); }
+    renderGroups();
   });
   $("view").querySelectorAll("[data-close]").forEach(b => b.onclick = async () => { try { const r = await api("/api/groups/close", {id: b.dataset.close}); toast(r.message); renderGroups(); } catch (e) { toast(e.message, true); } });
 }
@@ -1020,10 +1697,75 @@ async function renderHistory() {
 }
 
 /* ---------- My PC ---------- */
+// My pilot: a profile the player fills in, plus what the app has worked out from Game.log and readings.
+// NEW (not built): /api/profile GET/POST, stored in the app's data folder like settings. Never sent anywhere.
+const SHIP_LIST = ["Aurora MR", "Avenger Titan", "C2 Hercules", "Carrack", "Constellation Andromeda", "Constellation Mk V Centaurus", "Corsair", "Cutlass Black", "Cutlass Red", "Freelancer MAX", "Gladius", "Hammerhead", "Hull C", "MOLE", "Mercury Star Runner", "Origin M80", "Prospector", "Reclaimer", "Sabre", "Vulture", "Zeus Mk II CL"];
+const PILOT_ACTS = ["Mining", "Salvage", "Cargo hauling", "Bounty hunting", "Mercenary", "Combat / PvP", "Exploration", "Medical / rescue", "Racing", "Missions (any)", "Piracy", "Just flying together"];
+// /api/profile (NEW in v3): GET {profile: {...} | null}, POST {profile} saves it in the app's data folder. Never sent anywhere.
+const EXPW = {new: "New", regular: "Regular", veteran: "Veteran"}, VOICEW = {voice: "Voice", text: "Text only"};
+let pilotEdit = false;
 async function renderPC() {
-  const d = await api("/api/pc"); const hw = d.hardware || {};
+  const [d, hs, st, pr] = await Promise.all([api("/api/pc"), api("/api/history").catch(() => ({sessions: [], shards: []})), api("/api/settings").catch(() => ({})), api("/api/profile").catch(() => ({profile: null}))]);
+  const hw = d.hardware || {};
   if (tab !== "pc") return;
-  $("view").innerHTML = `
+  const saved = pr.profile, empty = !saved;
+  // No profile yet (first run): start an empty one, with your region from the shard you're on
+  const p = saved || {handle: "", ships: [], main: "", acts: [], org: "", region: (nowData && nowData.shard && nowData.shard.region) || "", times: "", voice: "", exp: "", bio: "", fav: "", pic: ""};
+  const ss = hs.sessions || [], hours = Math.round(ss.reduce((n, x) => n + (x.minutes || 0), 0) / 60);
+  const contracts = ss.flatMap(x => x.contracts || []), done = contracts.filter(x => x.result === "complete").length;
+  const shards = hs.shards || [];
+  const fpsAvg = shards.length ? Math.round(shards.reduce((n, x) => n + (x.server_fps || 0), 0) / shards.length * 10) / 10 : null;
+  const places = (d.by_location || []).slice().sort((a, b) => b.readings - a.readings).slice(0, 4);
+  const retrieved = hs.ships_retrieved || [];   // NEW in v3 on /api/history: [{ship, times}], counted from Game.log
+  const fed = nowData ? (sharing(nowData) || {}).fed_week : 0;
+  const initials = (p.handle || "?").replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase();
+  const chip = t => `<span class="dchip">${esc(t)}</span>`;
+  const view = empty ? `<section class="sec pilot"><div class="frame pcard pempty">
+      <div class="pc-top"><div class="pc-pic"><span>?</span></div>
+        <div class="pc-id"><span class="eyebrow">Pilot</span><h2>Set up your pilot card</h2><div class="pc-sub">Handle, ships, what you fly for. It stays on this PC and is never sent anywhere.</div></div>
+        <button class="btn" type="button" data-protected="true" id="pEdit">Fill it in</button></div>
+      <p class="sub pc-note">The logbook below fills in by itself from Game.log, profile or not.</p></div>` + logbook() + `</section>` : `<section class="sec pilot">
+    <div class="frame pcard"><div class="pc-top">
+      <div class="pc-pic">${p.pic ? `<img src="${esc(p.pic)}" alt="">` : `<span>${esc(initials)}</span>`}</div>
+      <div class="pc-id"><span class="eyebrow">Pilot</span><h2>${esc(p.handle || "Your handle")}</h2>
+        <div class="pc-sub">${p.org ? `<b>${esc(p.org)}</b> · ` : ""}${esc([EXPW[p.exp] || "", VOICEW[p.voice] || "", p.region, p.times].filter(Boolean).join(" · "))}</div></div>
+      <button class="btn sm ghost" type="button" data-protected="true" id="pEdit">Edit profile</button></div>
+      ${p.bio ? `<p class="pc-bio">${esc(p.bio)}</p>` : ""}
+      <div class="pc-grid">
+        <div class="pc-main"><span class="eyebrow">Main ship</span><b>${esc(p.main || "Not picked yet")}</b>
+          <div class="shot"><span>${esc(p.main || "Your ship")}</span></div></div>
+        <div class="pc-side">
+          <div><span class="eyebrow">Also flies</span><div class="dchips">${(p.ships || []).filter(s => s !== p.main).map(chip).join("") || `<span class="sub">Nothing else yet</span>`}</div></div>
+          <div><span class="eyebrow">In the 'verse</span><div class="dchips">${(p.acts || []).map(chip).join("") || `<span class="sub">Pick what you do</span>`}</div></div>
+          ${p.fav ? `<div><span class="eyebrow">Favourite place</span><b>${esc(p.fav)}</b></div>` : ""}
+        </div></div>
+      <p class="sub pc-note">Your profile stays on this PC. It's never sent anywhere.</p></div>` + logbook() + `</section>`;
+  function logbook() { return `
+    <h3 class="pc-h">Logbook <span>worked out from Game.log and your readings on this patch</span></h3>
+    <div class="pc-stats">
+      <div class="frame"><dt>Hours played</dt><dd>${hours}</dd><span class="sub">${plural(ss.length, "session")}</span></div>
+      <div class="frame"><dt>Contracts completed</dt><dd>${done}</dd><span class="sub">of ${contracts.length} taken</span></div>
+      <div class="frame"><dt>Shards played on</dt><dd>${shards.length}</dd><span class="sub">${esc(shards.slice(0, 3).map(x => x.name || (m => m ? ({apse2: "AU", apse1: "AS", use1: "USE", usw2: "USW", euw1: "EU"}[m[1]] || m[1].toUpperCase()) + "-" + Number(m[2]) : x.shard_id)(/^[a-z]+_([a-z]+\d)[a-z]?_\d+_(\d+)$/.exec(x.shard_id || ""))).join(", "))}</span></div>
+      <div class="frame"><dt>Server fps on your sessions</dt><dd>${fmt(fpsAvg, 1)}</dd><span class="sub">average; about 20 is normal</span></div>
+      ${st.share && fed ? `<div class="frame fed"><dt>Fed the board</dt><dd>${fed}</dd><span class="sub">times this week. Thanks</span></div>` : ""}
+    </div>
+    <div class="pc-two">
+      <div class="frame card"><h4>Most-visited places</h4>${places.length ? `<ol class="pc-list">${places.map(x => `<li><span>${esc(x.location)}</span><span class="sub">${x.readings} readings · ${x.client_fps} fps</span></li>`).join("")}</ol>` : `<p class="sub">Shows once the overlay has been read in a few places.</p>`}</div>
+      <div class="frame card"><h4>Ships retrieved most</h4>${retrieved.length ? `<ol class="pc-list">${retrieved.slice(0, 4).map(x => `<li><span>${esc(x.ship)}</span><span class="sub">${plural(x.times, "time")}</span></li>`).join("")}</ol>` : `<p class="sub">Shows once you've called a ship from a terminal.</p>`}</div>
+    </div>`; }
+  const opt = (k, v, t, on) => `<button type="button" class="dopt" data-pk="${k}" data-pv="${esc(String(v))}" aria-pressed="${on}">${esc(t)}</button>`;
+  const edit = `<section class="sec pilot"><form class="frame pedit" id="pForm" data-protected="true">
+    <div class="ghead"><h4>Edit your pilot profile</h4><p class="sub">Stays on this PC. Nothing here is sent to Verse Shards.</p></div>
+    <div class="pe-row"><label>RSI handle<input class="inp" name="handle" maxlength="30" value="${esc(p.handle || "")}"></label><label>Org<input class="inp" name="org" maxlength="40" value="${esc(p.org || "")}"></label></div>
+    <div class="pe-row"><label>Profile picture<input class="inp" type="file" name="pic" accept="image/*"></label><label>Favourite place<input class="inp" name="fav" maxlength="40" value="${esc(p.fav || "")}" placeholder="e.g. Orison at sunset"></label></div>
+    <div><span class="lbl">Ships I fly <span class="hint">tap to add; tap again to make it your main ship</span></span><div class="dchips pe-ships">${SHIP_LIST.map(s => `<button type="button" class="dopt${p.main === s ? " main" : ""}" data-ship="${esc(s)}" aria-pressed="${(p.ships || []).includes(s)}">${p.main === s ? "★ " : ""}${esc(s)}</button>`).join("")}</div></div>
+    <div><span class="lbl">What I do</span><div class="dchips">${PILOT_ACTS.map(a => opt("acts", a, a, (p.acts || []).includes(a))).join("")}</div></div>
+    <div class="pe-row"><div><span class="lbl">Comms</span><div class="dchips">${opt("voice", "voice", "Voice", p.voice === "voice")}${opt("voice", "text", "Text only", p.voice === "text")}</div></div>
+      <div><span class="lbl">Experience</span><div class="dchips">${[["new", "New"], ["regular", "Regular"], ["veteran", "Veteran"]].map(([v, x]) => opt("exp", v, x, p.exp === v)).join("")}</div></div></div>
+    <div class="pe-row"><label>Home region<select class="inp" name="region">${["", "Australia", "Asia", "US West", "US East", "Europe"].map(x => `<option value="${x}" ${p.region === x ? "selected" : ""}>${x || "Pick one"}</option>`).join("")}</select></label><label>Usual play times<input class="inp" name="times" maxlength="40" value="${esc(p.times || "")}" placeholder="e.g. Evenings, AEST"></label></div>
+    <label>Short bio<textarea class="inp" name="bio" maxlength="200" placeholder="A line or two about you in the 'verse">${esc(p.bio || "")}</textarea></label>
+    <div class="gfoot"><button class="btn ghost" type="button" id="pCancel">Cancel</button><span class="grow"></span><button class="btn" type="submit">Save profile</button></div></form></section>`;
+  $("view").innerHTML = (pilotEdit ? edit : view) + `
   <section class="sec"><h3>Your PC <span>as the game reports it at start-up</span></h3>
     <div class="frame card"><dl class="readout">
       <div class="cell"><dt>CPU</dt><dd style="font-size:1.0625rem">${esc(hw.cpu || "–")}</dd><span class="sub">${hw.threads ? hw.threads + " threads" : ""}</span></div>
@@ -1031,15 +1773,31 @@ async function renderPC() {
       <div class="cell"><dt>Memory</dt><dd style="font-size:1.0625rem">${hw.ram_mb ? Math.round(hw.ram_mb / 1000) + " GB" : "–"}</dd></div>
       <div class="cell"><dt>Game's CPU test</dt><dd style="font-size:1.0625rem">${fmt(hw.cpu_bench_ms, 1)} <small>ms</small></dd><span class="sub">lower is faster</span></div>
       <div class="cell"><dt>Game's GPU test</dt><dd style="font-size:1.0625rem">${fmt(hw.gpu_bench_ms, 1)} <small>ms</small></dd><span class="sub">lower is faster</span></div>
-    </dl>
-    <p class="intro">The game runs a quick CPU and GPU test every launch and writes the times to Game.log. Once the community service is running, these let you compare your frame rate with players on similar hardware at the same places.</p></div>
-  </section>
+    </dl></div></section>
   <section class="sec"><h3>Your frame rate by location <span>from overlay readings this run</span></h3>
     ${d.by_location.length ? `<div class="frame tscroll"><table><thead><tr><th>Location</th><th class="num">Your fps</th><th class="num">Readings</th></tr></thead><tbody>
       ${d.by_location.map(r => `<tr><td><code>${esc(r.location)}</code></td><td class="num">${r.client_fps}</td><td class="num">${r.readings}</td></tr>`).join("")}</tbody></table></div>`
       : `<div class="empty"><h3>No readings yet</h3><p>Turn on <code>r_displayinfo 3</code> in game.</p></div>`}
     ${d.vram_total_mb ? `<p class="sub">Video memory in use: ${d.vram_used_mb} of ${d.vram_total_mb} MB.</p>` : ""}
   </section>`;
+  if ($("pEdit")) $("pEdit").onclick = () => { pilotEdit = true; renderPC(); };
+  const f = $("pForm"); if (!f) return;
+  const draft = JSON.parse(JSON.stringify(p));
+  f.querySelectorAll("[data-pk]").forEach(b => b.onclick = () => {
+    const k = b.dataset.pk, v = b.dataset.pv === "true" ? true : b.dataset.pv === "false" ? false : b.dataset.pv;
+    if (k === "acts") { const s = new Set(draft.acts || []); s.has(v) ? s.delete(v) : s.add(v); draft.acts = [...s]; b.setAttribute("aria-pressed", s.has(v)); return; }
+    draft[k] = draft[k] === v ? null : v; f.querySelectorAll(`[data-pk="${k}"]`).forEach(x => x.setAttribute("aria-pressed", String(draft[k]) === x.dataset.pv));
+  });
+  f.querySelectorAll("[data-ship]").forEach(b => b.onclick = () => {
+    const s = b.dataset.ship, has = (draft.ships || []).includes(s);
+    if (!has) draft.ships = (draft.ships || []).concat(s); else if (draft.main !== s) draft.main = s; else { draft.ships = draft.ships.filter(x => x !== s); draft.main = draft.ships[0] || ""; }
+    f.querySelectorAll("[data-ship]").forEach(x => { const on = draft.ships.includes(x.dataset.ship), m = draft.main === x.dataset.ship; x.setAttribute("aria-pressed", on); x.classList.toggle("main", m); x.textContent = (m ? "★ " : "") + x.dataset.ship; });
+  });
+  f.querySelector("[name=pic]").onchange = e => { const file = e.target.files[0]; if (!file) return; const rd = new FileReader(); rd.onload = () => { draft.pic = rd.result; }; rd.readAsDataURL(file); };
+  $("pCancel").onclick = () => { pilotEdit = false; renderPC(); };
+  f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); ["handle", "org", "fav", "region", "times", "bio"].forEach(k => draft[k] = (v[k] || "").trim());
+    if (!draft.handle) { toast("Add your RSI handle first.", true); return f.querySelector("[name=handle]").focus(); }
+    try { const r = await api("/api/profile", {profile: draft}); toast(r.message); pilotEdit = false; renderPC(); } catch (x) { toast(x.message, true); } };
 }
 
 /* ---------- Known issues ---------- */
@@ -1063,9 +1821,9 @@ async function renderIssues() {
     <div id="libList" class="lib"></div></section>`;
   const draw = () => {
     const q = $("libQ").value.toLowerCase();
-    const rows = d.rules.filter(r => !q || (r.title + " " + r.explain + " " + r.area).toLowerCase().includes(q));
-    $("libList").innerHTML = rows.length ? rows.map(r => `<details class="frame"><summary><span class="t">${esc(generic(r.title))}</span>
-      <span class="chip ${esc(r.severity)}">${esc(r.kind === "info" ? "info" : r.severity)}</span><span class="chip area">${esc(r.area)}</span></summary>
+    const rows = d.rules.filter(r => !q || (r.title + " " + r.explain + " " + r.area).toLowerCase().includes(q)).sort((a, b) => sevRank(a.severity, a.kind) - sevRank(b.severity, b.kind));
+    $("libList").innerHTML = rows.length ? rows.map(r => `<details class="frame${r.kind !== "info" && r.severity === "high" ? " crit" : r.kind !== "info" && r.severity === "medium" ? " maj" : ""}"><summary><span class="t">${esc(generic(r.title))}</span>
+      ${sevTag(r.severity, r.kind)}<span class="chip area">${esc(r.area)}</span></summary>
       <p>${esc(generic(r.explain))}</p>${r.fixes.length ? `<ul>${r.fixes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
       ${r.links.length ? `<p class="sub">${r.links.map(l => `<a href="${esc(l.url || l)}" target="_blank" rel="noopener">${esc(l.title || l.url || l)}</a>`).join(" · ")}</p>` : ""}
       <p class="sub">Seen in builds: ${esc((r.builds_seen || []).join(", ") || "not yet seen in a player log")}</p></details>`).join("")
@@ -1079,52 +1837,67 @@ async function renderSetup() {
   const d = nowData || await api("/api/now"); const u = d.user_cfg || {};
   if (tab !== "setup") return;
   const st = (on, yes, no) => `<span class="state ${on ? "on" : ""}"><i></i>${on ? yes : no}</span>`;
+  const S0 = await api("/api/settings").catch(() => ({}));
+  const lamp = (id, label, on, val, warn) => `<a class="gg sgc ${on ? "on" : warn ? "warn" : "off"}" href="#${id}" data-jump="${id}"><span class="gl">${label}</span><span class="sgv"><i></i>${val}</span></a>`;
   $("view").innerHTML = `
+  <section class="hud ${u.game_found === false ? "breath" : "calm"} sghud"><div class="hg sgg">
+    <div class="gg gscore"><span class="gl ${u.game_found === false ? "poor" : "good"}">Systems check</span><span class="gbig">${[u.game_found !== false, u.has_displayinfo, S0.live, S0.board, S0.share, S0.alerts, S0.updates, S0.library].filter(Boolean).length}<small>/8</small></span><span class="gs">switched on</span></div>
+    ${lamp("sgGame", "Game folder", u.game_found !== false, u.game_found === false ? "Not found" : "Found", true)}
+    ${lamp("sgOverlay", "Overlay at start", u.has_displayinfo, u.has_displayinfo ? "On" : "Off", true)}
+    ${lamp("setToggles", "Live reading", S0.live, S0.live ? "Every 5 s" : "Off")}
+    ${lamp("commCard", "Board", S0.board, S0.board ? "Showing" : "Off")}
+    ${lamp("commCard", "Sharing", S0.share, S0.share ? "On the board" : "Not sharing", true)}
+    ${lamp("alertCard", "Alerts", S0.alerts, S0.alerts ? (S0.alerts === "sound" ? "With sound" : "On") : "Off")}
+    ${lamp("updCard", "Updates", S0.updates, S0.updates ? "Checking" : "Off")}
+    ${lamp("libCard", "Library", S0.library, S0.library ? "Auto" : "Manual")}
+  </div></section>
+  ${S0.share ? "" : `<div class="sec sgshare"><span class="txl"><i></i></span><p><b>Your shard could be on the board.</b> Sharing sends one short summary every 5 minutes, never your handle. You see exactly what went, every time.</p><a class="btn sm" href="#commCard" data-jump="commCard">Review sharing</a></div>`}
+  <nav class="sgnav" aria-label="Set up sections">${[["sgGame", "Game folder"], ["sgSwitch", "Console switches"], ["sgOverlay", "Overlay"], ["sgQr", "QR code"], ["sgShots", "Screenshots"], ["sgRead", "Readings"], ["commCard", "Sharing"], ["markCard", "Mark this moment"], ["alertCard", "Alerts"], ["updCard", "Updates"], ["libCard", "Library"], ["errCard", "Error reports"]].map(([id, t]) => `<a href="#${id}" data-jump="${id}">${t}</a>`).join("")}</nav>
   ${u.game_found === false ? `<div class="sec notice rust"><p><b>Game folder not found yet,</b> so the USER.cfg buttons are off until it is. See the Game folder box below.</p></div>` : ""}
-  <section class="sec"><button class="btn ghost" id="redoWiz">Go through the set-up questions again</button></section>
+  <section class="sec"><button class="btn ghost" data-protected="true" id="redoWiz">Go through the set-up questions again</button></section>
   <section class="sec"><h3>Turn on the game's information <span>two console settings from CIG, on only when you want them</span></h3>
     <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
     Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
-  <section class="sec frame setcard">
+  <h2 class="sgroup" id="grp-sgGame">Game connection</h2><section class="sec frame setcard" id="sgGame">
     <h4>Game folder</h4>
     ${u.game_found === false
       ? `<p><b>Not found yet.</b> The app looks in the usual install places on every drive. If yours is somewhere else, just start Star Citizen: the app picks the folder up from the running game within a few seconds. Or paste it here: it's the <code>StarCitizen\\LIVE</code> folder, the one with <code>Bin64</code> and <code>Game.log</code> in it. In the RSI Launcher, Settings, Games shows the library folder it's inside.</p>`
       : `<p>Reading <code>${esc(d.game_dir)}</code>. Wrong one (say you play on the PTU)? Paste the right folder below.</p>`}
     <div class="fa"><input class="inp" id="gdPath" placeholder="e.g. D:\\Games\\Roberts Space Industries\\StarCitizen\\LIVE" style="flex:1 1 26rem">
-      <button class="btn sm" id="gdSave">Use this folder</button></div>
+      <button class="btn sm" data-protected="true" id="gdSave">Use this folder</button></div>
   </section>
-  <section class="sec frame setcard">
+  <section class="sec frame setcard" id="sgSwitch">
     <h4>Quick switches</h4>
     <p>Neither has to stay on. Switch them on when you want readings or you're about to report a bug, and off again when you don't. In game it takes effect straight away; the start-up setting is what the game does each time it launches.</p>
     <div class="tscroll"><table class="switches"><thead><tr><th>What</th><th>Switch on now</th><th>Switch off now</th><th>When the game starts</th></tr></thead><tbody>
       <tr><td><b>Performance overlay</b><span class="sub">health numbers</span></td><td><code class="cmdsm">r_displayinfo 3</code></td><td><code class="cmdsm">r_displayinfo 0</code></td>
-        <td>${st(u.has_displayinfo, "On", "Off")} <button class="btn sm ghost" ${u.game_found === false ? "disabled" : ""} data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Start with it off" : "Start with it on"}</button></td></tr>
+        <td>${st(u.has_displayinfo, "On", "Off")} <button class="btn sm ghost" ${u.game_found === false ? "disabled" : ""} data-protected="true" data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Start with it off" : "Start with it on"}</button></td></tr>
       <tr><td><b>Session QR code</b><span class="sub">bug reports</span></td><td><code class="cmdsm">r_DisplaySessionInfo 1</code></td><td><code class="cmdsm">r_DisplaySessionInfo 0</code></td>
-        <td>${st(u.has_sessioninfo, "On", "Off")} <button class="btn sm ghost" ${u.game_found === false ? "disabled" : ""} data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Start with it off" : "Start with it on"}</button></td></tr>
+        <td>${st(u.has_sessioninfo, "On", "Off")} <button class="btn sm ghost" ${u.game_found === false ? "disabled" : ""} data-protected="true" data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Start with it off" : "Start with it on"}</button></td></tr>
     </tbody></table></div>
     <p class="sub"><b>Shortcut:</b> the console remembers what you typed. Press <kbd>~</kbd>, then the <kbd>Up</kbd> arrow to bring back an earlier command, and <kbd>Enter</kbd> to run it. Flicking the overlay on and off becomes two or three key presses.</p>
     <p class="sub"><b>Screenshot-only?</b> Leave both off at start-up. When you want a reading, switch the overlay on, press <kbd>Esc</kbd> then <kbd>Print Screen</kbd>, and switch it off again.</p>
   </section>
-  <section class="sec frame setcard">
+  <section class="sec frame setcard" id="sgOverlay">
     <h4>1. The performance overlay (needed for the live health numbers)</h4>
     <span class="cmd">r_displayinfo 3</span>
     <p>Shows a block of small text in the top right: server fps, players on the shard and on your server, ping, packet loss, hitches, server restarts, your own fps and where you are. The app reads this off the screen every few seconds while the game is in front. Levels 2, 3 and 4 show the same block in 4.10; <code>r_displayinfo 0</code> turns it off.</p>
     <div class="fa">${st(u.has_displayinfo, "On in USER.cfg", "Not in USER.cfg")}
-      <button class="btn sm ${u.has_displayinfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
+      <button class="btn sm ${u.has_displayinfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-protected="true" data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
   </section>
-  <section class="sec frame setcard">
+  <section class="sec frame setcard" id="sgQr">
     <h4>2. The session QR code (optional, off unless you want it)</h4>
     <span class="cmd">r_DisplaySessionInfo 1</span>
     <p>Puts a small QR code in the top right corner. It holds your session id, shard and the exact time, which is what CIG's QA team uses to find your session on their side, so any screenshot you take becomes far more useful in a bug report. The Star Citizen wiki's bug reporting guide recommends it. You can also switch it on in the game's Graphics settings. The app copes with it: the overlay block moves left to make room and is still read.</p>
     <p class="sub">Most players leave it off: it covers part of the screen and identifies your session, so blur it in screenshots you post publicly (Spectrum, Discord, Reddit). Switch it on when you're about to report a bug; it's fine in Issue Council reports, which go to CIG.</p>
     <div class="fa">${st(u.has_sessioninfo, "On in USER.cfg", "Not in USER.cfg")}
-      <button class="btn sm ${u.has_sessioninfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
+      <button class="btn sm ${u.has_sessioninfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-protected="true" data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
   </section>
-  <section class="sec frame setcard">
+  <section class="sec frame setcard" id="sgShots">
     <h4>3. Screenshots</h4>
     <p>Press <kbd>Print Screen</kbd> in game. The game saves them in <code>StarCitizen\\LIVE\\screenshots</code>. Any screenshot with the overlay on it becomes a reading, and the app picks up screenshots taken around the time of a problem when it makes an Issue Council report folder.</p>
   </section>
-  <section class="sec frame setcard">
+  <section class="sec frame setcard" id="sgTips">
     <h4>Tips for clean readings</h4>
     <ul class="rules">
       <li><b>Dark behind the text reads best.</b> The overlay is thin light text. Over the sun, a bright planet, snow, lights or a white wall it washes out and the reading is skipped. Face something dark (space, a ship interior, a dark wall or floor) when you want a reading.</li>
@@ -1132,16 +1905,16 @@ async function renderSetup() {
       <li><b>Keep the top right corner clear.</b> Move other overlays (Discord, Steam, NVIDIA or AMD performance counters, RivaTuner) to another corner so they don't sit on top of the game's text.</li>
       <li><b>Turn off Chromatic Aberration and Film Grain</b> in the game's Graphics settings. Both blur small text.</li>
       <li><b>1440p or higher reads every value reliably.</b> At 1080p the text is tiny; the main numbers still read, but the odd small value can be misread. The app takes the middle value over a few minutes, so one bad reading doesn't change the score.</li>
-      <li><b>Play on your main monitor,</b> or set <code>monitor</code> to the screen the game is on (2, 3 and so on) in <code>config.json</code> in the app's data folder: <code>%LOCALAPPDATA%\\SC Shard Status</code> for the installed app. <button class="btn sm ghost" data-open="data">Open the data folder</button></li>
+      <li><b>Play on your main monitor,</b> or set <code>monitor</code> to the screen the game is on (2, 3 and so on) in <code>config.json</code> in the app's data folder: <code>%LOCALAPPDATA%\\SC Shard Status</code> for the installed app. <button class="btn sm ghost" data-protected="true" data-open="data">Open the data folder</button></li>
       <li>Live reading skips anything it can't read and tries again 5 seconds later, so a bright moment just means a gap, not a wrong number.</li>
     </ul>
   </section>
-  <section class="sec frame setcard">
+  <section class="sec frame setcard" id="sgRead">
     <h4>How readings are taken</h4>
     <p><b>Live</b> reads the overlay corner of your screen every 5 seconds while the game is in front. That gives the health score, the charts and warnings when the server slows down. <b>Screenshots</b> reads only the screenshots you take, so nothing watches your screen; you get a reading each time you press <kbd>Print Screen</kbd>, but no live score.</p>
     <div class="swlist" id="setToggles"></div>
   </section>
-  <section class="sec frame setcard" id="commCard">
+  <h2 class="sgroup">Sharing and the community board</h2><section class="sec frame setcard" id="commCard">
     <h4>Community board</h4>
     <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
     <ul class="rules">
@@ -1151,7 +1924,7 @@ async function renderSetup() {
     <div class="swlist" id="commToggles"></div>
     <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
   </section>
-  <section class="sec frame setcard" id="markCard">
+  <h2 class="sgroup">The app</h2><section class="sec frame setcard" id="markCard">
     <h4>Mark this moment</h4>
     <p>Something just went wrong? Press <b>Mark this moment</b> at the top of this page and keep playing. Later, "What's gone wrong?" looks at exactly that moment, and the Issue Council draft uses its time. A hotkey does the same without leaving the game. It's registered with Windows, which tells the app only when that one combination is pressed; the app never watches the keyboard.</p>
     <div class="fa"><div class="seg" id="hkSeg" role="radiogroup" aria-label="Hotkey"></div></div>
@@ -1173,7 +1946,7 @@ async function renderSetup() {
     <h4>Pop-up alerts</h4>
     <p>A Windows notification when the server's fps falls off a cliff, the server restarts, packet loss climbs, you're disconnected, or a known problem turns up in Game.log. Each kind at most once every 10 minutes.</p>
     <p class="sub">Windows holds notifications back while a full-screen game is in front (Settings, System, Notifications, "Turn on do not disturb automatically when playing a game"). Borderless window mode or a second screen gets them through; the sound plays either way.</p>
-    <div class="fa"><div class="seg" id="alertSeg" role="radiogroup" aria-label="Pop-up alerts"></div><button class="btn sm ghost" id="alertTest">Send a test alert</button></div>
+    <div class="fa"><div class="seg" id="alertSeg" role="radiogroup" aria-label="Pop-up alerts"></div><button class="btn sm ghost" data-protected="true" id="alertTest">Send a test alert</button></div>
   </section>
   <section class="sec frame setcard" id="libCard">
     <h4>Known-issues library</h4>
@@ -1188,7 +1961,7 @@ async function renderSetup() {
   };
   // Each setting is a row with clear On / Off buttons and a sentence saying what it's doing right now
   const swRow = (key, label, on, note) => `<div class="swrow"><div class="swl"><b>${label}</b><span class="sub">${note}</span></div>
-    <div class="onoff" role="group" aria-label="${label}"><button type="button" data-sw="${key}" data-v="1" aria-pressed="${!!on}">On</button><button type="button" data-sw="${key}" data-v="0" aria-pressed="${!on}">Off</button></div></div>`;
+    <div class="onoff" role="group" aria-label="${label}"><button type="button" data-protected="true" data-sw="${key}" data-v="1" aria-pressed="${!!on}">On</button><button type="button" data-protected="true" data-sw="${key}" data-v="0" aria-pressed="${!on}">Off</button></div></div>`;
   const bindRows = (el, redraw) => el.querySelectorAll("[data-sw]").forEach(b => b.onclick = async () => {
     try { const r = await api("/api/settings", {[b.dataset.sw]: b.dataset.v === "1"}); toast(r.message); redraw(); } catch (e) { toast(e.message, true); }
   });
@@ -1225,7 +1998,7 @@ async function renderSetup() {
       st.updates ? (u.checked_at ? `On. Last checked ${ago(u.checked_at)}.` : "On. First check a minute after the app starts.") : "Off. You'll need to look on the site for new versions.");
     bindRows($("updToggles"), drawUpd);
     $("updState").innerHTML = `<div class="fa"><span>You have version <b>${esc(u.current)}</b>${u.installed_app ? "" : " (unzipped copy)"}${u.available ? `. Version <b>${esc(u.latest)}</b> is out.` : u.latest ? ", the latest." : "."}</span>
-      <button class="btn sm ghost" data-upd="check">Check now</button></div>${u.error && u.state !== "failed" ? `<p class="sub">${esc(u.error)}</p>` : ""}${updNotice(u)}`;
+      <button class="btn sm ghost" data-protected="true" data-upd="check">Check now</button></div>${u.error && u.state !== "failed" ? `<p class="sub">${esc(u.error)}</p>` : ""}${updNotice(u)}`;
   };
   drawUpd();
   const drawLib = async () => {
@@ -1234,7 +2007,7 @@ async function renderSetup() {
     $("libToggles").innerHTML = swRow("library", "Keep the library up to date", st.library,
       st.library ? (L.checked_at ? `On. Last checked ${ago(L.checked_at)}.` : "On. First check a minute and a half after the app starts.") : "Off. Using the library that came with this version of the app.");
     bindRows($("libToggles"), drawLib);
-    $("libState").innerHTML = `<div class="fa"><span>Library <b>${esc(L.version)}</b>${L.updated_at ? `, updated ${ago(L.updated_at)}` : ""}.</span><button class="btn sm ghost" id="libCheck">Check now</button></div>
+    $("libState").innerHTML = `<div class="fa"><span>Library <b>${esc(L.version)}</b>${L.updated_at ? `, updated ${ago(L.updated_at)}` : ""}.</span><button class="btn sm ghost" data-protected="true" id="libCheck">Check now</button></div>
       ${L.error ? `<p class="sub">${esc(L.error)}</p>` : L.note ? `<p class="sub">${esc(L.note)}</p>` : ""}`;
     $("libCheck").onclick = async () => { $("libCheck").disabled = true; try { const r = await api("/api/library/check", {}); toast(r.error || r.note || "Already up to date."); } catch (e) { toast(e.message, true); } drawLib(); };
   };
@@ -1243,7 +2016,7 @@ async function renderSetup() {
     if (!$("alertSeg")) return;
     const st = await api("/api/settings"), m = (st.alerts || {}).mode || "";
     $("alertSeg").innerHTML = [["sound", "On, with a sound"], ["quiet", "On, no sound"], ["", "Off"]]
-      .map(([v, l]) => `<button type="button" data-al="${v}" aria-pressed="${m === v}">${l}</button>`).join("");
+      .map(([v, l]) => `<button type="button" data-protected="true" data-al="${v}" aria-pressed="${m === v}">${l}</button>`).join("");
     $("alertSeg").querySelectorAll("[data-al]").forEach(b => b.onclick = async () => {
       try { const r = await api("/api/settings", {alerts: b.dataset.al || false}); toast(r.message); drawAlerts(); } catch (e) { toast(e.message, true); }
     });
@@ -1254,7 +2027,7 @@ async function renderSetup() {
     if (!$("hkSeg")) return;
     const st = await api("/api/settings");
     $("hkSeg").innerHTML = [["", "No hotkey"], ["ctrl+alt+m", "Ctrl+Alt+M"], ["ctrl+shift+m", "Ctrl+Shift+M"], ["ctrl+alt+f9", "Ctrl+Alt+F9"], ["ctrl+alt+f10", "Ctrl+Alt+F10"]]
-      .map(([v, l]) => `<button type="button" data-hk="${v}" aria-pressed="${(st.hotkey || "") === v}">${l}</button>`).join("");
+      .map(([v, l]) => `<button type="button" data-protected="true" data-hk="${v}" aria-pressed="${(st.hotkey || "") === v}">${l}</button>`).join("");
     $("hkState").textContent = st.hotkey_status === "off" ? "Off. Use the button at the top of the page." : "Hotkey " + st.hotkey_status + ".";
     $("hkSeg").querySelectorAll("[data-hk]").forEach(b => b.onclick = async () => { try { const r = await api("/api/settings", {hotkey: b.dataset.hk}); toast(r.message); drawExtra(); } catch (e) { toast(e.message, true); } });
     $("errToggles").innerHTML = swRow("errors", "Send app error reports", st.errors, st.errors ? `On. ${st.errors_sent ? st.errors_sent + " sent this run." : "Nothing has gone wrong this run."}` : "Off. Nothing is sent.");
@@ -1268,32 +2041,64 @@ async function renderSetup() {
     try { const r = await api("/api/usercfg", {name: b.dataset.cfg, on: b.dataset.on === "1"}); toast(r.message); nowData = null; nowData = await api("/api/now"); renderSetup(); }
     catch (e) { toast(e.message, true); }
   });
+  $("view").querySelectorAll("[data-jump]").forEach(a => a.onclick = ev => { ev.preventDefault(); const t = $(a.dataset.jump); if (t) window.scrollTo({top: t.getBoundingClientRect().top + window.scrollY - 70, behavior: "smooth"}); });
 }
 
 /* ---------- About ---------- */
+// Same About as verseshards.com/about, then the app's own bits (version, theme, star)
 async function renderAbout() {
   const d = await api("/api/about");
   if (tab !== "about") return;
   const theme = document.documentElement.dataset.theme || "";
-  $("view").innerHTML = `
-  <section class="sec frame about">
-    ${d.author.picture ? `<img src="${esc(d.author.picture)}" alt="Aurelius_Draco">` : ""}
-    <div><span class="eyebrow">Made by</span><h2>${esc(d.author.name)}</h2>${d.message.map(m => `<p>${esc(m)}</p>`).join("")}</div>
-  </section>
+  const shot = (src, label, cls = "") => `<div class="shot ${cls}"><span>${label}</span><img src="${src}" alt="${label}" onerror="this.remove()"></div>`;
+  const road = [["Verse Shards for PC 1.4: a cleaner Now tab and group cards that match the site", "Next"], ["More detail on group posts: voice, experience, ship or seat, language", "Next"],
+    ["Group tools: mark spots filled, “poster has seen you”, close when full", "Planned"], ["Org tools: plan events on the healthiest shard and rally members", "Planned"],
+    ["Quick search across shards, issues and commodities", "Later"], ["Share cards, so a shard link shows its health when posted", "Later"]];
+  const siteAbout = `<section class="ab-hero">
+    <div class="ab-me"><div class="ab-who"><img src="img/aurelius-draco.jpg" alt="Aurelius_Draco"><div><span class="ab-eye">Made by a player</span><h1>Aurelius_Draco</h1></div></div>
+      <p class="ab-story">I’m Aurelius_Draco, an Aussie who flies mostly solo PvE. My usual loop is hauling gold out of Pyro in my Constellation Mk V Centaurus and selling it back in Stanton. Too many runs went wrong and I never knew if it was me or the server, so I built a tool to find out. Verse Shards grew from that: players sharing readings so everyone can pick a healthy shard before starting a run.</p>
+      <p class="muted" style="margin:0">Free, and it stays free. If you see me in game, say hi.</p>
+      <div class="ab-acts"><a class="btn" href="https://robertsspaceindustries.com/citizens/Aurelius_Draco" target="_blank" rel="noopener">Add me as a friend</a><a class="btn ghost" href="https://discord.gg/8kH5pfHYbe" target="_blank" rel="noopener">Discord</a><a class="btn ghost" href="https://robertsspaceindustries.com/spectrum/community/SC/forum/50172/thread/sc-shard-status-free-app-that-scores-your-shard-s-/575329" target="_blank" rel="noopener">Spectrum thread</a><a class="btn ghost" href="https://github.com/Aurelius-Draco/sc-shard-status" target="_blank" rel="noopener">Code on GitHub</a></div></div>
+    <figure class="ab-ship">${shot("img/centaurus.webp", "Constellation Mk V Centaurus in orbit", "wide")}
+      <figcaption><span><b>Constellation Mk V Centaurus</b> <span class="muted">· the gold hauler</span></span><span class="muted">Also: Origin M80 · C2 Hercules</span></figcaption></figure></section>
+
+  <section class="sec"><h2 class="ab-h">How it works</h2><div class="ab-how">
+    <div class="frame"><div class="ab-step"><b class="n">1</b><b>The game's overlay</b></div>
+      <div class="ab-ov" aria-hidden="true"><span>Server FPS: 20.8</span><span>Players: 445 / 37</span><span>Ping: 33 ms</span><span>Packet loss: 0%</span><span class="muted">r_displayinfo 3</span></div>
+      <p>Star Citizen already shows server numbers in the corner of your screen. Turn it on once with one console line.</p></div>
+    <span class="ab-arrow" aria-hidden="true">›</span>
+    <div class="frame"><div class="ab-step"><b class="n">2</b><b>Verse Shards for PC</b></div>
+      <img class="ab-img" src="img/1-now-healthy.webp" onerror="this.remove()" alt="The companion's Now tab">
+      <p>The free companion reads those numbers and Game.log, and tells you in plain English how your shard is doing.</p></div>
+    <span class="ab-arrow" aria-hidden="true">›</span>
+    <div class="frame"><div class="ab-step"><b class="n">3</b><b>The board</b></div>
+      <div class="ab-mini" aria-hidden="true"><div><span><i class="st good"></i> <b>AU-110</b></span><span class="muted">96 · 21.6 fps</span></div><div><span><i class="st good"></i> <b>AU-90</b></span><span class="muted">92 · 20.0 fps</span></div><div><span><i class="st bad"></i> <b>AU-60</b></span><span class="muted">31 · 6.2 fps</span></div></div>
+      <p>If you switch sharing on, a short summary joins everyone else's here, so anyone can pick a healthy shard.</p></div></div></section>
+
+  <section class="sec ab-two"><div><h2 class="ab-h">Ground rules</h2><div class="ab-rules">
+      <div><b>Reads, never touches</b><span>Only your screen's overlay, Game.log and the game's text file. Never the game's memory or network traffic, never your mouse or keyboard.</span></div>
+      <div><b>Nothing leaves unless you say so</b><span>Sharing is off until you switch it on, and you see the summary before it goes. Never your handle, other players' names or your IP.</span></div>
+      <div><b>No accounts</b><span>Verse Shards stores no IP addresses. The app uses a random install id, never your handle, so nothing is counted twice.</span></div>
+      <div><b>You file the reports</b><span>Issue Council reports are drafts. You check them and submit them yourself.</span></div></div>
+      <p class="sub" style="margin:var(--s2) 0 0">Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.</p></div>
+    <div><h2 class="ab-h">The org</h2><div class="frame ab-org">${shot("img/centaurus-pyro.webp", "The Centaurus over ArcCorp")}
+      <div class="ab-orgb"><div class="ab-orgt"><b>Shardwatch</b><code>SHARDWATCH</code></div><p>Watching shards and giving each other a heads-up. New, founded by Aurelius_Draco, and the first home for org tools when they land.</p>
+        <a class="btn ghost sm" href="https://robertsspaceindustries.com/orgs/SHARDWATCH" target="_blank" rel="noopener">See the org on RSI</a></div></div></div></section>
+
+  <section class="sec ab-two"><div><h2 class="ab-h">Coming up</h2><div class="frame ab-road">${road.map(([t, st], i) => `<div class="${st.toLowerCase()}${i === 0 ? " first" : ""}"><i></i><span>${t}</span><b>${st}</b></div>`).join("")}</div></div>
+    <div><h2 class="ab-h">Thanks</h2><ul class="ab-thanks"><li>Every player sharing readings from the PC companion</li><li>The testers and Discord members who report bugs and suggest fixes</li><li>The players adding workarounds and Issue Council links on Known issues</li><li>UEX, for the trade and price data</li></ul></div></section>
+
+  <section class="sec"><div class="notice teal"><p><b>Help wanted.</b> Testers with 1440p, 4K or ultrawide screens, and moderators and admins for the community side.</p><a class="btn ghost" href="https://verseshards.com/help" target="_blank" rel="noopener">See what's needed</a></div></section>
+  <section class="sec"><div class="frame refcard ab-ref"><div class="rtext"><small>Bringing a friend into the 'verse?</small><b>Start with 50,000 UEC</b><span>New players who sign up with my referral code get the bonus, and it's the best way to say thanks for the tools.</span></div>
+    <div class="rcode"><div class="rrow"><code>STAR-VD9W-346V</code><button class="btn ghost" type="button" data-protected="true" data-chat="STAR-VD9W-346V" data-plain>Copy</button></div><a class="btn" href="https://robertsspaceindustries.com/en/enlist?referral=STAR-VD9W-346V" target="_blank" rel="noopener">Sign up with the code</a></div></div></section>`;
+  $("view").innerHTML = `<div class="abwrap">${siteAbout}</div>
+  <section class="sec"><div class="frame starline"><p>${esc(d.star.text)}</p><a class="btn sm ghost" href="${esc(d.star.url)}" target="_blank" rel="noopener">★ Star on GitHub <span id="starN"></span></a></div></section>
   <section class="sec"><h3>Also by Aurelius_Draco</h3><div class="tiles">
     ${d.also_by.map(a => `<a class="frame tile" href="${esc(a.download || a.url)}" target="_blank" rel="noopener"><b>${esc(a.name)}</b><span>${esc(a.about)}</span><span class="go">Download from GitHub →</span></a>`).join("")}
   </div></section>
-  <section class="sec"><h3>Say hello</h3><div class="tiles">
-    ${d.links.map(l => `<a class="frame tile" href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b><span>${esc(l.text)}</span><span>${esc(l.about)}</span></a>`).join("")}
-    <a class="frame tile" href="${esc(d.author.repo)}" target="_blank" rel="noopener"><b>This app on GitHub</b><span>Updates, source code, and where to report a problem or suggest an idea.</span></a>
-  </div></section>
-  <section class="sec"><div class="frame starline"><p>${esc(d.star.text)}</p><a class="btn sm ghost" href="${esc(d.star.url)}" target="_blank" rel="noopener">★ Star on GitHub <span id="starN"></span></a></div></section>
-  <section class="sec"><div class="frame card"><h4>What's next</h4><p class="sub">${esc(d.coming)}</p></div></section>
-  <section class="sec"><h3>Ground rules</h3><ul class="rules">${d.rules.map(r => `<li>${esc(r)}</li>`).join("")}</ul></section>
   <section class="sec"><h3>Look</h3><div class="seg" role="radiogroup" aria-label="Theme">
     ${[["", "Match Windows"], ["dark", "Dark"], ["light", "Light"]].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${theme === v}">${l}</button>`).join("")}</div></section>
-  <p class="foot">SC Shard Status v${esc(d.version)}</p>`;
-  // The star count straight from GitHub (from this page; nothing about you is sent)
+  <p class="foot">Verse Shards for PC v${esc(d.version)}</p>`;
   fetch(d.star.api, {headers: {accept: "application/vnd.github+json"}}).then(r => r.ok ? r.json() : null)
     .then(j => { if (j && $("starN")) $("starN").textContent = "· " + j.stargazers_count; }).catch(() => {});
   $("view").querySelectorAll("[data-theme]").forEach(x => x.onclick = () => {
@@ -1310,7 +2115,7 @@ async function openWizard(all) {
   const d = await api("/api/now"); const st = await api("/api/settings"); const u = d.user_cfg || {};
   const ask = all ? null : d.setup_ask;
   const A = {};
-  const yn = (key, yes = "Yes", no = "No") => `<div class="ans" data-q="${key}"><button type="button" data-v="1">${yes}</button><button type="button" data-v="0">${no}</button></div>`;
+  const yn = (key, yes = "Yes", no = "No") => `<div class="ans" data-q="${key}" data-protected="true"><button type="button" data-v="1">${yes}</button><button type="button" data-v="0">${no}</button></div>`;
   const now = v => v === null || v === undefined ? "" : `<span class="now">Right now: ${v ? "on" : "off"}</span>`;
   const qs = [
     ["game", "Game folder", d.game_found ? `Is this your Star Citizen folder?` : `Where's Star Citizen installed?`,
@@ -1360,7 +2165,7 @@ async function openWizard(all) {
   w.innerHTML = `<div class="box"><header><h2 id="wzTitle">${isNew ? `This version brings ${many}` : `Before you start: ${qs.length} quick questions`}</h2>
     <p>${isNew ? "Your earlier answers are kept. " : ""}Each one needs a yes or a no, so nothing gets missed. You can change any of them later on the Set up tab.</p></header>
     ${qs.map(([k, eb, h, p, a], i) => `<section class="wq" id="wq-${k}"><span class="qn">${i + 1} of ${qs.length} · ${eb}</span><h3>${h}</h3><p>${p}</p>${a}</section>`).join("")}
-    <footer><span class="sub" id="wzLeft"></span><span class="grow"></span><button class="btn big" id="wzDone" disabled>Save and start</button></footer></div>`;
+    <footer><span class="sub" id="wzLeft"></span><span class="grow"></span><button class="btn big" data-protected="true" id="wzDone" disabled>Save and start</button></footer></div>`;
   document.body.appendChild(w);
   document.body.style.overflow = "hidden";
   const update = () => {

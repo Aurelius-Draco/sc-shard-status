@@ -104,7 +104,7 @@ class Alerts:
         return True
 
     def test(self):
-        return self.fire("test", "SC Shard Status alerts are on",
+        return self.fire("test", "Verse Shards alerts are on",
                          "This is what an alert looks like. Over a full-screen game, Windows may hold it back; "
                          "the sound still plays if you chose one.", force=True)
 

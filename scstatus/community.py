@@ -116,6 +116,8 @@ SHARE_EVERY_S = 300
 BOARD_EVERY_S = 120
 RSI_EVERY_S = 600
 SESSIONS_EVERY_S = 1800
+FED_EVERY_S = 600           # how often to ask the site how many of your summaries it counted this week
+POSTS_EVERY_S = 60          # how often to read the public groups feed (pirate reports and groups on your shard)
 
 
 def summarise(snaps, now=None, window_s=SHARE_EVERY_S):
@@ -176,6 +178,10 @@ class Community:
         self.sessions_at = 0
         self.sessions_sent = 0
         self._q_tries = self._q_failed = 0
+        self.fed_week = None        # summaries the site counted from this install this week (None: unknown)
+        self.fed_at = 0
+        self.posts = None           # the public groups feed (GET /api/v1/posts), when the community board is on
+        self.posts_at = 0
 
     def _req(self, path, body=None):
         data = None if body is None else json.dumps(body).encode()
@@ -189,6 +195,16 @@ class Community:
                 return e.code, json.loads(e.read().decode() or "{}")
             except Exception:
                 return e.code, {}
+
+    def fetch_fed(self):
+        """How many of this install's 5-minute summaries the site counted this week. Only asked while sharing is on;
+        any error, or an older site without this (404), gives None and the page leaves the count out."""
+        try:
+            code, d = self._req(f"/api/v1/fed?install={self.app.store.install_id()}")
+        except Exception:
+            return None
+        week = d.get("week") if code == 200 else None
+        return week if isinstance(week, int) and week >= 0 else None
 
     @property
     def places(self):
@@ -241,8 +257,20 @@ class Community:
                 self.board, self.board_error = (d, None) if code == 200 else (self.board, f"board answered {code}")
             except Exception as e:
                 self.board_error = f"couldn't reach the board ({e.__class__.__name__})"
+        if cfg.get("community_board") and now - self.posts_at >= POSTS_EVERY_S:
+            self.posts_at = now
+            try:
+                code, d = self._req("/api/v1/posts")
+                if code == 200:
+                    self.posts = d
+            except Exception:
+                pass
+        if cfg.get("share_readings") and now - self.fed_at >= FED_EVERY_S:
+            self.fed_at = now
+            self.fed_week = self.fetch_fed()
         if not cfg.get("share_readings"):
             self.share_status = "off"
+            self.fed_week = None
             return
         if now - self.sent_at < SHARE_EVERY_S or now < self.retry_at:
             return
