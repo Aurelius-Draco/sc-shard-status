@@ -343,6 +343,28 @@ table.switches td:last-child { white-space: nowrap; }
   .grid2 { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .drawer, .scrim { transition: none; } }
+
+/* 1.3 */
+button.pill.mark { font: inherit; cursor: pointer; background: var(--teal-bg); border-color: var(--teal); color: var(--text); font-weight: 600; }
+button.pill.mark:hover { background: var(--teal); color: #06221d; }
+.copyl { display: grid; gap: var(--s2); padding: var(--s3) var(--s4); }
+.copyl .cl { display: flex; gap: var(--s3); align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: var(--s2); }
+.copyl .cl:first-of-type { border-top: 0; padding-top: 0; }
+.copyl .cl span { flex: 1 1 auto; overflow-wrap: anywhere; }
+.copyl .cl.fts span { color: var(--muted); }
+.marks { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-top: var(--s3); }
+.find.near { box-shadow: inset 3px 0 0 var(--teal); }
+.cnt { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cnt.over { color: var(--rust); font-weight: 700; }
+.rhd .grow { flex: 1; }
+.rsec .note { font-size: .8125rem; color: var(--muted); margin: 0; }
+.rsec select.inp { max-width: 16rem; }
+.contrib { border: 1px solid var(--teal); background: var(--teal-bg); border-radius: var(--r-sm); padding: var(--s3) var(--s4); display: grid; gap: var(--s2); }
+.gform { display: grid; gap: var(--s3); padding: var(--s4) var(--s5); }
+.gform .row { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: end; }
+.gform label { display: grid; gap: 4px; font-size: .8125rem; color: var(--muted); font-weight: 600; flex: 1 1 12rem; }
+.starline { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); align-items: center; padding: var(--s3) var(--s4); border-left: 2px solid var(--amber); }
+.starline p { margin: 0; flex: 1 1 20rem; }
 </style>
 </head>
 <body>
@@ -356,6 +378,7 @@ table.switches td:last-child { white-space: nowrap; }
   <a class="pill plink comm" href="https://verseshards.com" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">Community site: verseshards.com</a>
   <a class="pill plink" href="https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest" target="_blank" rel="noopener" title="Free download on GitHub">Get SC Inventory Tracker</a>
   <button type="button" class="pill plink upd" id="updPill" hidden></button>
+  <button type="button" class="pill mark" id="markBtn" title="Something just went wrong? Mark it and keep playing. What's gone wrong? looks at this moment later.">Mark this moment</button>
   <span class="pill" id="shardPill"><i></i><span>No shard yet</span></span>
   <span class="pill" id="ovPill" title="Reading the game's debug overlay"><i></i><span>Overlay</span></span>
 </header>
@@ -364,6 +387,7 @@ table.switches td:last-child { white-space: nowrap; }
   <button role="tab" data-tab="now" aria-selected="true">Now</button>
   <button role="tab" data-tab="check">What's gone wrong? <span class="count rust" id="findCount"></span></button>
   <button role="tab" data-tab="timeline">Timeline</button>
+  <button role="tab" data-tab="groups">Groups <span class="count" id="grpCount"></span></button>
   <button role="tab" data-tab="history">History</button>
   <button role="tab" data-tab="pc">My PC</button>
   <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
@@ -410,7 +434,7 @@ function show(t) {
   try { sessionStorage.setItem("tab", t); } catch (e) {}
   document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
   clearInterval(timer);
-  const fn = {now: renderNow, check: renderCheck, timeline: renderTimeline, history: renderHistory, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow;
+  const fn = {now: renderNow, check: renderCheck, timeline: renderTimeline, history: renderHistory, groups: renderGroups, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow;
   Promise.resolve().then(fn).catch(e => {
     if (tab === t) $("view").innerHTML = `<div class="empty"><h3>Couldn't load this page</h3><p>${esc(e.message)}. Is the SC Shard Status window still open?</p></div>`;
   });
@@ -430,7 +454,7 @@ function header(d) {
   sp.title = sh.id || "";
   const st = d.overlay_status || "off";
   op.className = "pill" + (st === "reading" ? " on" : st === "off" ? "" : " warn");
-  op.querySelector("span").textContent = st === "reading" ? "Overlay: reading" : st === "off" ? "Overlay: off" : "Overlay: " + st.split(" (")[0];
+  op.querySelector("span").textContent = st === "reading" ? "Overlay: reading" : st === "off" ? "Overlay: off" : st.startsWith("overlay off") ? "Overlay off, readings paused" : "Overlay: " + st.split(" (")[0];
   op.title = st;
   $("libCount").textContent = d.library && d.library.problem ? d.library.problem : "";
   const u = d.update || {}, up = $("updPill");
@@ -438,7 +462,23 @@ function header(d) {
   if (u.available) up.textContent = u.state === "idle" || u.state === "failed" ? `Version ${u.latest} is out` : "Updating…";
   if (u.state === "starting installer") waitForRestart();
   const dot = $("setupDot"); dot.hidden = !!d.game_found; dot.title = d.game_found ? "" : "Game folder not found";
+  const g = d.groups || {}, nInt = (g.interest || []).length;
+  $("grpCount").textContent = g.offer ? "!" : nInt ? nInt : "";
 }
+$("markBtn").onclick = async () => {
+  try { const r = await api("/api/mark", {}); toast(r.message); if (tab === "check") renderCheck(); } catch (e) { toast(e.message, true); }
+};
+// Lines for global chat: each its own Copy button, then a separate "Found this on Verse Shards"
+function chatBox(lines, title = "Copy for global chat") {
+  if (!lines || !lines.length) return "";
+  const all = lines.concat(["Found this on Verse Shards"]);
+  return `<div class="frame copyl"><div class="rhd"><h4>${esc(title)}</h4></div>${all.map((l, i) => `<div class="cl ${i === all.length - 1 ? "fts" : ""}"><span>${esc(l)}</span><button class="btn sm ghost" type="button" data-chat="${esc(l)}">Copy</button></div>`).join("")}</div>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-chat]"); if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.chat); } catch (x) { const ta = document.createElement("textarea"); ta.value = b.dataset.chat; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  toast("Copied. Paste it into chat in game.");
+});
 
 /* ---------- updates ---------- */
 // The installed app updates itself in one click; a copy unzipped by hand is sent to the download page
@@ -555,6 +595,10 @@ async function renderNow() {
   if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game folder not found yet.</b> Start Star Citizen and the app picks it up by itself, or paste the folder on the Set up tab.</p><button class="btn sm" id="goSetup3">Set up</button></div>`);
   if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
     setup.push(`<div class="notice"><p><b>Turn on the game's overlay.</b> In game, open the console with <kbd>~</kbd> and type <code>r_displayinfo 3</code>. Or add it to USER.cfg so it's always on. The Set up tab explains both settings.</p><button class="btn sm ghost" id="addCfg">Add to USER.cfg</button><button class="btn sm ghost" id="goSetup">Set up</button></div>`);
+  if (d.readings_paused) setup.push(`<div class="notice"><p><b>Overlay off, readings paused.</b> The numbers below are from before. Type <code>r_displayinfo 3</code> in the console to start again (bright scenery behind the text pauses it too).</p></div>`);
+  const g = d.groups || {};
+  if (g.offer) setup.push(`<div class="notice rust"><p><b>Your ${esc(g.offer.ship)} was destroyed near ${esc(g.offer.area_name)}${g.offer.ts ? " at " + tm(g.offer.ts) : ""}.</b> Was it another player? Report pirate activity in this area so others can take care. Only the area is sent, never the exact spot, and it clears after 45 minutes.</p><button class="btn sm" data-pirate="post">Report pirate activity here</button><button class="btn sm ghost" data-pirate="no">No, it wasn't</button></div>`);
+  if ((g.interest || []).length) setup.push(`<div class="notice teal"><p><b>${g.interest.length === 1 ? "Someone's" : g.interest.length + " players are"} keen to join:</b> ${g.interest.slice(0, 5).map(i => `<b>${esc(i.handle)}</b>${i.note ? ` ("${esc(i.note)}")` : ""}`).join(", ")}. Send them a party invite in game.</p><button class="btn sm ghost" id="goGroups">Groups</button></div>`);
   const cmp = d.compare;
   const cmpTxt = cmp ? `${Math.abs(cmp.diff_pct)}% ${cmp.diff_pct >= 0 ? "above" : "below"} your usual ${cmp.your_median} fps on this patch` : "";
   $("view").innerHTML = `
@@ -588,6 +632,7 @@ async function renderNow() {
       <div class="cell"><dt>Your fps</dt><dd>${fmt(h.client_fps)}</dd></div>
     </dl>
   </section>
+  ${d.chat_lines && d.chat_lines.length ? `<section class="sec">${chatBox(d.chat_lines)}</section>` : ""}
   ${commSection(d)}
   <section class="sec grid2">
     <div class="frame card"><h4>Server fps</h4><span class="sub">Last hour. About 20 is normal on 4.10.</span><div class="chart" id="cFps"></div></div>
@@ -610,6 +655,7 @@ async function renderNow() {
     <span>Keeps track of what you've stored at every station: scans the storage kiosk, follows Game.log, wish lists with where to buy or craft, ship fittings. Free.</span>
     <span class="btn sm">Download from GitHub</span></a></section>
   ${h.score !== null ? `<p class="sub" style="margin-top:var(--s5)">Overlay in the way? Press <kbd>~</kbd> and type <code>r_displayinfo 0</code> to hide it; <code>r_displayinfo 3</code> brings it back. <button class="link" id="goSetup2">More on the switches</button></p>` : ""}
+  <p class="sub" style="margin-top:var(--s4)">Finding this useful? A star on GitHub helps other players find it and trust it. <a href="https://github.com/Aurelius-Draco/sc-shard-status" target="_blank" rel="noopener">★ Star on GitHub</a></p>
   <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
   lineChart($("cFps"), d.spark, "server_fps", "var(--amber)", "fps", "Server fps");
   lineChart($("cPop"), d.spark, "pop_srv", "var(--teal)", "players", "Players on your server");
@@ -618,6 +664,13 @@ async function renderNow() {
   if ($("goSetup")) $("goSetup").onclick = () => show("setup");
   if ($("goSetup2")) $("goSetup2").onclick = () => show("setup");
   if ($("goSetup3")) $("goSetup3").onclick = () => show("setup");
+  if ($("goGroups")) $("goGroups").onclick = () => show("groups");
+  $("view").querySelectorAll("[data-pirate]").forEach(b => b.onclick = async () => {
+    try {
+      const r = b.dataset.pirate === "post" ? await api("/api/groups/post", {kind: "pirate"}) : await api("/api/groups/dismiss", {});
+      if (b.dataset.pirate === "post") toast(r.message); b.closest(".notice").remove();
+    } catch (e) { toast(e.message, true); }
+  });
   if ($("goSetup4")) $("goSetup4").onclick = () => { show("setup"); setTimeout(() => { const c = $("commCard"); if (c) c.scrollIntoView({block: "start"}); }, 400); };
 }
 
@@ -650,29 +703,34 @@ async function renderCheck() {
     <button class="btn big" id="runCheck">What's gone wrong?</button>
     <label class="sub">Look back <select id="mins">${[10, 30, 60, 120, 240].map(m => `<option value="${m}" ${m == mins ? "selected" : ""}>${m < 60 ? m + " minutes" : m / 60 + " hour" + (m > 60 ? "s" : "")}</option>`).join("")}</select></label>
     <p>Reads Game.log and the overlay readings for that period, matches them against the known-issues library and explains what it finds.</p>
+    <div class="marks" id="marks"></div>
   </section>
   <div id="checkOut">${lastCheck ? "" : `<div class="empty"><h3>Nothing checked yet</h3><p>Something just went wrong in game? Press the button. You don't need to quit the game first.</p></div>`}</div>
   <div id="myReviews"></div>`;
   drawMyReviews();
+  const marks = (nowData && nowData.marks) || (await api("/api/now").catch(() => ({marks: []}))).marks || [];
+  $("marks").innerHTML = marks.length ? `<span class="sub">Moments you marked:</span>${marks.slice().reverse().slice(0, 6).map(m => `<button class="btn sm ghost" data-mark="${m.ts}">Check ${tm(m.ts)}</button>`).join("")}`
+    : `<span class="sub">Tip: press <b>Mark this moment</b> at the top${nowData && nowData.hotkey && nowData.hotkey.startsWith("on") ? ` (or ${esc(nowData.hotkey.slice(4))})` : ""} the moment something goes wrong, then check it here later.</span>`;
+  $("marks").querySelectorAll("[data-mark]").forEach(b => b.onclick = () => runCheck(+b.dataset.mark));
   $("mins").onchange = e => { try { sessionStorage.setItem("mins", e.target.value); } catch (x) {} };
   $("runCheck").onclick = runCheck;
   if (lastCheck) drawCheck(lastCheck);
 }
 
-async function runCheck() {
+async function runCheck(mark) {
   const b = $("runCheck"); b.disabled = true; b.textContent = "Checking…";
-  try { lastCheck = await api("/api/diagnose", {minutes: +$("mins").value}); drawCheck(lastCheck); }
+  try { lastCheck = await api("/api/diagnose", {minutes: +$("mins").value, mark: typeof mark === "number" ? mark : null}); drawCheck(lastCheck); }
   catch (e) { toast(e.message, true); }
   b.disabled = false; b.textContent = "What's gone wrong?";
 }
 
 function findCard(f, i, group) {
   const when = f.first_ts ? (f.first_ts === f.last_ts || !f.last_ts ? tm(f.first_ts) : `${tm(f.first_ts)} to ${tm(f.last_ts)}`) : "";
-  return `<article class="find frame ${group === "unknown" ? "" : esc(f.severity)}">
+  return `<article class="find frame ${group === "unknown" ? "" : esc(f.severity)}${f.near_mark ? " near" : ""}">
     <div class="fh"><h4>${esc(f.title)}</h4>
       <span class="chip ${group === "unknown" ? "unknown" : esc(f.severity)}">${group === "unknown" ? "unrecognised" : esc(f.severity)}</span>
       ${f.area && group !== "unknown" ? `<span class="chip area">${esc(f.area)}</span>` : ""}
-      <span class="sub">${f.count > 1 ? f.count + " times, " : ""}${when}</span></div>
+      ${f.near_mark ? `<span class="chip area">near your mark</span>` : ""}<span class="sub">${f.count > 1 ? f.count + " times, " : ""}${when}</span></div>
     ${group === "unknown" ? `<p class="sub">Not in the known-issues library yet. It may well be harmless; the game logs plenty of errors in a normal session.</p>` : `<p>${esc(f.explain)}</p>`}
     ${f.fixes && f.fixes.length ? `<ul>${f.fixes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
     ${f.links && f.links.length ? `<p class="sub">${f.links.map(l => `<a href="${esc(l.url || l)}" target="_blank" rel="noopener">${esc(l.title || l.url || l)}</a>`).join(" · ")}</p>` : ""}
@@ -690,6 +748,7 @@ function drawCheck(r) {
   const hi = r.findings.filter(f => f.severity === "high").length;
   $("findCount").textContent = hi || "";
   out.innerHTML = `
+    ${r.mark ? `<div class="notice teal"><p><b>Looking at the moment you marked, ${tm(r.mark.ts)}.</b> ${r.findings.some(f => f.near_mark) ? "Findings within 10 minutes of it come first; the Issue Council drafts use that time." : "Nothing in the library matched within 10 minutes of it. Anything else in that time is listed below."}</p></div>` : ""}
     <p class="headline">${esc(r.headline)}</p>
     <p class="sub">Checked ${r.lines_checked.toLocaleString()} log lines${r.logs && r.logs.length > 1 ? ` across ${r.logs.length} game sessions` : ""} from ${tm(r.since)} (${r.noise_lines.toLocaleString()} were known harmless messages). ${r.session.shard_id ? "Shard " + esc(r.session.shard_id) + "." : ""}</p>
     ${r.findings.length ? `<div class="finds">${r.findings.map((f, i) => findCard(f, i, "findings")).join("")}</div>` : `<div class="empty"><h3>No known problems</h3><p>Nothing in the library matched. If something still feels wrong, check the server fps on the Now tab: a slow server causes most "nothing works" moments without logging an error.</p></div>`}
@@ -721,53 +780,86 @@ const grow = el => { el.style.height = "auto"; el.style.height = (el.scrollHeigh
 
 function reportText() {
   const out = [];
-  $("dBody").querySelectorAll("[data-sec]").forEach(sec => {
+  $("dBody").querySelectorAll("#icMain [data-sec]").forEach(sec => {
     const label = sec.dataset.label.toUpperCase();
     if (sec.dataset.sec === "steps") {
       const steps = [...sec.querySelectorAll("input.step")].map(x => x.value.trim()).filter(Boolean);
       out.push(label + "\n" + steps.map((x, n) => `${n + 1}. ${x}`).join("\n"));
-    } else out.push(label + "\n" + sec.querySelector("textarea").value.trim());
+    } else out.push(label + "\n" + secValue(sec));
   });
-  return out.join("\n\n") + "\n\nATTACHMENTS\nGame.log from this session, plus screenshots if I took any.\n";
+  return out.join("\n\n") + "\n";
+}
+const secValue = sec => { const f = sec.querySelector("textarea, select, input.one"); return f ? f.value.trim() : ""; };
+// Characters used against the Issue Council's limit for that box
+function counter(el, limit) {
+  const c = el.closest("[data-sec]").querySelector(".cnt"); if (!c || !limit) return;
+  const n = el.value.trim().length; c.textContent = `${n} / ${limit}`; c.classList.toggle("over", n > limit);
 }
 
-function stepRow(text, n) {
-  return `<div class="steprow"><span class="sn">${n}</span><input class="inp step" value="${esc(text)}" aria-label="Step ${n}">
+function stepRow(text, n, limit = 150) {
+  return `<div class="steprow"><span class="sn">${n}</span><input class="inp step" value="${esc(text)}" maxlength="${limit}" aria-label="Step ${n}">
     <button class="btn sm ghost" data-copystep title="Copy step ${n}">Copy</button><button class="iconx" data-delstep aria-label="Remove step ${n}">✕</button></div>`;
 }
+
+function secHtml(sec) {
+  const lim = sec.limit ? `<span class="cnt">${sec.text.length} / ${sec.limit}</span>` : "";
+  const note = sec.note ? `<p class="note">${esc(sec.note)}</p>` : "";
+  if (sec.key === "steps") return `<section class="rsec" data-sec="steps" data-label="${esc(sec.label)}" data-max="${sec.max}"><div class="rhd"><h4>${esc(sec.label)}</h4>
+      <button class="btn sm" data-copyall>Copy all steps</button></div>
+      <p class="note">One step per box, up to ${sec.max} steps of ${sec.limit} characters. The first ones say where you were and how the server was doing, from Verse Shards.</p>
+      <div class="steps-ed">${sec.steps.map((x, n) => stepRow(x, n + 1, sec.limit)).join("")}</div>
+      <button class="link" data-addstep>Add a step</button></section>`;
+  if (sec.options) return `<section class="rsec" data-sec="${esc(sec.key)}" data-label="${esc(sec.label)}"><div class="rhd"><h4>${esc(sec.label)}</h4></div>
+      <select class="inp" aria-label="${esc(sec.label)}">${sec.options.map(o => `<option ${o === sec.text ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>${note}</section>`;
+  const one = ["title", "version", "category", "c_version"].includes(sec.key);
+  return `<section class="rsec" data-sec="${esc(sec.key)}" data-label="${esc(sec.label)}" data-limit="${sec.limit || ""}"><div class="rhd"><h4>${esc(sec.label)}</h4>
+      <span class="grow"></span>${lim}<button class="btn sm" data-copy>Copy</button></div>
+      <textarea class="rta${one ? " one" : ""}"${one ? ' rows="1"' : ""} spellcheck="true" aria-label="${esc(sec.label)}"${sec.base !== undefined ? ` data-base="${esc(sec.base)}"` : ""}>${esc(sec.text)}</textarea>${note}</section>`;
+}
+
+const CREDIT = "Compiled from my Game.log by SC Shard Status (Verse Shards); checked and sent by me.";
+function fitText(t, n) { t = t.replace(/[ \t]+/g, " ").trim(); if (t.length <= n) return t; return t.slice(0, n - 1).replace(/\s+\S*$/, "").replace(/[,;:]$/, "") + "…"; }
 
 async function openReport(group, i) {
   let d;
   try { d = await api("/api/report", {group, i}); } catch (e) { return toast(e.message, true); }
-  const secHtml = d.sections.map(sec => sec.key === "steps"
-    ? `<section class="rsec" data-sec="steps" data-label="${esc(sec.label)}"><div class="rhd"><h4>${esc(sec.label)}</h4>
-        <button class="btn sm" data-copyall>Copy all steps</button></div>
-        <p class="sub">The Issue Council takes one step per box. Copy each one into its own box.</p>
-        <div class="steps-ed">${sec.steps.map((x, n) => stepRow(x, n + 1)).join("")}</div>
-        <button class="link" data-addstep>Add a step</button></section>`
-    : `<section class="rsec" data-sec="${esc(sec.key)}" data-label="${esc(sec.label)}"><div class="rhd"><h4>${esc(sec.label)}</h4>
-        <button class="btn sm" data-copy>Copy</button></div>
-        <textarea class="rta${sec.key === "title" ? " one" : ""}" spellcheck="true" aria-label="${esc(sec.label)}">${esc(sec.text)}</textarea></section>`).join("");
-  openDrawer("Issue Council draft", d.title, `
+  const c = d.contribution;
+  const contrib = c ? `<div class="contrib"><b>There's already an Issue Council report for this${c.title ? `: ${esc(c.title)}` : ""}.</b>
+      <span>Players linked it on Verse Shards. Adding to it helps more than a new report: open it, upvote it, then press Contribute and paste these in.</span>
+      <div class="fa"><a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Open the report</a></div>
+      <div id="icContrib">${c.sections.map(secHtml).join("")}</div></div>
+      <details class="ex"><summary>Or write a new report anyway</summary><div id="icMain">${d.sections.map(secHtml).join("")}</div></details>` : `<div id="icMain">${d.sections.map(secHtml).join("")}</div>`;
+  openDrawer(c ? "Issue Council: add to the report" : "Issue Council draft", d.title, `
     <ol class="steps">
-      <li>Search the Issue Council first. If someone has already reported it, add your confirmation there instead of a new report.</li>
-      <li>Check each part below and fill in anything in brackets. Edits here go into the copies and the report folder.</li>
-      <li>Copy each part into the matching box on the Issue Council, then attach the files from the report folder.</li>
+      ${c ? "" : "<li>Search the Issue Council first. If someone has already reported it, add your contribution there instead of a new report.</li>"}
+      <li>Check each part and fill in anything in brackets. Each box is laid out like the Issue Council form, inside its character limit.</li>
+      <li>Copy each part into the matching box, then attach the files from the report folder.</li>
     </ol>
     <div class="fa"><a class="btn ghost" href="${esc(d.url)}" target="_blank" rel="noopener">Open the Issue Council</a>
       <button class="btn ghost" id="icFolder">Make report folder</button><button class="btn ghost" id="icAll">Copy whole report</button></div>
-    ${secHtml}
-    <p class="sub">This tool never sends anything to CIG. You submit the report yourself. The summary ends with a line saying this tool compiled the data, so CIG knows where it came from. The report folder includes your own Game.log, which is fine: that's you reporting to them.</p>`);
+    ${contrib}
+    <p class="sub">This tool never sends anything to CIG. You submit the report yourself. What happened ends with a line saying this tool compiled it from your Game.log, so CIG knows where it came from. The report folder includes your own Game.log, which is fine: that's you reporting to them.</p>`);
   const body = $("dBody");
-  body.querySelectorAll("textarea.rta").forEach(t => { grow(t); t.addEventListener("input", () => grow(t)); });
-  const renumber = () => body.querySelectorAll(".steprow").forEach((r, n) => { r.querySelector(".sn").textContent = n + 1; });
+  body.querySelectorAll("textarea.rta").forEach(t => { grow(t); const lim = +t.closest("[data-sec]").dataset.limit || 0; t.addEventListener("input", () => { grow(t); counter(t, lim); }); counter(t, lim); });
+  // "What were you doing?" starts "What happened?": edit one and the other follows, inside 520 characters
+  const doing = body.querySelector('#icMain [data-sec="doing"] textarea'), hap = body.querySelector('#icMain [data-sec="happened"] textarea');
+  if (doing && hap) doing.addEventListener("input", () => {
+    const lim = +hap.closest("[data-sec]").dataset.limit || 520;
+    hap.value = fitText([doing.value.trim(), hap.dataset.base || ""].filter(Boolean).join(" "), lim - CREDIT.length - 2) + "\n" + CREDIT;
+    grow(hap); counter(hap, lim);
+  });
+  const renumber = sec => sec.querySelectorAll(".steprow").forEach((r, n) => { r.querySelector(".sn").textContent = n + 1; });
   body.addEventListener("click", e => {
     const t = e.target, sec = t.closest("[data-sec]");
-    if (t.matches("[data-copy]")) copyText(sec.querySelector("textarea").value.trim(), sec.dataset.label);
+    if (t.matches("[data-copy]")) copyText(secValue(sec), sec.dataset.label);
     else if (t.matches("[data-copystep]")) { const r = t.closest(".steprow"); copyText(r.querySelector("input").value.trim(), "Step " + r.querySelector(".sn").textContent); }
     else if (t.matches("[data-copyall]")) copyText([...sec.querySelectorAll("input.step")].map(x => x.value.trim()).filter(Boolean).map((x, n) => `${n + 1}. ${x}`).join("\n"), "All steps");
-    else if (t.matches("[data-delstep]")) { t.closest(".steprow").remove(); renumber(); }
-    else if (t.matches("[data-addstep]")) { const box = sec.querySelector(".steps-ed"); box.insertAdjacentHTML("beforeend", stepRow("", box.children.length + 1)); box.lastElementChild.querySelector("input").focus(); }
+    else if (t.matches("[data-delstep]")) { t.closest(".steprow").remove(); renumber(sec); }
+    else if (t.matches("[data-addstep]")) {
+      const box = sec.querySelector(".steps-ed");
+      if (box.children.length >= (+sec.dataset.max || 10)) return toast(`The Issue Council takes up to ${sec.dataset.max || 10} steps.`, true);
+      box.insertAdjacentHTML("beforeend", stepRow("", box.children.length + 1)); box.lastElementChild.querySelector("input").focus();
+    }
   });
   $("icAll").onclick = () => copyText(reportText(), "Whole report");
   $("icFolder").onclick = async () => { try { const r = await api("/api/bundle", {group, i, open: true, text: reportText()}); toast(`Report folder made with ${r.screenshots} screenshot${r.screenshots === 1 ? "" : "s"}: ${r.folder}`); } catch (e) { toast(e.message, true); } };
@@ -852,6 +944,55 @@ async function renderTimeline() {
     draw();
   });
   $("tlDet").onchange = e => { tlDetails = e.target.checked; draw(); };
+}
+
+/* ---------- Groups ---------- */
+// Recruiting, looking for a group and pirate reports on Verse Shards. Nothing goes until you press a button.
+async function renderGroups() {
+  const d = await api("/api/groups");
+  if (tab !== "groups") return;
+  const c = d.context || {}, acts = d.activities || [];
+  const where = [c.shard, c.server ? `server ${c.server}` : null, c.area_name].filter(Boolean).join(" · ");
+  const left = ts => { const m = Math.max(1, Math.round((ts - Date.now() / 1000) / 60)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+  const closed = d.open === false;
+  $("view").innerHTML = `
+  ${closed ? `<div class="sec notice"><p><b>The groups boards aren't open yet.</b> Recruiting, looking-for-group posts and pirate reports open on Verse Shards once there are moderators to look after them. Keen to help? <a href="${esc(COMMUNITY_SITE)}/help" target="_blank" rel="noopener">Help wanted</a></p></div>` : ""}
+  ${d.offer ? `<div class="sec notice rust"><p><b>Your ${esc(d.offer.ship)} was destroyed near ${esc(d.offer.area_name)}.</b> Was it another player? Report pirate activity here: only the area is sent, and it clears after 45 minutes.</p><button class="btn sm" data-gp="pirate">Report pirate activity here</button><button class="btn sm ghost" data-gp="nopirate">No, it wasn't</button></div>` : ""}
+  ${(d.interest || []).length ? `<section class="sec"><h3>Keen to join <span>handles sent to you by players on Verse Shards; send them a party invite in game</span></h3>
+    <div class="frame copyl">${d.interest.map(i => `<div class="cl"><span><b>${esc(i.handle)}</b>${i.note ? ` "${esc(i.note)}"` : ""} <span class="sub">for ${esc(i.activity || "your group")}, ${ago(i.created)}</span></span><button class="btn sm ghost" data-chat="${esc(i.handle)}">Copy handle</button></div>`).join("")}</div></section>` : ""}
+  ${(d.mine || []).length ? `<section class="sec"><h3>Your posts <span>on Verse Shards until they end</span></h3><div class="frame copyl">
+    ${d.mine.map(p => `<div class="cl"><span><b>${esc({recruit: "Recruiting", lfg: "Looking for a group", pirate: "Pirate report"}[p.kind])}</b>${p.activity ? ` · ${esc(p.activity)}` : ""} <span class="sub">ends in ${left(p.expires)}</span></span>${p.kind === "pirate" ? "" : `<button class="btn sm ghost" data-close="${esc(p.id)}">Take it down</button>`}</div>`).join("")}</div>
+    ${chatBox(d.mine.filter(p => p.chat).map(p => p.chat))}</section>` : ""}
+  <section class="sec"><h3>Where you are <span>filled in from the overlay and Game.log</span></h3>
+    <p class="intro">${c.shard ? esc(where) : "Join a shard in game first. Posts say which shard, server and area you're on (a planet, jump point or open space, never the exact place)."}</p>
+    <p class="sub">Global chat is per shard. To join someone on another server: accept their party invite, go back to the main menu, right-click their name in your party and join them on their server.</p></section>
+  <section class="sec grid2">
+    <form class="frame gform" id="fRecruit"><h4>Recruit players</h4>
+      <div class="row"><label>Activity<select class="inp" name="activity" required>${acts.map(a => `<option>${esc(a)}</option>`).join("")}</select></label>
+        <label style="flex:0 1 7rem">Spots<input class="inp" name="spots" type="number" min="1" max="50" value="2"></label></div>
+      <label>Note (optional)<input class="inp" name="note" maxlength="80" placeholder="e.g. Prospector run, bring a pick"></label>
+      <label>Your handle (optional)<input class="inp" name="handle" maxlength="30" placeholder="Leave blank and only keen players' handles come to you" value=""></label>
+      <div class="row"><button class="btn" type="submit" ${closed || !c.shard ? "disabled" : ""}>Post for 2 hours</button></div>
+      <p class="sub">Players press "I'm interested" on Verse Shards and their handle pops up here. Your post also gets a line to paste into global chat.</p></form>
+    <form class="frame gform" id="fLfg"><h4>Look for a group</h4>
+      <label>What you'd like to do<select class="inp" name="activity">${acts.map(a => `<option>${esc(a)}</option>`).join("")}</select></label>
+      <label>Your handle<input class="inp" name="handle" maxlength="30" required value="${esc(d.handle || "")}"></label>
+      <p class="sub">${d.handle ? "From your Game.log. Check it's yours before you post: recruiters copy it to send you a party invite." : "Type your RSI handle: recruiters copy it to send you a party invite."}</p>
+      <div class="row"><button class="btn" type="submit" ${closed || !c.shard ? "disabled" : ""}>Post for 2 hours</button></div></form>
+  </section>
+  <section class="sec"><div class="frame gform"><h4>Pirate activity</h4>
+    <p class="sub">Got jumped? Report the area (${c.area_name ? esc(c.area_name) : "where you are"}) so other players take care, and so Where to sell on Verse Shards reads the risk. Never the exact spot or anyone's name, and it clears after 45 minutes. Pirating is part of the game: this is a heads-up, not a complaint.</p>
+    <div class="row"><button class="btn ghost" data-gp="pirate" ${closed || !c.area ? "disabled" : ""}>Report pirate activity here</button></div></div></section>
+  <section class="sec"><div class="frame card"><h4>Coming soon: org tools</h4><p class="sub">Plan org events, pick the healthiest shard and server for them from live readings, and rally your members to the right place at the right time.</p></div></section>
+  ${d.error ? `<p class="sub">${esc(d.error)}</p>` : ""}`;
+  const send = async (body, b) => { if (b) b.disabled = true; try { const r = await api("/api/groups/post", body); toast(r.message); renderGroups(); } catch (e) { toast(e.message, true); if (b) b.disabled = false; } };
+  $("fRecruit").onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); send({kind: "recruit", ...f}, e.submitter); };
+  $("fLfg").onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); send({kind: "lfg", ...f}, e.submitter); };
+  $("view").querySelectorAll("[data-gp]").forEach(b => b.onclick = async () => {
+    if (b.dataset.gp === "pirate") return send({kind: "pirate"}, b);
+    try { await api("/api/groups/dismiss", {}); renderGroups(); } catch (e) { toast(e.message, true); }
+  });
+  $("view").querySelectorAll("[data-close]").forEach(b => b.onclick = async () => { try { const r = await api("/api/groups/close", {id: b.dataset.close}); toast(r.message); renderGroups(); } catch (e) { toast(e.message, true); } });
 }
 
 /* ---------- History ---------- */
@@ -972,10 +1113,10 @@ async function renderSetup() {
       <button class="btn sm ${u.has_displayinfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-cfg="r_displayinfo" data-on="${u.has_displayinfo ? "0" : "1"}">${u.has_displayinfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
   </section>
   <section class="sec frame setcard">
-    <h4>2. The session QR code (recommended for Issue Council reports)</h4>
+    <h4>2. The session QR code (optional, off unless you want it)</h4>
     <span class="cmd">r_DisplaySessionInfo 1</span>
     <p>Puts a small QR code in the top right corner. It holds your session id, shard and the exact time, which is what CIG's QA team uses to find your session on their side, so any screenshot you take becomes far more useful in a bug report. The Star Citizen wiki's bug reporting guide recommends it. You can also switch it on in the game's Graphics settings. The app copes with it: the overlay block moves left to make room and is still read.</p>
-    <p class="sub">The QR code identifies your session, so blur it in screenshots you post publicly (Spectrum, Discord, Reddit). It's fine in Issue Council reports, which go to CIG.</p>
+    <p class="sub">Most players leave it off: it covers part of the screen and identifies your session, so blur it in screenshots you post publicly (Spectrum, Discord, Reddit). Switch it on when you're about to report a bug; it's fine in Issue Council reports, which go to CIG.</p>
     <div class="fa">${st(u.has_sessioninfo, "On in USER.cfg", "Not in USER.cfg")}
       <button class="btn sm ${u.has_sessioninfo ? "ghost" : ""}" ${u.game_found === false ? "disabled" : ""} data-cfg="r_DisplaySessionInfo" data-on="${u.has_sessioninfo ? "0" : "1"}">${u.has_sessioninfo ? "Turn off in USER.cfg" : "Add to USER.cfg"}</button></div>
   </section>
@@ -1005,10 +1146,22 @@ async function renderSetup() {
     <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
     <ul class="rules">
       <li><b>Show other shards</b> fetches the board every 2 minutes and puts your region on the Now tab. It sends nothing about you.</li>
-      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. After each game session it also sends that session's build, length, load time, whether it crashed and any disconnect error codes, for the patch report card. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
+      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build, a random install id, your screen size and counts of how cleanly the overlay was read. After each game session it also sends that session's build, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only), for the patch report card. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
     </ul>
     <div class="swlist" id="commToggles"></div>
     <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
+  </section>
+  <section class="sec frame setcard" id="markCard">
+    <h4>Mark this moment</h4>
+    <p>Something just went wrong? Press <b>Mark this moment</b> at the top of this page and keep playing. Later, "What's gone wrong?" looks at exactly that moment, and the Issue Council draft uses its time. A hotkey does the same without leaving the game. It's registered with Windows, which tells the app only when that one combination is pressed; the app never watches the keyboard.</p>
+    <div class="fa"><div class="seg" id="hkSeg" role="radiogroup" aria-label="Hotkey"></div></div>
+    <p class="sub" id="hkState"></p>
+  </section>
+  <section class="sec frame setcard" id="errCard">
+    <h4>App error reports</h4>
+    <p>When something in SC Shard Status itself goes wrong, send where and what, so it can be fixed. Every file path is cut down to the file name and anything in quotes is taken out. Never Game.log lines, your handle, your files or screenshots.</p>
+    <div class="swlist" id="errToggles"></div>
+    <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="errPayload">Nothing sent yet.</pre></details>
   </section>
   <section class="sec frame setcard" id="updCard">
     <h4>Updates</h4>
@@ -1097,6 +1250,18 @@ async function renderSetup() {
     $("alertTest").disabled = !m;
   };
   drawAlerts();
+  const drawExtra = async () => {
+    if (!$("hkSeg")) return;
+    const st = await api("/api/settings");
+    $("hkSeg").innerHTML = [["", "No hotkey"], ["ctrl+alt+m", "Ctrl+Alt+M"], ["ctrl+shift+m", "Ctrl+Shift+M"], ["ctrl+alt+f9", "Ctrl+Alt+F9"], ["ctrl+alt+f10", "Ctrl+Alt+F10"]]
+      .map(([v, l]) => `<button type="button" data-hk="${v}" aria-pressed="${(st.hotkey || "") === v}">${l}</button>`).join("");
+    $("hkState").textContent = st.hotkey_status === "off" ? "Off. Use the button at the top of the page." : "Hotkey " + st.hotkey_status + ".";
+    $("hkSeg").querySelectorAll("[data-hk]").forEach(b => b.onclick = async () => { try { const r = await api("/api/settings", {hotkey: b.dataset.hk}); toast(r.message); drawExtra(); } catch (e) { toast(e.message, true); } });
+    $("errToggles").innerHTML = swRow("errors", "Send app error reports", st.errors, st.errors ? `On. ${st.errors_sent ? st.errors_sent + " sent this run." : "Nothing has gone wrong this run."}` : "Off. Nothing is sent.");
+    bindRows($("errToggles"), drawExtra);
+    $("errPayload").textContent = st.errors_payload ? JSON.stringify(st.errors_payload, null, 2) : "Nothing sent yet.";
+  };
+  drawExtra();
   $("alertTest").onclick = async () => { try { const r = await api("/api/alerts/test", {}); toast(r.message); } catch (e) { toast(e.message, true); } };
   $("redoWiz").onclick = () => openWizard(true);
   $("view").querySelectorAll("[data-cfg]").forEach(b => b.onclick = async () => {
@@ -1122,10 +1287,15 @@ async function renderAbout() {
     ${d.links.map(l => `<a class="frame tile" href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b><span>${esc(l.text)}</span><span>${esc(l.about)}</span></a>`).join("")}
     <a class="frame tile" href="${esc(d.author.repo)}" target="_blank" rel="noopener"><b>This app on GitHub</b><span>Updates, source code, and where to report a problem or suggest an idea.</span></a>
   </div></section>
+  <section class="sec"><div class="frame starline"><p>${esc(d.star.text)}</p><a class="btn sm ghost" href="${esc(d.star.url)}" target="_blank" rel="noopener">★ Star on GitHub <span id="starN"></span></a></div></section>
+  <section class="sec"><div class="frame card"><h4>What's next</h4><p class="sub">${esc(d.coming)}</p></div></section>
   <section class="sec"><h3>Ground rules</h3><ul class="rules">${d.rules.map(r => `<li>${esc(r)}</li>`).join("")}</ul></section>
   <section class="sec"><h3>Look</h3><div class="seg" role="radiogroup" aria-label="Theme">
     ${[["", "Match Windows"], ["dark", "Dark"], ["light", "Light"]].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${theme === v}">${l}</button>`).join("")}</div></section>
   <p class="foot">SC Shard Status v${esc(d.version)}</p>`;
+  // The star count straight from GitHub (from this page; nothing about you is sent)
+  fetch(d.star.api, {headers: {accept: "application/vnd.github+json"}}).then(r => r.ok ? r.json() : null)
+    .then(j => { if (j && $("starN")) $("starN").textContent = "· " + j.stargazers_count; }).catch(() => {});
   $("view").querySelectorAll("[data-theme]").forEach(x => x.onclick = () => {
     const t = x.dataset.theme;
     if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
@@ -1154,8 +1324,8 @@ async function openWizard(all) {
       `The overlay (<code>r_displayinfo 3</code>) is where the health numbers come from: server fps, players, ping, packet loss. Yes adds it to USER.cfg. Either way you can flick it on and off in game: <kbd>~</kbd> then <code>r_displayinfo 3</code> or <code>0</code>.`,
       yn("displayinfo", "Yes, start with it on", "No, I'll switch it on myself") + now(u.has_displayinfo)],
     ["sessioninfo", "Game setting", "Start the game with the session QR code on?",
-      `A small QR code (<code>r_DisplaySessionInfo 1</code>) that tells CIG's QA team exactly which session a screenshot came from. Useful for Issue Council reports. Blur it in screenshots you post publicly.`,
-      yn("sessioninfo", "Yes, start with it on", "No") + now(u.has_sessioninfo)],
+      `A small QR code (<code>r_DisplaySessionInfo 1</code>) that tells CIG's QA team exactly which session a screenshot came from. Most players leave it off and switch it on only when they're about to report a bug: it covers part of the screen, and it identifies your session in screenshots you post publicly.`,
+      `<div class="ans" data-q="sessioninfo"><button type="button" data-v="0">No, leave it off</button><button type="button" data-v="1">Yes, start with it on</button></div>` + now(u.has_sessioninfo)],
     ["live", "This app", "Read the overlay off your screen while you play?",
       `Every 5 seconds, only while the game window is in front, the app reads the overlay corner of the screen. This gives the live health score, charts and warnings. Nothing leaves your PC.`,
       yn("live") + now(st.live)],
@@ -1166,7 +1336,7 @@ async function openWizard(all) {
       `Fetches the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> every 2 minutes and shows your region on the Now tab, with the best shard to hop to. This sends nothing about you.`,
       yn("board") + now(st.board)],
     ["share", "Community board", "Share your readings with the community board?",
-      `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and a random install id. After each game session: its build, length, load time, whether it crashed and any disconnect error codes. Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
+      `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build, a random install id, your screen size and counts of how cleanly the overlay was read. After each game session: its build, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
       yn("share", "Yes, share", "No, don't share") + now(st.share)],
     ["updates", "This app", "Tell you when there's a new version?",
       `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. Nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,
@@ -1178,6 +1348,9 @@ async function openWizard(all) {
     ["library", "This app", "Keep the known-issues library up to date?",
       `"What's gone wrong?" checks your Game.log against a library of known issues. New entries are added as players send errors for review and patches change things. Yes fetches the newest copy from the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community site</a> every 6 hours. It's a plain download; nothing is sent about you.`,
       yn("library", "Yes, keep it current", "No, use the one that came with the app") + now(st.library)],
+    ["errors", "This app", "Send a report when something in the app itself goes wrong?",
+      `So faults in SC Shard Status get found and fixed. Where in the app it went wrong and the error, with every file path cut down to the file name and anything in quotes taken out. Never Game.log lines, your handle, your files or screenshots. At most every 30 minutes.`,
+      yn("errors", "Yes, send them", "No") + now(st.errors)],
   ].filter(([k]) => !ask || ask.includes(k));
   if (!qs.length) return;
   const isNew = ask && ask.length && !ask.includes("game");

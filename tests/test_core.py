@@ -59,15 +59,35 @@ def test_diagnose_links_contract_to_cargo_error():
     assert any(u["area"] == "CEntityComponentFreightElevatorUIProvider::FillUnstowRequest" for u in r["unknown"])
 
 
-def test_report_has_disclaimer_and_steps():
+def test_report_matches_the_issue_council_form():
+    from scstatus.report import LIMITS
     s = parse_file(LOG)
     r = diagnose(LOG, LIB, Names(GAME), lookback_min=300, now=s.end + 1, session=s)
-    d = report.draft(r["findings"][0], r, {"server_fps": 21.8, "pop_shard": 435, "pop_srv": 34, "ping_ms": 24})
+    d = report.draft(r["findings"][0], r, {"server_fps": 21.8, "pop_shard": 435, "pop_srv": 34, "ping_ms": 24},
+                     session=s, names=Names(GAME), mark={"ts": s.end - 30})
     assert "Aurelius_Draco" in d["body"] and "Reviewed and submitted by the player" in d["body"]
-    assert "1. Accept the contract \"Very Hungry\"" in d["body"] and len(d["title"]) <= 120
     secs = {x["key"]: x for x in d["sections"]}
-    assert secs["steps"]["steps"][0] == "Accept the contract \"Very Hungry\"." and len(secs["steps"]["steps"]) == 4
-    assert secs["summary"]["text"].endswith("Reviewed and submitted by the player.")
+    assert len(d["title"]) <= LIMITS["title"]
+    # Server facts first, naming Verse Shards, then the steps from the log
+    assert secs["steps"]["steps"][0] == "Be on shard AS-90."
+    assert secs["steps"]["steps"][1].startswith("Server fps was 21.8 with 34 players") and "Verse Shards" in secs["steps"]["steps"][1]
+    assert "Accept the contract \"Very Hungry\"." in secs["steps"]["steps"]
+    assert len(secs["steps"]["steps"]) <= LIMITS["steps"] and all(len(x) <= LIMITS["step"] for x in secs["steps"]["steps"])
+    for k in ("happened", "expected", "workaround"):
+        assert len(secs[k]["text"]) <= LIMITS[k], k
+    assert secs["happened"]["text"].endswith("checked and sent by me.") and "I marked the moment at" in secs["happened"]["text"]
+    assert secs["doing"]["text"].startswith("On the contract \"Very Hungry\"")
+    assert secs["severity"]["text"] in ("Polish", "Playable", "Hardly Playable", "Critical")
+    assert "Test_Pilot" not in d["body"]
+
+
+def test_ic_version_and_where():
+    from scstatus.locations import Places
+    from scstatus.report import ic_version, where_text
+    assert ic_version("4.10.2", "12913470") == "LIVE 4.10.2 / 4.10.2-live.12913470"
+    assert ic_version("4.11.0", "13000000", "PTU") == "PTU 4.11.0 / 4.11.0-ptu.13000000"
+    assert where_text("Stanton1_CuttersRig", Places(), "pub_apse2b_9945425_090", "game-37") == \
+        "Cutters Rig, Hurston, Stanton; shard AU-90, server game-37"
 
 
 def test_redaction_removes_names_ids_ips():

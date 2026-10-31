@@ -96,6 +96,14 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.settings())
                 if path == "/api/last":
                     return self._send(200, app.last_result or {})
+                if path == "/api/groups":
+                    g = app.groups
+                    if g.open is None:
+                        g.poll_at = 0
+                        g.tick()
+                    return self._send(200, {"open": g.open, "activities": g.activities, "context": g.context(),
+                                            "handle": g.handle(), "mine": g.mine(), "interest": g.interest[:20],
+                                            "offer": g.pirate_offer(), "error": g.error})
                 if path == "/api/reviews":
                     return self._send(200, app.store.reviews())
                 if path == "/api/about":
@@ -103,9 +111,12 @@ def start_server(app, open_browser=False):
                     au = dict(about.AUTHOR)
                     au["picture"] = f"/img/{au['picture']}" if au.get("picture") else ""
                     return self._send(200, {"author": au, "message": about.MESSAGE, "rules": about.RULES,
-                                            "links": about.LINKS, "also_by": about.ALSO_BY, "version": VERSION})
+                                            "links": about.LINKS, "also_by": about.ALSO_BY, "version": VERSION,
+                                            "star": about.STAR, "coming": about.COMING})
             except Exception as e:
                 say(f"Dashboard error on {path}: {e}")
+                from . import errors
+                errors.capture(f"dashboard GET {path}", e)
                 return self._send(500, {"error": str(e)})
             return self._send(404, {"error": "not found"})
 
@@ -123,6 +134,8 @@ def start_server(app, open_browser=False):
                 return self._send(400, {"error": str(e)})
             except Exception as e:
                 say(f"Dashboard error on {self.path}: {e}")
+                from . import errors
+                errors.capture(f"dashboard POST {self.path.split('?')[0]}", e)
                 return self._send(500, {"error": str(e)})
 
     server = None
@@ -144,7 +157,23 @@ def start_server(app, open_browser=False):
 
 def handle_post(app, path, body):
     if path == "/api/diagnose":
-        return app.run_diagnosis(body.get("minutes"))
+        return app.run_diagnosis(body.get("minutes"), body.get("mark"))
+    if path == "/api/mark":
+        m = app.mark("button")
+        return {"message": "Moment marked. Keep playing; \"What's gone wrong?\" will look at it.", "mark": m}
+    if path == "/api/groups/post":
+        kind = body.get("kind")
+        if kind not in ("recruit", "lfg", "pirate"):
+            raise ValueError("Unknown post type.")
+        msg = app.groups.post(kind, body.get("activity"), body.get("note"), body.get("spots"), body.get("handle"))
+        if kind == "pirate":
+            app.groups.pirate_done()
+        return {"message": msg}
+    if path == "/api/groups/close":
+        return {"message": app.groups.close(str(body.get("id", "")))}
+    if path == "/api/groups/dismiss":
+        app.groups.pirate_done()
+        return {"message": "OK."}
     if path == "/api/report":
         return app.report_draft(body.get("group", "findings"), body.get("i"))
     if path == "/api/bundle":
@@ -174,7 +203,8 @@ def handle_post(app, path, body):
         return {"message": app.set_game_dir(body.get("path", "")), "game_dir": app.cfg["game_dir"]}
     if path == "/api/settings":
         return {"message": app.save_settings(body.get("live"), body.get("screenshots"), body.get("share"), body.get("board"),
-                                             body.get("updates"), body.get("library"), body.get("alerts")),
+                                             body.get("updates"), body.get("library"), body.get("alerts"),
+                                             body.get("errors"), body.get("hotkey")),
                 "settings": app.settings()}
     if path == "/api/update/check":
         return app.updater.check()

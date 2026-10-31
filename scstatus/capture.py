@@ -68,6 +68,9 @@ class OverlayWatcher:
         self.status = "starting"
         self.last_ok = None
         self.misses = 0
+        self.tries = 0              # readings attempted with the game in front (for the reading-quality counts)
+        self.failed = 0             # of those, ones that couldn't be read at all
+        self.screen = None          # e.g. "2560x1440"
 
     def _setup(self):
         from .overlay import OverlayReader
@@ -87,6 +90,8 @@ class OverlayWatcher:
             self.status = "waiting for the game window"
             return None
         crop, size = self.grab()
+        self.screen = f"{size[0]}x{size[1]}"
+        self.tries += 1
         snap = self.reader.read(self.place(crop, size))
         snap["ts"] = time.time()
         snap.pop("session", None)
@@ -96,9 +101,10 @@ class OverlayWatcher:
             self.misses = 0
         else:
             self.misses += 1
+            self.failed += 1
             if self.misses >= 3:
-                self.status = ("can't read the overlay (is r_displayinfo 3 on? bright scenery behind the text "
-                               "also stops it; see Set up for tips)")
+                self.status = ("overlay off, readings paused (type r_displayinfo 3 to start again; bright scenery "
+                               "behind the text also stops it, see Set up for tips)")
         return snap
 
     def run(self, stop):
@@ -116,4 +122,6 @@ class OverlayWatcher:
                     self.on_reading(snap)
             except Exception as e:
                 self.status = f"error: {e}"
+                from . import errors
+                errors.capture("overlay", e)
             stop.wait(max(0.5, self.every - (time.time() - t0)))

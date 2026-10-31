@@ -26,6 +26,7 @@ TEAMS = re.compile(r"\s*\[Team_[^\]]*\](?:\[[A-Za-z0-9_ ]+\])*\s*$")
 # Header lines (no level, no tag)
 BUILD = re.compile(r'BackupNameAttachment=" Build\((\d+)\)')
 FILEVER = re.compile(r"^FileVersion: ([\d.]+)")
+BRANCH = re.compile(r"^Branch: sc-alpha-([\d.]+)")
 CPU = re.compile(r"^Host CPU: (.+)$")
 THREADS = re.compile(r"^Logical CPU Count: (\d+)")
 RAM = re.compile(r"^(\d+)MB physical memory installed")
@@ -35,6 +36,9 @@ CPU_BENCH = re.compile(r"^CPU benchmark: ([\d.]+) ms \(int\+mem\), ([\d.]+) ms")
 GPU_NAME = re.compile(r"^VulkanMetric - Device \(([^)]+)\) \[GPU \(Discrete\)\]")
 
 # Tagged events
+ITEM_MOVE = re.compile(r"ItemClass\[(.*?)\] StoredEntity")
+DIED_IN_SHIP = re.compile(r"Actor '([^']+)' \[\d+\] ejected from zone '([A-Za-z][A-Za-z0-9_]*?)_\d+'.*destroyed vehicle")
+FATAL_COLLISION = re.compile(r"Fatal Collision occured for vehicle ([A-Za-z][A-Za-z0-9_]*?)_\d+ .*?PlayerPilot: (\d)")
 JOIN_PU = re.compile(r"address\[([^\]]*)\] port\[(\d+)\] shard\[([^\]]+)\]")
 DISCONNECT = re.compile(r'cause=(\d+) reason="([^"]*)".*?isRemote=(\d)(?: viewState=(\w+))?')
 NOTIFY = re.compile(r'Added notification "(.*?)" \[\d+\] to queue.*?MissionId: \[([0-9a-f-]+)\]'
@@ -226,6 +230,14 @@ def parse_line(raw):
         return {"ts": ts, "kind": "ship_retrieved", "ship": None}
     if tag == "ATC_Reset_VehiclesBeingStoredCleared" and (a := ATC_SHIP.search(msg)):
         return {"ts": ts, "kind": "atc_ship", "ship": a.group(1)}
+    if tag == "Add Inventory Management Move" and (im := ITEM_MOVE.search(msg)):
+        # Only the item classes: the line also names the player, which is never kept
+        items = [c for c in re.findall(r"[A-Za-z][A-Za-z0-9_]{3,}", im.group(1)) if c.lower() != "null"]
+        return {"ts": ts, "kind": "item_move", "items": items[:6]} if items else None
+    if tag == "[ActorState] Dead" and (dd := DIED_IN_SHIP.search(msg)):
+        return {"ts": ts, "kind": "died_in_ship", "actor": dd.group(1), "ship": dd.group(2)}
+    if tag == "FatalCollision" and (fc := FATAL_COLLISION.search(msg)):
+        return {"ts": ts, "kind": "collision", "ship": fc.group(1), "pilot": fc.group(2) == "1"}
     if tag == "Legacy login response" and (h := LOGIN.search(msg)):
         return {"ts": ts, "kind": "login", "handle": h.group(1)}
     if (tag and "FastShutdown" in tag) or any(k in msg for k in SHUTDOWN_MARKS):
@@ -251,6 +263,8 @@ def _header(ts, msg):
         return {"ts": ts, "kind": "log_start", "build": m.group(1)}
     if m := FILEVER.search(msg):
         return {"ts": ts, "kind": "version", "version": m.group(1)}
+    if m := BRANCH.search(msg):
+        return {"ts": ts, "kind": "branch", "branch": m.group(1)}
     for rx, key, conv in ((CPU, "cpu", str), (THREADS, "threads", int), (RAM, "ram_mb", int),
                           (VRAM, "vram_mb", int), (GPU_BENCH, "gpu_bench_ms", float), (GPU_NAME, "gpu", str)):
         if m := rx.search(msg):
@@ -313,6 +327,9 @@ class Session:
         self.notifications = []
         self.freight_cycles = []    # times the freight elevator finished going down (items handed over)
         self.travel = []            # quantum jumps, places, armistice zones, ships retrieved (for the timeline)
+        self.branch = None          # the patch as players know it, e.g. 4.10.2
+        self.item_moves = []        # (ts, [item classes]) moved in the inventory, for "What were you doing?"
+        self.deaths = []            # your ship destroyed with you in it: {ts, ship, collision}
         self.quit = None
         self.clean_exit = False
         self.crash = None
@@ -340,6 +357,19 @@ class Session:
             self.build = ev["build"]
         elif k == "version":
             self.version = self.version or ev["version"]
+        elif k == "branch":
+            self.branch = self.branch or ev["branch"]
+        elif k == "item_move":
+            self.item_moves.append((ts, ev["items"]))
+            del self.item_moves[:-300]
+        elif k == "collision":
+            self._last_collision = (ts, ev["ship"])
+        elif k == "died_in_ship":
+            # Only your own death (the line names the actor; it's checked, never kept)
+            if not self.handles or ev["actor"] in self.handles:
+                lc = getattr(self, "_last_collision", None)
+                crashed = bool(lc and ts is not None and lc[1] == ev["ship"] and ts - lc[0] <= 5)
+                self.deaths.append({"ts": ts, "ship": ev["ship"], "collision": crashed})
         elif k == "hardware":
             for key, v in ev.items():
                 if key not in ("ts", "kind"):
@@ -453,7 +483,7 @@ class Session:
         bad = [d for d in self.disconnects if d["cause"] not in NORMAL_CAUSES
                or (d["cause"] == 30016 and d.get("view_state") not in (None, "eCVS_InGame") and not d["frontend"])]
         return {
-            "name": self.name, "start": self.start, "end": self.end, "build": self.build, "version": self.version,
+            "name": self.name, "start": self.start, "end": self.end, "build": self.build, "version": self.version, "branch": self.branch,
             "shard_id": self.shard_id, "region": region_of(self.shard_id), "joins": len(self.joins),
             "shards": list(dict.fromkeys(j["shard_id"] for j in self.joins)),
             "load_s": self.load_seconds(), "minutes": round((self.end - self.start) / 60, 1) if self.start else 0,

@@ -90,6 +90,8 @@ class Alerts:
                     self.tick()
                 except Exception as e:             # an alert check must never take the app down
                     say(f"Alert check failed: {e}")
+                    from . import errors
+                    errors.capture("alerts", e)
 
     def fire(self, key, title, body, force=False):
         now = self.clock()

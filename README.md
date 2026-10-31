@@ -7,13 +7,20 @@ It reads two things the game already gives you: the debug overlay (`r_displayinf
 - **Shard health right now.** Each shard gets a short name like AU-20 or EU-410 (region and shard number). A 0-100 score with server fps, players on the shard and on your server, ping, packet loss, hitches and server restarts, and a sentence that says what it means for you, plus where you are in the game's own words and which area your server runs.
 - **What's gone wrong?** One button. It checks the last 10 minutes to 4 hours of the log (earlier sessions included) against a library of known issues and explains what it finds, with fixes. It joins facts together: if a contract wants an item and the game has just logged a cargo error for that exact item, it tells you that's why the delivery isn't counting.
 - **Timeline.** What happened, in order: quantum jumps, arrivals, armistice zones, ships retrieved, contracts, freight elevator, loading, disconnects and crashes, with place names from the game. Tick Details for the raw log lines.
-- **Issue Council drafts.** Each finding comes with a ready-to-paste report (real steps to reproduce taken from your timeline, expected and actual result, game version, shard, log lines) and a folder with your Game.log and screenshots from around that time, ready to attach.
+- **Issue Council drafts.** Each finding comes with a report laid out box by box like the Issue Council form and inside its limits: title, the exact game version (`LIVE 4.10.2 / 4.10.2-live.12913470`), a suggested category and severity, steps to reproduce from your timeline, what happened, what should have happened and any workaround. It names exactly where you were (place, planet or moon, system, shard and server) with the server's fps at the time, and starts "What were you doing?" for you from the log. If players have already linked an Issue Council report on verseshards.com, it takes you there and writes your contribution instead. A folder with your Game.log and screenshots from around that time is one click away.
+- **Mark this moment.** Something just went wrong? Press the button, or a hotkey you pick (Ctrl+Alt+M, say), and keep playing. Later, "What's gone wrong?" looks at exactly that moment.
+- **Copy for global chat.** Short lines about your shard (a quiet server, one that's struggling) to paste into chat in game.
+- **Groups.** Post a recruiting or looking-for-group notice on verseshards.com without leaving the game, and see who's keen to join. Got jumped? Report pirate activity in the area (never the exact spot) with one click.
 - **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
 - **My PC.** Your hardware and the game's own CPU and GPU test results from every launch, plus your frame rate by location.
 
 **Live community board:** https://verseshards.com shows the health of every shard players are reporting from, and a page for every known issue with Issue Council links, workarounds and votes.
 
-By Aurelius_Draco. Also by me: [SC Inventory Tracker](https://github.com/Aurelius-Draco/sc-inventory-tracker), which keeps track of what you've stored at every station.
+Finding this useful? A star on GitHub helps other players find it and trust it.
+
+**Coming soon: org tools.** Plan org events, pick the healthiest shard and server for them from live readings, and rally your members to the right place at the right time.
+
+By Aurelius_Draco ([add me as a friend](https://robertsspaceindustries.com/citizens/Aurelius_Draco), [Spectrum thread](https://robertsspaceindustries.com/spectrum/community/SC/forum/50172/thread/sc-shard-status-free-app-that-scores-your-shard-s-/575329)). Help wanted: testers with 1440p, 4K or ultrawide screens, and moderators: https://verseshards.com/help. Also by me: [SC Inventory Tracker](https://github.com/Aurelius-Draco/sc-inventory-tracker), which keeps track of what you've stored at every station.
 
 ## What it looks like
 
@@ -39,7 +46,7 @@ These are from real Game.logs with every name, ID and address swapped for made-u
 
 ![Issue Council draft](docs/screenshots/5-issue-council-draft.png)
 
-<details><summary>More: History, My PC, Known issues, Set up, light theme, phone width</summary>
+<details><summary>More: History, My PC, Known issues, Set up, light theme, narrow window</summary>
 
 ![History](docs/screenshots/6-history.png)
 ![My PC](docs/screenshots/7-my-pc.png)
@@ -47,7 +54,7 @@ These are from real Game.logs with every name, ID and address swapped for made-u
 ![Set up](docs/screenshots/9-set-up.png)
 ![About](docs/screenshots/10-about.png)
 ![Light theme](docs/screenshots/11-now-light-theme.png)
-![Phone width](docs/screenshots/12-phone-width.png)
+![A narrow window beside the game](docs/screenshots/12-phone-width.png)
 
 </details>
 
@@ -79,11 +86,11 @@ r_DisplaySessionInfo 1
 ```
 
 - `r_displayinfo 3` shows the performance block in the top right: server fps, players on the shard and on your server, ping, packet loss, hitches, restarts, your fps and location. The live health numbers come from this; Game.log doesn't have them. Levels 2, 3 and 4 show the same block in 4.10.
-- `r_DisplaySessionInfo 1` shows the session QR code (also in the game's Graphics settings). It's optional, but it makes every screenshot far more useful in an Issue Council report, because CIG can find your session from it. Blur it in screenshots you post publicly.
+- `r_DisplaySessionInfo 1` shows the session QR code (also in the game's Graphics settings). It's optional and most players leave it off: switch it on when you're about to report a bug, because CIG can find your session from it. Blur it in screenshots you post publicly.
 
 Neither has to stay on: `r_displayinfo 0` and `r_DisplaySessionInfo 0` switch them off again, and the console remembers what you typed (press `~`, then the Up arrow, then Enter), so flicking them on and off is a couple of key presses. The Set up tab has the full list of switches.
 
-To have them on every time, add `r_displayinfo = 3` and `r_DisplaySessionInfo = 1` to `USER.cfg` in your `StarCitizen\LIVE` folder (the Set up tab does it for you and keeps a backup).
+To have the overlay on every time, add `r_displayinfo = 3` (and, if you want it, `r_DisplaySessionInfo = 1`) to `USER.cfg` in your `StarCitizen\LIVE` folder (the Set up tab does it for you and keeps a backup).
 
 ## Live or screenshots
 
@@ -118,6 +125,9 @@ Players on shard is everyone on the shard; on your server is the server node han
 - Nothing leaves your PC unless you turn on sharing. The dashboard only answers this PC (127.0.0.1).
 - When sharing is on, the app sends one summary every 5 minutes and shows you exactly what it sent. It never includes your handle, other players' names, account or session numbers, file paths or your IP address.
 - Issue Council reports are drafts. You check them and submit them yourself. Each one ends with a line saying it was compiled by this tool.
+- The optional Mark this moment hotkey is registered with Windows, which tells the app only when that one combination is pressed. The app never watches the keyboard.
+- Group posts and pirate reports go only when you press the button, with the area (never the exact place), and your handle only if you add it. Posts are deleted from the site when they end.
+- App error reports are off unless you say yes: where in the app it went wrong and the error, with file paths cut down to the file name and anything in quotes taken out.
 - Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
 ## Known issues library
@@ -138,11 +148,12 @@ https://verseshards.com · Discord: https://discord.gg/8kH5pfHYbe
 - **Common in-game issues right now:** known Star Citizen problems two or more players hit in the last 2 hours, under the 24-hour history.
 - **Known issues:** a page for each issue the app recognises. Press "I had this too", add the Issue Council report so others can upvote it, and post workarounds that others mark as worked or didn't work. After a patch, each issue says whether it's still happening on the new build. The app's "What's gone wrong?" links each finding to its page.
 - **Servers and areas:** open a shard to see each of its game servers, how many players are on it and which areas it runs (a planet, jump point or open space). Each region lists its quieter and busier areas right now. Quieter means fewer players, not safer.
-- **Trends:** busiest times by hour of the week for each region (in your own time zone), a report card for each patch (server fps, 30k disconnects, crashes, load times, restarts) and which issues are rising or falling, plus every shard and server seen in the last 30 days.
-- **Trade:** the most profitable trade routes from [UEX](https://uexcorp.space)'s crowdsourced prices, beside how busy each end's server is.
+- **Trends:** busiest and quietest times for each region (in your own time zone), a report card for each patch (server fps, disconnects with 30xxx errors, crashes, load times, restarts) and which issues are rising or falling, plus every shard and server seen in the last 30 days.
+- **Trade:** the most profitable trade routes from [UEX](https://uexcorp.space)'s crowdsourced prices, beside how busy each end's server is, and **Where to sell**: who's buying what you carry, how full each terminal is, and a risk read that includes recent pirate reports. In Discord, `/sell`.
+- **Copy for global chat** lines on the board and Where to sell.
 - **RSI status:** when RSI's own status page reports a problem, the board and the app say so.
 - Scores from one player are marked as a first look; more players reporting means a score you can trust.
-- Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**. Sharing sends a summary every 5 minutes (shard, server node, the area your server runs but never the exact place, server fps, players, ping rounded to 10 ms, packet loss, known-issue ids, game build, random install id) and, after each session, its build, length, load time, whether it crashed and any disconnect error codes. Never your handle, other players' names or anything that identifies you.
+- Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**. Sharing sends a summary every 5 minutes (shard, server node, the area your server runs but never the exact place, server fps, players, ping rounded to 10 ms, packet loss, known-issue ids, game build, random install id, screen size and counts of how cleanly the overlay was read) and, after each session, its build, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names or anything that identifies you.
 
 ## For developers
 

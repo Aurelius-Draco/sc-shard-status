@@ -8,7 +8,7 @@ import string
 import sys
 from pathlib import Path
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 # The public community board (Cloudflare Worker in the admin repo)
 COMMUNITY_URL = "https://verseshards.com"
 APP_NAME = "SC Shard Status"
@@ -70,6 +70,10 @@ DEFAULT_CONFIG = {
     "library_updates": False,
     # Pop-up alerts while you play: "sound", "quiet" (no sound) or null (off)
     "alerts": None,
+    # Send a report when something in the app itself goes wrong (where and what, paths and names taken out)
+    "send_errors": False,
+    # One hotkey for "Mark this moment" (ctrl+alt+m, ctrl+shift+m, ctrl+alt+f9, ctrl+alt+f10) or null for none
+    "mark_hotkey": None,
 }
 
 

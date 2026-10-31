@@ -43,6 +43,13 @@ class App:
         self.alerts = Alerts(self)
         from .libsync import LibrarySync
         self.libsync = LibrarySync(self, cfg.get("community_url") or COMMUNITY_URL, VERSION)
+        from .groups import Groups
+        self.groups = Groups(self, self.community)
+        from . import errors
+        errors.install()
+        self.errors = errors.ErrorReports(self, self.community)
+        from .hotkey import Hotkey
+        self.hotkey = Hotkey(lambda: self.mark("hotkey"))
         self.quitting = False
 
     # -- parts that load slowly
@@ -82,8 +89,50 @@ class App:
         threading.Thread(target=self.updater.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.libsync.run, args=(self.stop,), daemon=True).start()
         threading.Thread(target=self.alerts.run, args=(self.stop,), daemon=True).start()
+        threading.Thread(target=self._extras, args=(self.stop,), daemon=True).start()
+        if self.cfg.get("mark_hotkey"):
+            self.hotkey.set(self.cfg["mark_hotkey"])
         if not self.game_found:
             threading.Thread(target=self._watch_for_game, daemon=True).start()
+
+    def _extras(self, stop):
+        """Replies to your group posts, and opt-in error reports. Network only when you've turned something on."""
+        from . import errors
+        while not stop.wait(15):
+            try:
+                if self.cfg.get("community_board") or self.cfg.get("share_readings") or self.groups.mine():
+                    self.groups.tick()
+                self.errors.tick()
+            except Exception as e:
+                errors.capture("extras", e)
+
+    # -- Mark this moment: a timestamp (and where you were) for "What's gone wrong?" to look at later
+    def mark(self, source="button"):
+        import json as _json
+        snap = self.latest_snap() or {}
+        s = self.session
+        m = {"ts": time.time(), "source": source, "shard_id": snap.get("shard_id") or (s.shard_id if s else None),
+             "server": snap.get("server_name"), "location": snap.get("location") or _last_loc(s)}
+        rows = [x for x in self.marks(24 * 3600)] + [m]
+        self.store.set_meta("marks", _json.dumps(rows[-30:]))
+        if source == "hotkey":
+            a = self.alerts
+            a.recent.appendleft({"ts": m["ts"], "key": "mark", "title": "Moment marked", "body": "Look at it later with What's gone wrong?"})
+            if a.mode:
+                try:
+                    a.notify("Moment marked", "Keep playing. \"What's gone wrong?\" will look at this moment.", tag="mark", sound=a.mode == "sound")
+                except Exception:
+                    pass
+        say(f"Moment marked ({source}).")
+        return m
+
+    def marks(self, within_s=4 * 3600):
+        import json as _json
+        try:
+            rows = _json.loads(self.store.meta("marks", "[]") or "[]")
+        except ValueError:
+            rows = []
+        return [x for x in rows if time.time() - x.get("ts", 0) <= within_s]
 
     # Live reading and screenshot reading can be switched on and off while the app runs
     def _start_live(self):
@@ -213,7 +262,7 @@ class App:
         if a.get("server_fps") is not None and self.build:
             cmp = score.compare(a["server_fps"], self.store.build_fps(self.build))
         shard = a.get("shard_id") or sess.get("shard_id")
-        return {
+        out = {
             "health": a, "compare": cmp, "spark": spark,
             "overlay_status": self.watcher.status if self.watcher else "off",
             "screenshot_readings": self.shots.count if self.shots else None,
@@ -231,7 +280,14 @@ class App:
             "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
             "update": self.updater.info(), "patch": self.patch_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
+            "marks": self.marks(), "hotkey": self.hotkey.status,
+            "readings_paused": bool(self.watcher and self.watcher.status.startswith("overlay off")),
+            "groups": {"open": self.groups.open, "mine": self.groups.mine(), "interest": self.groups.interest[:10],
+                       "offer": self.groups.pirate_offer()},
         }
+        from .groups import chat_lines
+        out["chat_lines"] = chat_lines(out, a)
+        return out
 
     def _where(self, health):
         """Where you are from the latest overlay reading: the place, its area and your game server's number."""
@@ -280,13 +336,26 @@ class App:
             return "OK."
         raise ValueError("Unknown notice.")
 
-    def run_diagnosis(self, minutes=None):
+    def run_diagnosis(self, minutes=None, mark_ts=None):
         minutes = int(minutes or self.cfg.get("lookback_minutes", 30))
+        mark = next((m for m in self.marks(24 * 3600) if mark_ts and abs(m["ts"] - float(mark_ts)) < 1), None)
+        if mark:
+            import math
+            minutes = min(24 * 60, max(minutes, math.ceil((time.time() - mark["ts"]) / 60) + 10))
         with self.lock:
             snaps = list(self.snaps)
         res = diagnose(self.game_dir / "Game.log", self.library, self.names, snaps, lookback_min=minutes,
                        backups_dir=self.game_dir / "logbackups")
         res["checked_at"] = time.time()
+        res["mark"] = mark
+        if mark:
+            # The marked moment first: findings within 10 minutes of it, nearest first
+            def dist(f):
+                a, b = f.get("first_ts") or 0, f.get("last_ts") or f.get("first_ts") or 0
+                return 0 if a - 600 <= mark["ts"] <= b + 600 else min(abs(mark["ts"] - a), abs(mark["ts"] - b))
+            for f in res["findings"]:
+                f["near_mark"] = dist(f) == 0
+            res["findings"].sort(key=lambda f: (not f["near_mark"], dist(f)))
         self.last_result = res
         return res
 
@@ -337,20 +406,56 @@ class App:
         s = self.session
         end = (s.end if s and s.end else time.time())
         items = timeline(s, self.places, since=end - minutes * 60) if s else []
+        for m in self.marks(minutes * 60):
+            items.append({"ts": m["ts"], "group": "other", "kind": "mark", "text": "You marked this moment", "code": None, "area": None})
+        items.sort(key=lambda x: x["ts"])
         return {"minutes": minutes, "items": items, "groups": GROUPS, "game_found": self.game_found,
                 "session_start": s.start if s else None, "session_end": s.end if s else None}
 
+    def _draft(self, f, ic_link=None):
+        mark = (self.last_result or {}).get("mark")
+        if mark and not f.get("near_mark"):
+            mark = None                     # the mark is about something else; this finding has its own time
+        at = mark["ts"] if mark else f.get("first_ts")
+        snap = self._snap_at(at) if at else None
+        if snap is None and (not at or time.time() - at < 900):
+            snap = self.latest_snap()
+        channel = self.game_dir.name if self.game_dir.name.upper() in ("LIVE", "PTU", "EPTU", "TECH-PREVIEW", "HOTFIX") else "LIVE"
+        return report.draft(f, self.last_result, snap, session=self.session, places=self.places, names=self.names,
+                            mark=mark, channel=channel, ic_link=ic_link)
+
+    def _snap_at(self, ts):
+        with self.lock:
+            near = [x for x in self.snaps if x.get("ok") and abs(x["ts"] - ts) <= 300]
+        return min(near, key=lambda x: abs(x["ts"] - ts)) if near else None
+
+    def ic_link(self, rule_id):
+        """The most-upvoted Issue Council report players have linked for this issue on Verse Shards (a plain lookup,
+        only when the community board or library updates are on)."""
+        if not rule_id or not (self.cfg.get("community_board") or self.cfg.get("library_updates")):
+            return None
+        try:
+            code, d = self.community._req(f"/api/v1/issue/{rule_id}")
+        except Exception:
+            return None
+        if code != 200:
+            return None
+        links = [x for x in d.get("links", []) if x.get("kind") == "issue-council"]
+        return max(links, key=lambda x: x.get("votes", 0)) if links else None
+
     def report_draft(self, group, i):
         f = self._finding(group, i)
-        d = report.draft(f, self.last_result, self.latest_snap(), session=self.session, places=self.places)
+        d = self._draft(f, self.ic_link(f.get("rule_id")) if group != "unknown" else None)
         d["url"] = report.ISSUE_COUNCIL
         return d
 
     def report_bundle(self, group, i, text=None):
         f = self._finding(group, i)
-        d = report.draft(f, self.last_result, self.latest_snap(), session=self.session, places=self.places)
+        d = self._draft(f)
         if text and isinstance(text, str):
             d["body"] = text[:200_000]      # the player's edited version from the dashboard
+            if report.DISCLAIMER not in d["body"]:
+                d["body"] += "\n" + report.DISCLAIMER + "\n"
         folder, n = report.bundle(f, self.last_result, d, self.game_dir)
         return {"folder": str(folder), "screenshots": n}
 
@@ -382,7 +487,7 @@ class App:
 
     # -- the game's USER.cfg
     def save_settings(self, live=None, screenshots=None, share=None, board=None, updates=None, library=None,
-                      alerts=None):
+                      alerts=None, errors=None, hotkey=None):
         """Change settings. Saved to data\\config.json. Reading changes take effect on the next start;
         the community switches take effect straight away."""
         from .config import save_setting
@@ -432,14 +537,27 @@ class App:
             save_setting("alerts", mode)
             msg.append({"sound": "Pop-up alerts on, with a sound.", "quiet": "Pop-up alerts on, without a sound."}
                        .get(mode, "Pop-up alerts off."))
+        if errors is not None:
+            self.cfg["send_errors"] = bool(errors)
+            save_setting("send_errors", self.cfg["send_errors"])
+            msg.append("Sending app error reports, so faults get fixed." if errors else "Not sending app error reports.")
+        if hotkey is not None:
+            from .hotkey import CHOICES, LABELS
+            combo = hotkey if hotkey in CHOICES else None
+            self.cfg["mark_hotkey"] = combo
+            save_setting("mark_hotkey", combo)
+            st = self.hotkey.set(combo)
+            msg.append(f"Mark this moment hotkey: {LABELS[combo]}." if combo and st.startswith("on") else
+                       ("Mark this moment hotkey off." if not combo else f"Hotkey not set: {st}."))
         return " ".join(msg) or "Saved."
 
     # -- first-run questions: every setting is a yes/no the player has to answer once
     # Each question and the set-up version it arrived in. Raise SETUP_VERSION when adding one: players who have
     # already been through set-up are asked only the new ones.
     # share is 3: 1.2 added the area and session stats to what's shared, so sharers are asked again
-    QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 3,
-                 "updates": 2, "library": 2, "alerts": 2}
+    # share is 4: 1.3 adds reading-quality counts and the game's wording for disconnects, so sharers are asked again
+    QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 4,
+                 "updates": 2, "library": 2, "alerts": 2, "errors": 4}
     SETUP_VERSION = max(QUESTIONS.values())
 
     @property
@@ -478,8 +596,8 @@ class App:
                 self.cfg["pending_user_cfg"] = cfg_wanted
                 save_setting("pending_user_cfg", cfg_wanted)
                 notes.append("The USER.cfg choices will be saved once the game folder is found.")
-        self.save_settings(**{k: bool(given[k]) for k in ("live", "screenshots", "share", "board", "updates", "library")
-                              if k in given})
+        self.save_settings(**{k: bool(given[k]) for k in ("live", "screenshots", "share", "board", "updates", "library",
+                                                          "errors") if k in given})
         if "alerts" in given:
             self.save_settings(alerts=given["alerts"])
         self.cfg["setup_version"] = self.SETUP_VERSION
@@ -497,7 +615,9 @@ class App:
                 "board_url": c.url, "board_error": c.board_error,
                 "updates": bool(self.cfg.get("check_updates", True)), "update": self.updater.info(),
                 "library": bool(self.cfg.get("library_updates")), "library_sync": self.libsync.info(),
-                "alerts": self.alerts.info()}
+                "alerts": self.alerts.info(), "errors": bool(self.cfg.get("send_errors")),
+                "errors_sent": self.errors.sent_n, "errors_payload": self.errors.last_payload,
+                "hotkey": self.cfg.get("mark_hotkey"), "hotkey_status": self.hotkey.status}
 
     # Settings the app can put in USER.cfg: name -> value to set
     CFG_SETTINGS = {"r_displayinfo": 3, "r_DisplaySessionInfo": 1}
@@ -589,6 +709,13 @@ def _active_contracts(contracts):
         row["times"] += 1
         row["objectives"] = c["objectives"]
     return list(by.values())
+
+
+def _last_loc(session):
+    for e in reversed(getattr(session, "travel", []) if session else []):
+        if e["kind"] == "location":
+            return e["code"]
+    return None
 
 
 def _region(shard_id):

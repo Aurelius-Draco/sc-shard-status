@@ -37,7 +37,7 @@ def shard_name(shard_id):
     return f"{REGION_TAGS.get(m.group(1), m.group(1).upper())}-{int(m.group(2))}" if m else (shard_id or "")
 
 
-def shard_report(snap, install_id, build, findings=(), app_version=None, where=None):
+def shard_report(snap, install_id, build, findings=(), app_version=None, where=None, quality=None):
     """One health reading (or a 5-minute summary of several) for the live shard status board. `where` is the
     area only (a planet, a jump point or open space: {system, area, area_name}), never the exact place."""
     out = {
@@ -54,7 +54,24 @@ def shard_report(snap, install_id, build, findings=(), app_version=None, where=N
     }
     if where:
         out.update(system=where.get("system"), area=where.get("area"), area_name=where.get("area_name"))
+    if quality:
+        out["quality"] = quality
     return out
+
+
+def quality(snaps, tries=0, failed=0, screen=None):
+    """How cleanly the overlay was read in these 5 minutes: counts only, so a screen setup that misreads can be
+    spotted and helped. misreads = single odd values that were thrown away (see clean.settle)."""
+    from . import clean
+    ok = [s for s in snaps if s.get("ok")]
+    mis = 0
+    for k in ("restarts", "hitches", "loss_pct", "pop_shard", "pop_srv"):
+        raw = [s.get(k) for s in ok]
+        settled = clean.settle(raw, 2)
+        mis += sum(1 for r, v in zip(raw, settled) if r is not None and v is not None and r != v)
+    return {"readings": min(1000, tries or len(ok)), "failed": min(1000, failed),
+            "no_server": sum(1 for s in ok if not s.get("server_name")),
+            "no_players": sum(1 for s in ok if s.get("pop_shard") is None), "misreads": min(10000, mis), "screen": screen}
 
 
 def sessions_report(install_id, sessions, since, now=None):
@@ -158,6 +175,7 @@ class Community:
         self.rsi_at = 0
         self.sessions_at = 0
         self.sessions_sent = 0
+        self._q_tries = self._q_failed = 0
 
     def _req(self, path, body=None):
         data = None if body is None else json.dumps(body).encode()
@@ -236,8 +254,14 @@ class Community:
             return
         last = self.app.last_result or {}
         findings = last.get("findings", []) if now - (last.get("checked_at") or 0) < 1800 else []
+        w = getattr(self.app, "watcher", None)
+        recent = [s for s in snaps if now - s["ts"] <= SHARE_EVERY_S]
+        tries, failed = (w.tries - self._q_tries, w.failed - self._q_failed) if w else (0, 0)
+        if w:
+            self._q_tries, self._q_failed = w.tries, w.failed
         payload = shard_report(snap, self.app.store.install_id(), self.app.build, findings, self.version,
-                               self.places.where(snap.get("location")))
+                               self.places.where(snap.get("location")),
+                               quality(recent, max(0, tries), max(0, failed), w.screen if w else None))
         self.last_payload = payload
         try:
             code, d = self._req("/api/v1/report", payload)
@@ -274,6 +298,8 @@ class Community:
                 self.tick()
             except Exception as e:
                 self.share_status = f"error: {e}"
+                from . import errors
+                errors.capture("community", e)
 
     def region_view(self, shard_id, region_code):
         """Your region from the board: every shard with its score, yours marked, and the best one."""

@@ -130,7 +130,7 @@ def diagnose(log_path, library, names=None, snapshots=None, lookback_min=30, now
         "generated": now, "since": since, "lookback_min": lookback_min,
         "lines_checked": len(lines), "noise_lines": noise, "logs": [p.name for p, _ in sessions],
         "findings": findings, "info": infos, "unknown": unk,
-        "session": {"build": session.build, "version": session.version, "shard_id": sid,
+        "session": {"build": session.build, "version": session.version, "branch": getattr(session, "branch", None), "shard_id": sid,
                     "region": region_name(session.joins[-1]["region"]) if session.joins else None,
                     "started": session.start, "clean_exit": session.clean_exit},
         "headline": headline(findings, unk),
@@ -322,8 +322,23 @@ def _overlay(snaps, since):
                             fixes=["Server hop: exit to menu and rejoin, or pick a different region.",
                                    "Avoid starting missions or deliveries until it recovers."],
                             first_ts=low[0]["ts"], last_ts=low[-1]["ts"], count=len(low)))
-    rs = [s for s in recent if s.get("restarts") is not None]
-    rises = [b for a, b in zip(rs, rs[1:]) if b["restarts"] > a["restarts"]]
+    # Restarts and packet loss only count once a value repeats, per server (a lone misread such as a restart
+    # counter of 435 is thrown away, the same rules as the live score; see clean.py)
+    from . import clean
+    rises = []
+    by_server = {}
+    for x in recent:
+        by_server.setdefault(x.get("server_name") or "?", []).append(x)
+    for rows in by_server.values():
+        vals = [x.get("restarts") for x in rows]
+        if clean.restart_rises(vals):
+            settled = clean.settle(vals, 5)
+            prev = None
+            for x, v in zip(rows, settled):
+                if v is not None and prev is not None and v > prev:
+                    rises.append(x)
+                prev = v if v is not None else prev
+    rises.sort(key=lambda x: x["ts"])
     if rises:
         out.append(_finding(severity="high", area="Server", title="Your server node restarted",
                             explain="The overlay's restart count went up while you were on this server node. Things "
@@ -331,10 +346,11 @@ def _overlay(snaps, since):
                             fixes=["Check your ship and cargo are still where you left them.",
                                    "If a contract stopped updating, a server hop is the usual fix."],
                             first_ts=rises[0]["ts"], last_ts=rises[-1]["ts"], count=len(rises)))
-    lossy = [s for s in recent if (s.get("loss_pct") or 0) >= 2]
+    settled_loss = clean.settle([s.get("loss_pct") for s in recent], 2)
+    lossy = [s for s, v in zip(recent, settled_loss) if (v or 0) >= 2]
     if len(lossy) >= 3:
         out.append(_finding(severity="medium", area="Connection", title="Packet loss",
-                            explain=f"Packet loss reached {max(s['loss_pct'] for s in lossy):g}%. That causes "
+                            explain=f"Packet loss reached {max(v for v in settled_loss if v is not None):g}%. That causes "
                                     "rubber-banding and actions that don't go through.",
                             fixes=["Check your own connection first: Wi-Fi, other downloads or streams.",
                                    "If your connection is fine, the route to this region may be the problem."],

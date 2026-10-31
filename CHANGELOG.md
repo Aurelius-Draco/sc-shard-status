@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.0
+
+- Cleaner readings. The overlay is read off the screen, so now and then one value comes out wrong (a restart counter of 435, packet loss of 9%). A value now only counts once it repeats, restarts must hold and never drop back, and each server stint is judged on its own: a server hop, relog or long gap starts afresh. No more false restart alerts or 519-hitch spikes, in the app or on verseshards.com.
+- New alert when a server that's already slow drops under 5 fps.
+- Issue Council drafts laid out like the form, box by box and inside its limits: title, exact game version, suggested category and severity, steps (where you were and the server's fps first, from Verse Shards), what happened, what should have happened and any workaround. "What were you doing?" is started for you from the log. If players have linked a report on verseshards.com, the draft takes you there and writes your contribution instead.
+- Mark this moment: a button at the top of the dashboard, and an optional hotkey (Ctrl+Alt+M and others, set up on the Set up tab). "What's gone wrong?" then looks at that moment first.
+- Groups tab: post a recruiting or looking-for-group notice on verseshards.com (shard, server and area filled in), see who's keen to join as a pop-up, and report pirate activity in an area. After your ship is destroyed (and it wasn't a crash), the app offers the pirate report; it never sends it by itself. The boards open on the site once there are moderators.
+- Copy for global chat: short lines about your shard on the Now tab, and a separate "Found this on Verse Shards" line.
+- Overlay off: the dashboard says "Overlay off, readings paused".
+- The session QR code is now off unless you want it.
+- New set-up question: send a report when something in the app itself goes wrong (off unless you say yes; paths and names taken out).
+- Sharing adds counts of how cleanly the overlay was read and your screen size, so screen setups that misread can be helped, and the game's wording for disconnect errors (letters only), so new error codes can be explained. If you share, you're asked once more.
+- New library entry: lost flight control after take-off (a fatal collision at walking pace).
+- About: star the project on GitHub, add Aurelius_Draco as a friend, the Spectrum thread, help wanted, and org tools coming soon.
+
 ## 1.2.0
 
 - Shards have short names: AU-20, EU-410, USE-130 (region and shard number), in the app, on verseshards.com and in Discord. The full id is still there when you hover.
