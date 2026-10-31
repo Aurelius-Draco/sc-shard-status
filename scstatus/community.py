@@ -80,30 +80,33 @@ SESSIONS_EVERY_S = 1800
 
 
 def summarise(snaps, now=None, window_s=SHARE_EVERY_S):
-    """The last 5 minutes of overlay readings on one shard as a single reading: medians, the lowest server
-    fps seen, and how many times the server node restarted in that time (not its lifetime count)."""
+    """The last 5 minutes of overlay readings on your current server as a single reading: medians, the slow end of
+    the server fps, and how many times the server node restarted in that time (not its lifetime count). Only values
+    that repeat count, so a single misread can't send a fake restart or a 519-hitch spike (see clean.py)."""
+    from . import clean
     now = now or time.time()
-    recent = [s for s in snaps if s.get("ok") and now - s["ts"] <= window_s and s.get("server_fps") is not None]
-    if not recent:
-        return None
-    shard = recent[-1].get("shard_id")
-    recent = [s for s in recent if s.get("shard_id") == shard]
+    run = clean.current_run([s for s in snaps if s.get("server_fps") is not None])
+    recent = [s for s in run if now - s["ts"] <= window_s]
+    shard, server = clean.identity(recent)
     if len(recent) < 3 or not shard:
         return None
 
     def med(k):
         v = [s[k] for s in recent if s.get(k) is not None]
         return st.median(v) if v else None
-    rs = [s["restarts"] for s in recent if s.get("restarts") is not None]
-    mins = [s.get("server_fps_min", s["server_fps"]) for s in recent if s.get("server_fps_min", s["server_fps"]) is not None]
+    fps = [s["server_fps"] for s in recent]
+    hitches = [v for v in clean.settle([s.get("hitches") for s in recent]) if v is not None]
+    losses = [v for v in clean.settle([s.get("loss_pct") for s in recent]) if v is not None]
+    rs = [s.get("restarts") for s in recent]
     return {
-        "ts": recent[-1]["ts"], "shard_id": shard, "server_name": recent[-1].get("server_name"),
-        "server_fps": round(med("server_fps"), 1), "server_fps_min": min(mins) if mins else None,
-        "server_fps_max": max((s.get("server_fps_max") or s["server_fps"]) for s in recent),
-        "hitches": max((s.get("hitches") or 0) for s in recent),
-        "restarts": (max(rs) - min(rs)) if rs else None,
+        "ts": recent[-1]["ts"], "shard_id": shard, "server_name": server,
+        "server_fps": round(med("server_fps"), 1),
+        # The slowest tenth and the fastest tenth of readings, not single extremes (often misreads); 30 is the cap
+        "server_fps_min": round(clean.pct(fps, 10), 1), "server_fps_max": round(min(30.0, clean.pct(fps, 90)), 1),
+        "hitches": max(hitches) if hitches else 0,
+        "restarts": clean.restart_rises(rs) if any(v is not None for v in rs) else None,
         "pop_shard": _int(med("pop_shard")), "pop_srv": _int(med("pop_srv")), "ping_ms": med("ping_ms"),
-        "loss_pct": med("loss_pct"), "readings": len(recent),
+        "loss_pct": st.median(losses) if losses else None, "readings": len(recent),
         "location": _most_common([s.get("location") for s in recent if s.get("location")]),
     }
 

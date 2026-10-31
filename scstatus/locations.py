@@ -33,12 +33,30 @@ SHORT = {"hur": "hurston", "cru": "crusader", "arc": "arccorp", "mic": "microtec
 AREA_KEY_RX = re.compile(r"^[a-z0-9-]{2,24}$")
 
 
+# The overlay's small text mixes up some letters and digits. Seen in real readings: "Stantoni", "StantonI_WeepingCove",
+# "Stanton3_Areal8", "Stanton1__Lorville", "RR_P3_LE0", "vINVALID_LOCATION_ID".
+_OCR_FIXES = [
+    (re.compile(r"(?i)^(stanton|pyro|nyx)[il|](?=_|$)"), r"\g<1>1"),     # a trailing 1 read as i, l or |
+    (re.compile(r"(?i)area[li]8"), "Area18"),
+    (re.compile(r"(?i)le0"), "LEO"),
+    (re.compile(r"_{2,}"), "_"),
+    (re.compile(r"(?i)^[a-z]?(invalid_location)"), r"INVALID_LOCATION"),
+]
+
+
+def clean_code(code):
+    """A location code with the overlay's usual misreads put right."""
+    c = (code or "").strip()
+    for rx, rep_ in _OCR_FIXES:
+        c = rx.sub(rep_, c)
+    return c
+
+
 def area_of(code):
     """Location code -> area key (see AREAS), or None when it can't be told."""
-    c = (code or "").strip().lower()
+    c = clean_code(code).lower()
     if not c or "invalid" in c:
         return None
-    c = c.replace("le0", "leo")                      # the overlay's O and 0 look alike
     if m := re.search(r"jp_?(stanton|pyro|nyx)(stanton|pyro|nyx)", c):
         return f"gate-{m.group(1)}-{m.group(2)}"
     for sysname in SYSTEMS:
@@ -57,6 +75,12 @@ def area_of(code):
         if sysname in c:
             return f"{sysname}-space"
     return None
+
+
+def _readable(code):
+    """CuttersRig -> Cutters Rig, ShubinMining_SCD1 -> Shubin Mining SCD1."""
+    words = re.sub(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Za-z])(?=\d{2,})", " ", code.replace("_", " "))
+    return re.sub(r"\s+", " ", words).strip()
 
 
 class Places:
@@ -94,12 +118,23 @@ class Places:
         """A readable name for a place code: the game's own name, or the area it's in."""
         if not code:
             return ""
-        c = code.strip()
+        c = clean_code(code)
+        if "invalid" in c.lower():
+            return ""
         if name := self.names.get(c.lower()):
             return name
         key = area_of(c)
         if not key:
             return re.sub(r"_+", " ", c)
+        # A place on a planet or moon, e.g. Stanton1_CuttersRig or Stanton2b_ShubinMining_SCD1: name the place
+        # (the game's name if it has one, else the code made readable) and the body it's on
+        if m := re.fullmatch(r"(?i)(stanton|pyro|nyx)(\d)([a-z])?_(.+)", c):
+            body_code = f"{m.group(1).capitalize()}{m.group(2)}{(m.group(3) or '').lower()}"
+            _, planet = self.area(key)
+            body = self.names.get(body_code.lower()) or (f"a moon of {planet}" if m.group(3) else planet)
+            spot = _readable(m.group(4))
+            if spot and not re.fullmatch(r"(?i)l\d", m.group(4)):
+                return f"{spot}, {body}"
         _, area = self.area(key)
         if c.lower().startswith("rr_"):
             return f"station at the {area}" if key.startswith("gate-") else f"station near {area}"

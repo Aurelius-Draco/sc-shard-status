@@ -8,6 +8,8 @@ Thresholds are set from real 4.10 readings, where a healthy server runs at about
 import statistics as st
 import time
 
+from . import clean
+
 HEALTHY_SERVER_FPS = 20.0
 
 # (value, score) points; scores in between are interpolated
@@ -50,23 +52,29 @@ def band(score):
 def assess(snaps, now=None, window_s=300):
     """Score the most recent readings. snaps: overlay snapshots, oldest first."""
     now = now or time.time()
-    recent = [s for s in snaps if s.get("ok") and now - s["ts"] <= window_s]
+    # Only your current stint on this server: a hop or relog starts afresh (see clean.py)
+    run = clean.current_run(snaps)
+    recent = [s for s in run if now - s["ts"] <= window_s]
     if not recent:
         return {"score": None, "label": "No readings", "cls": "none",
                 "summary": "No overlay readings yet. In game, open the console (~) and type r_displayinfo 3.",
                 "points": [], "readings": 0}
     last = recent[-1]
     sfps = _vals(recent, "server_fps")
-    sfps_low = min(_vals(recent, "server_fps_min") or sfps or [None]) if sfps else None
     med_fps = st.median(sfps) if sfps else None
     p10_fps = _pct(sfps, 10)
+    # "Low" is the slowest tenth of readings, not the single worst one, which is often a misread
+    sfps_low = p10_fps
     ping = st.median(_vals(recent, "ping_ms")) if _vals(recent, "ping_ms") else None
-    loss = st.median(_vals(recent, "loss_pct")) if _vals(recent, "loss_pct") else None
-    hitches = max(_vals(recent, "hitches")) if _vals(recent, "hitches") else 0
-    rs = _vals(snaps, "restarts")
-    # The overlay's count may cover the server node's whole life; only a rise while you're on it is news
-    restarts = (max(rs) - min(rs)) if len(rs) >= 2 else 0
-    restarted_before = bool(rs) and min(rs) > 0
+    # Loss and hitches only count once a value repeats; a lone 9.0% or 519 is the overlay being misread
+    losses = [v for v in clean.settle([s.get("loss_pct") for s in recent]) if v is not None]
+    loss = st.median(losses) if losses else None
+    hitch_vals = [v for v in clean.settle([s.get("hitches") for s in recent]) if v is not None]
+    hitches = max(hitch_vals) if hitch_vals else 0
+    # The overlay's count covers the server node's whole life; only a confirmed rise while you're on it is news
+    rs = [s.get("restarts") for s in run]
+    restarts = clean.restart_rises(rs)
+    restarted_before = (clean.first_settled(rs) or 0) > 0
 
     server = None
     if med_fps is not None:

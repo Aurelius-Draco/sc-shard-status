@@ -75,7 +75,7 @@ class Alerts:
         self.disc_seen = None
         self.problem_at = 0
         self.problems_seen = set()
-        self.restart_base = {}                 # server name -> lowest restart count seen on it
+        self.restarts_seen = {}                # server name -> confirmed restarts already alerted on
 
     @property
     def mode(self):
@@ -108,35 +108,40 @@ class Alerts:
 
     def tick(self):
         now = self.clock()
+        from . import clean
         with self.app.lock:
-            snaps = [s for s in self.app.snaps if s.get("ok") and now - s["ts"] <= 360]
-        self._server(snaps, now)
+            run = clean.current_run(list(self.app.snaps))       # this server only: a hop or relog starts afresh
+        self._server([s for s in run if now - s["ts"] <= 360], now, run)
         self._disconnects()
         if now - self.problem_at >= PROBLEM_EVERY_S:
             self.problem_at = now
             self._problems(now)
 
-    def _server(self, snaps, now):
+    def _server(self, snaps, now, run=()):
+        from . import clean
         last_min = [s for s in snaps if now - s["ts"] <= 60]
         before = [s for s in snaps if now - s["ts"] > 60]
         if len(last_min) >= 3:
             fps_now = _median(s.get("server_fps") for s in last_min)
             fps_before = _median(s.get("server_fps") for s in before) if len(before) >= 6 else None
-            if fps_now is not None and fps_now < 8 and (fps_before is None or fps_before >= 14):
-                was = f" (was {fps_before:.0f})" if fps_before is not None else ""
+            # A healthy server falling off a cliff, or an already-slow one dropping to almost nothing
+            if fps_now is not None and ((fps_now < 8 and (fps_before is None or fps_before >= 14)) or fps_now < 5):
+                was = f" (was {fps_before:.0f})" if fps_before is not None and fps_before - fps_now >= 3 else ""
                 self.fire("fps", f"Server fps down to {fps_now:.0f}{was}",
-                          "Expect slow elevators, laggy AI and missions that don't update. A server hop may help.")
-            loss = _median(s.get("loss_pct") for s in last_min)
+                          "Expect slow elevators, laggy AI and missions that don't update. Hold off take-off, "
+                          "cargo moves and anything you can't afford to lose; a server hop may help.")
+            # Only loss that holds for the whole minute; short bursts of 9.0% are the overlay misread
+            losses = [v for v in clean.settle([s.get("loss_pct") for s in last_min]) if v is not None]
+            loss = min(losses) if len(losses) >= 8 else None
             if loss is not None and loss >= 3:
                 self.fire("loss", f"Packet loss at {loss:.0f}%",
                           "Your connection to the server is dropping data. Expect rubber-banding and delays.")
-        for s in snaps[-3:]:
-            name, r = s.get("server_name"), s.get("restarts")
-            if not name or r is None:
-                continue
-            base = self.restart_base.setdefault(name, r)
-            if r > base:
-                self.restart_base[name] = r
+        name = clean.identity(run)[1] if run else None
+        if name:
+            rises = clean.restart_rises([s.get("restarts") for s in run])
+            seen = self.restarts_seen.setdefault(name, rises)
+            if rises > seen:
+                self.restarts_seen[name] = rises
                 self.fire("restart", "The server you're on just restarted",
                           "Items in transit, hangar requests and contract steps can go missing around a restart. "
                           "Check before you carry on.")

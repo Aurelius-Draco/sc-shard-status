@@ -48,12 +48,25 @@ def test_a_steady_slow_server_isnt_news_but_loss_and_restarts_are():
     app.snaps = [_snap(t[0] - 300 + i * 5, 5) for i in range(60)]
     a.tick()
     assert shown == []                               # slow all along: the score says so, no pop-up
-    app.snaps = [_snap(t[0] - 50 + i * 5, 20, loss=6) for i in range(10)]
+    app.snaps = [_snap(t[0] - 58 + i * 5, 20, loss=6) for i in range(12)]
     a.tick()
     assert shown[-1] == ("Packet loss at 6%", False)
-    app.snaps.append(_snap(t[0], 20, restarts=1))
+    # A single misread restart count (or a lone 9.0% loss) is ignored; a count that holds is a real restart
+    n = len(shown)
+    app.snaps.append(_snap(t[0] - 1, 20, restarts=10))
+    app.snaps.append(_snap(t[0] - 0.5, 20, restarts=0))
+    a.tick()
+    assert len(shown) == n
+    app.snaps += [_snap(t[0] + i, 20, restarts=1) for i in range(5)]
     a.tick()
     assert shown[-1][0] == "The server you're on just restarted"
+
+
+def test_an_already_slow_server_dropping_to_almost_nothing_alerts():
+    app, a, shown, t = _make("quiet")
+    app.snaps = [_snap(t[0] - 300 + i * 5, 9) for i in range(48)] + [_snap(t[0] - 55 + i * 5, 3.5) for i in range(12)]
+    a.tick()
+    assert shown and shown[-1][0].startswith("Server fps down to 4") and "(was 9)" in shown[-1][0]
 
 
 def test_bad_disconnect_alerts_normal_one_doesnt():
