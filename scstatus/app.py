@@ -472,25 +472,137 @@ class App:
             near = [x for x in self.snaps if x.get("ok") and abs(x["ts"] - ts) <= 300]
         return min(near, key=lambda x: abs(x["ts"] - ts)) if near else None
 
-    def ic_link(self, rule_id):
-        """The most-upvoted Issue Council report players have linked for this issue on Verse Shards (a plain lookup,
-        only when the community board or library updates are on)."""
+    def ic_links(self, rule_id):
+        """Issue Council reports players have linked for this issue on Verse Shards, most upvoted first (a plain
+        lookup, only when the community board or library updates are on)."""
         if not rule_id or not (self.cfg.get("community_board") or self.cfg.get("library_updates")):
-            return None
+            return []
         try:
             code, d = self.community._req(f"/api/v1/issue/{rule_id}")
         except Exception:
-            return None
+            return []
         if code != 200:
-            return None
+            return []
         links = [x for x in d.get("links", []) if x.get("kind") == "issue-council"]
-        return max(links, key=lambda x: x.get("votes", 0)) if links else None
+        return sorted(links, key=lambda x: -(x.get("votes") or 0))
+
+    def ic_link(self, rule_id):
+        links = self.ic_links(rule_id)
+        return links[0] if links else None
 
     def report_draft(self, group, i):
         f = self._finding(group, i)
-        d = self._draft(f, self.ic_link(f.get("rule_id")) if group != "unknown" else None)
+        links = self.ic_links(f.get("rule_id")) if group != "unknown" else []
+        d = self._draft(f, links[0] if links else None)
         d["url"] = report.ISSUE_COUNCIL
+        # For "After you post": this issue's page on Verse Shards, and the reports already linked there
+        d["rule_id"] = f.get("rule_id") if group != "unknown" else None
+        d["linked"] = []
+        for x in links[:6]:
+            m = re.search(r"STARC-\d+", x.get("url") or "", re.I)
+            if m:
+                d["linked"].append({"id": m.group(0).upper(), "title": x.get("title") or m.group(0).upper(),
+                                    "url": x.get("url"), "votes": x.get("votes") or 0})
         return d
+
+    # -- Mark this moment: the moment itself, screenshots around it, sent for review, an Issue Council draft
+    def _mark_at(self, ts):
+        try:
+            ts = float(ts)
+        except (TypeError, ValueError):
+            raise ValueError("No such moment.")
+        m = next((x for x in self.marks(24 * 3600) if abs(x["ts"] - ts) < 1), None)
+        if not m:
+            raise ValueError("That moment is more than a day old, or wasn't marked on this PC.")
+        return m
+
+    def _shot_dir(self):
+        return self.game_dir / "screenshots"
+
+    def moment_shots(self, ts, now=None):
+        """Screenshots from 10 minutes before the moment up to 10 minutes after it (or now, if later)."""
+        from .screenshots import list_shots
+        m = self._mark_at(ts)
+        now = now or time.time()
+        return list_shots(self._shot_dir(), m["ts"] - 600, max(m["ts"] + 600, now))
+
+    def moment(self, ts):
+        """Everything the app has for a marked second: where, the readings, the log either side, what it found."""
+        from .timeline import timeline
+        m = self._mark_at(ts)
+        t = m["ts"]
+        snap = self._snap_at(t)
+        if snap is None:
+            rows = [x for x in self.store.snapshots(since=t - 300, limit=400) if abs(x.get("ts", 0) - t) <= 300 and x.get("ok", True)]
+            snap = min(rows, key=lambda x: abs(x["ts"] - t)) if rows else None
+        snap = snap or {}
+        shard = m.get("shard_id") or snap.get("shard_id")
+        server = (m.get("server") or snap.get("server_name") or "").rsplit("-", 1)[-1] or None
+        place = self.places.place(m.get("location") or snap.get("location")) or None
+        res = self.run_diagnosis(None, t)
+        findings = []
+        for i, f in enumerate(res.get("findings", [])):
+            if f.get("near_mark") and f.get("kind", "problem") == "problem":
+                findings.append({"i": i, "title": f["title"], "severity": f.get("severity"), "rule_id": f.get("rule_id"),
+                                 "first_ts": f.get("first_ts"), "last_ts": f.get("last_ts")})
+        log = []
+        s = self.session
+        if s:
+            for it in timeline(s, self.places, since=t - 300, until=t + 300):
+                bad = it["group"] == "connection" and it["kind"] in ("disconnect", "crash")
+                log.append({"ts": it["ts"], "text": it["text"],
+                            "kind": "bad" if bad else "travel" if it["group"] in ("travel", "place") else ""})
+        for f in findings:
+            for when in {f["first_ts"], f["last_ts"]}:
+                if when and abs(when - t) <= 300:
+                    log.append({"ts": when, "text": f["title"], "kind": "bad"})
+        log.append({"ts": t, "text": "You marked this moment", "kind": "mark"})
+        log.sort(key=lambda x: x["ts"])
+        return {"ts": t, "shard_id": shard, "shard_name": community.shard_name(shard) if shard else None,
+                "server": server, "place": place,
+                "readings": {"server_fps": snap.get("server_fps"), "pop_srv": snap.get("pop_srv"), "ping_ms": snap.get("ping_ms")},
+                "log": log[-40:], "findings": findings[:6], "shots": self.moment_shots(t),
+                "board": bool(self.cfg.get("community_board"))}
+
+    def moment_review(self, ts, what, issues=None):
+        """Send the moment for review: the description and the library ids found near it. Never screenshots."""
+        m = self._mark_at(ts)
+        if not self.cfg.get("community_board"):
+            raise ValueError("Turn on the community board on Set up to send it.")
+        known = {r["id"] for r in self.library.listing()}
+        ids = [i for i in (issues or []) if i in known]
+        out = self.community.send_moment(m["ts"], self.build, m.get("shard_id"), what, ids)
+        titles = [x.get("title") for x in out["matched"] if x.get("title")]
+        return {"matched": out["matched"],
+                "message": (f"Counted. It matches \u201c{titles[0]}\u201d, so it shows as a player who hit it today on that issue's page."
+                            if titles else "Thanks, sent.")}
+
+    def moment_draft(self, ts, what="", shots=None):
+        """An Issue Council draft for the moment: its time, your description and what the log shows, in a report
+        folder with Game.log and the screenshots you picked."""
+        m = self._mark_at(ts)
+        res = self.last_result if (self.last_result or {}).get("mark") and abs(self.last_result["mark"]["ts"] - m["ts"]) < 1 \
+            else self.run_diagnosis(None, m["ts"])
+        what = re.sub(r"\s+", " ", (what or "")).strip()[:200]
+        near = [(i, f) for i, f in enumerate(res["findings"]) if f.get("near_mark") and f.get("kind", "problem") == "problem"]
+        if near:
+            i, f = near[0]
+        else:
+            f = {"title": what or "Problem at the moment I marked", "area": "", "severity": "medium", "kind": "problem",
+                 "first_ts": m["ts"], "last_ts": m["ts"], "count": 1, "explain": "", "fixes": [], "examples": [],
+                 "fields": {}, "near_mark": True, "rule_id": None, "moment": True}
+            res["findings"].append(f)
+            i = len(res["findings"]) - 1
+        if what:
+            base = f.get("ic_summary", "").strip() or f"{f['title'].rstrip('.')}. {f.get('explain', '').strip()}".strip()
+            if not base.startswith(what.rstrip(".")):
+                f["ic_summary"] = f"{what.rstrip('.')}. {base}" if not f.get("moment") else f"{what.rstrip('.')}."
+        d = self._draft(f)
+        names = [x for x in (shots or []) if isinstance(x, str)][:10]
+        folder, n = report.bundle(f, res, d, self.game_dir, shots=names)
+        from .screenshots import shot_path
+        return {"folder": str(folder), "screenshots": n, "group": "findings", "i": i,
+                "shot_names": [x for x in names if shot_path(self._shot_dir(), x)]}
 
     def report_bundle(self, group, i, text=None):
         f = self._finding(group, i)

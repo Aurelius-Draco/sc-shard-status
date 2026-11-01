@@ -691,6 +691,102 @@ i.st.new { background: var(--amber); }
 .gcolL .gcards { grid-template-columns: 1fr; }
 .gcolR .gform { margin: 0; }
 @media (prefers-reduced-motion: reduce) { .hud, .hud *, .hreg *, .sgshare * { animation: none !important; } .dial circle, .hbar i { transition: none !important; } }
+/* ---- November round (Claude Design, v4): patrolling, report somewhere else, Issue Council link, Mark this moment, Bad, P12 ---- */
+/* 1 patrolling: amber, dashed, a slow radar sweep instead of the blink. Sightings keep the rust beacon. */
+.pirate.patrol { background: rgba(255,209,102,.08); border: 1px dashed rgba(255,209,102,.6); animation: none; }
+.pirate.patrol .edge { background: #ffd166; animation: none; opacity: .9; }
+.pirate.patrol .plab { background: none; color: #ffd166; box-shadow: inset 0 0 0 1.5px #ffd166; display: inline-flex; align-items: center; gap: 6px; }
+.pirate.patrol .pclr { color: #ffd166; }
+.radar { position: relative; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #ffd166; overflow: hidden; flex: none; }
+.radar::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, rgba(255,209,102,.9), rgba(255,209,102,0) 35%, transparent); animation: patrolSweep 4s linear infinite; }
+@keyframes patrolSweep { to { transform: rotate(360deg); } }
+.pirate.patrol.new { animation: patrolIn .6s ease-out both; }
+@keyframes patrolIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.pirmore { background: none; border: 0; padding: 0 2px; color: var(--teal, #4cc4b0); font: inherit; font-size: .875rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; white-space: nowrap; }
+.pirmore:hover { color: var(--amber, #f2a93b); }
+/* 5 Bad: a constant 2 s rust breath (was a double blink every 5 s) */
+.hud.beacon { animation: hudBad 2s ease-in-out infinite; }
+@keyframes hudBad { 0%, 100% { box-shadow: 0 0 0 1px rgba(236,122,94,.45), 0 0 0 0 rgba(236,122,94,0); } 50% { box-shadow: 0 0 0 2px rgba(236,122,94,.95), 0 0 20px 2px rgba(236,122,94,.28); } }
+/* P12 Critical lamp breathes */
+.sevl.high .tlights i:nth-child(1) { animation: critGlow 2.4s ease-in-out infinite; }
+@keyframes critGlow { 0%, 100% { box-shadow: 0 0 6px rgba(255,106,74,.55); } 50% { box-shadow: 0 0 12px rgba(255,106,74,.95); } }
+/* shared drawer pieces */
+.nv { display: grid; gap: var(--s4, 16px); }
+.nv h4 { margin: 0; font-size: 1rem; }
+.db .nv textarea.inp { min-height: 0; height: auto; font: inherit; }      /* the drawer's big log box style is for reports */
+.nv-lbl { font: 700 .75rem/1.2 var(--font); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; }
+.nv-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--s2, 8px); }
+.nv-opt { position: relative; display: grid; gap: 4px; text-align: left; padding: 12px 14px 12px 40px; border-radius: var(--r, 4px); border: 1px solid var(--line2); background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
+.nv-opt::before { content: ""; position: absolute; left: 14px; top: 15px; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line2); }
+.nv-opt[aria-pressed="true"] { border-color: var(--amber); background: var(--amber-bg); }
+.nv-opt[aria-pressed="true"]::before { box-shadow: inset 0 0 0 4px var(--amber); }
+.nv-opt b { font-size: .9375rem; } .nv-opt span { font-size: .8125rem; color: var(--muted); }
+.nv-opt.seen[aria-pressed="true"] { border-color: rgba(236,122,94,.7); background: rgba(236,122,94,.1); } .nv-opt.seen[aria-pressed="true"]::before { box-shadow: inset 0 0 0 4px #ec7a5e; }
+.nv-opt.patrol[aria-pressed="true"] { border-color: rgba(255,209,102,.7); border-style: dashed; background: rgba(255,209,102,.08); } .nv-opt.patrol[aria-pressed="true"]::before { box-shadow: inset 0 0 0 4px #ffd166; }
+.nv-ac { position: relative; }
+.nv-ac ul { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 4px; list-style: none; background: var(--raise, #181d24); border: 1px solid var(--line2); border-radius: var(--r-sm, 3px); box-shadow: 0 12px 30px rgba(0,0,0,.45); max-height: 16rem; overflow: auto; }
+.nv-ac li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 3px; cursor: pointer; font-size: .9375rem; }
+.nv-ac li[aria-selected="true"], .nv-ac li:hover { background: var(--amber-bg); }
+.nv-ac li span { color: var(--muted); font-size: .8125rem; white-space: nowrap; } .nv-ac li mark { background: none; color: var(--amber); font-weight: 700; }
+.nv-note { margin: 0; font-size: .875rem; color: var(--muted); }
+.nv-err { margin: 0; font-size: .875rem; color: #f4a48f; }
+.nv-ok { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-sm, 3px); background: var(--teal-bg); border: 1px solid rgba(76,196,176,.4); animation: nvRise .3s ease-out both; }
+.nv-ok > i { width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: var(--st-good, #4cc4b0); flex: none; }
+@keyframes nvRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.nv-steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.nv-steps span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line2); font-size: .8125rem; color: var(--muted); }
+.nv-steps span b { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--raise2); font-size: .6875rem; }
+.nv-steps span.on { border-color: var(--amber); color: var(--text); } .nv-steps span.on b { background: var(--amber); color: var(--on-amber, #1a1103); }
+.nv-steps span.done b { background: var(--st-good, #4cc4b0); color: #06231e; }
+.nv-mark { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: center; padding: 14px 16px; border-radius: var(--r, 4px); background: var(--amber-bg); border: 1px solid var(--amber-line); }
+.nv-mark .pin { grid-row: span 2; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--amber); color: var(--on-amber, #1a1103); font-weight: 700; animation: markPing 1.6s ease-out 2; }
+@keyframes markPing { 0% { box-shadow: 0 0 0 0 rgba(242,169,59,.6); } 100% { box-shadow: 0 0 0 14px rgba(242,169,59,0); } }
+.nv-mark b { font-size: 1.0625rem; } .nv-mark span { font-size: .875rem; color: var(--muted); }
+.nv-shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 8px; }
+.nv-shot { position: relative; padding: 0; border: 0; border-radius: var(--r-sm, 3px); overflow: hidden; background: var(--well); cursor: pointer; box-shadow: 0 0 0 1px var(--line2); text-align: left; color: var(--text); }
+.nv-shot img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.nv-shot span { display: block; padding: 6px 8px; font-size: .75rem; color: var(--muted); }
+.nv-shot i { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(11,14,18,.75); box-shadow: inset 0 0 0 2px var(--line2); font-style: normal; font-size: .8125rem; }
+.nv-shot[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--st-good, #4cc4b0); } .nv-shot[aria-pressed="true"] i { background: var(--st-good, #4cc4b0); color: #06231e; box-shadow: none; animation: pipPop .35s cubic-bezier(.2,1.4,.4,1); }
+@keyframes pipPop { 0% { transform: scale(.4); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.nv-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.nv-chips button { height: 2rem; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line2); background: none; color: var(--text); font: inherit; font-size: .8125rem; cursor: pointer; }
+.nv-chips button:hover { border-color: var(--amber); }
+.nv-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-sm, 3px); overflow: hidden; }
+.nv-cells > div { background: var(--panel); padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.nv-cells dt { font: 600 .6875rem var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-stretch: semi-condensed; }
+.nv-cells dd { margin: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .nv-cells dd.bad { color: #ec7a5e; } .nv-cells dd.poor { color: #ffd166; }
+@media (max-width: 560px) { .nv-cells { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.nv-log { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: var(--r-sm, 3px); max-height: 15rem; overflow: auto; }
+.nv-log li { display: grid; grid-template-columns: 4.75rem 10px minmax(0, 1fr); gap: 10px; align-items: center; padding: 6px 12px; border-top: 1px solid var(--line); font-size: .875rem; }
+.nv-log li:first-child { border-top: 0; } .nv-log li time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.nv-log li i { width: 7px; height: 7px; border-radius: 50%; background: var(--line2); } .nv-log li.bad i { background: #ec7a5e; } .nv-log li.travel i { background: #a9c0d8; }
+.nv-log li.mark { background: var(--amber-bg); } .nv-log li.mark i { background: var(--amber); box-shadow: 0 0 0 3px rgba(242,169,59,.3); } .nv-log li.mark b { color: var(--amber); }
+.nv-finds { display: grid; gap: 6px; }
+.nv-finds div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm, 3px); font-size: .9375rem; }
+.nv-outs { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 10px; }
+.nv-out { display: grid; gap: 8px; align-content: start; padding: 14px 16px; border: 1px solid var(--line2); border-radius: var(--r, 4px); background: var(--panel); }
+.nv-out p { margin: 0; font-size: .875rem; color: var(--muted); } .nv-out .btn { justify-self: start; }
+.nv-out.sent { border-color: rgba(76,196,176,.45); background: var(--teal-bg); }
+.nv-rel { display: grid; gap: 6px; }
+.nv-rel label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm, 3px); cursor: pointer; }
+.nv-rel label:has(input:checked) { border-color: var(--amber); background: var(--amber-bg); }
+.nv-rel label span:last-child { font-size: .8125rem; color: var(--muted); white-space: nowrap; }
+.nv-after { display: grid; gap: 12px; margin-top: var(--s5, 20px); padding: 16px; border-radius: var(--r, 4px); border: 1px solid var(--line2); background: var(--raise, #181d24); }
+@media (prefers-reduced-motion: reduce) { .radar::after, .pirate.patrol, .nv-mark .pin, .nv-ok, .nv-shot i, .hud.beacon, .sevl.high .tlights i { animation: none !important; } }
+/* Approved animations (Animated Parts, P2 P4 P7 P10) */
+/* P2 trend bars draw in, first draw only */
+.gbars.draw i, svg.draw path { transform-origin: bottom; transform-box: fill-box; animation: barGrow .4s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 25ms); }
+@keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+/* P4 copied state (1.6 s) + toast */
+.btn.copied, .btn.copied:hover { background: #4cc4b0; border-color: #4cc4b0; color: #06231e; transition: background-color .2s, color .2s; }
+.toast { animation: toastIn .25s ease-out both; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* P7 spot fills with a pop */
+.pips i.pop { animation: pipPop .35s cubic-bezier(.2,1.4,.4,1); }
+/* P10 time-left bar drains smoothly over each minute */
+.tleft i, .hbar.drain i { transition: width 60s linear, background-color 1s; }
+@media (prefers-reduced-motion: reduce) { .gbars.draw i, svg.draw path, .toast, .pips i.pop { animation: none !important; } .btn.copied, .tleft i, .hbar.drain i { transition: none !important; } }
 /* About: same as the site */
 /* about */
 .ab-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--s7); align-items: center; margin-top: var(--s6); }
@@ -892,6 +988,7 @@ function show(t) {
   Promise.resolve().then(fn).catch(e => {
     if (tab === t) $("view").innerHTML = `<div class="empty"><h3>Couldn't load this page</h3><p>${esc(e.message)}. Is the SC Shard Status window still open?</p></div>`;
   });
+  if (t === "groups") timer = setInterval(drainBars, 60000);
   if (t === "now") timer = setInterval(() => {
     // Don't rebuild the page under someone reading a tooltip or a report
     if (document.querySelector("#view .tip:not([hidden])") || $("drawer").classList.contains("open")) return;
@@ -919,9 +1016,7 @@ function header(d) {
   const g = d.groups || {}, nInt = (g.interest || []).length;
   $("grpCount").textContent = g.offer ? "!" : nInt ? nInt : "";
 }
-$("markBtn").onclick = async () => {
-  try { const r = await api("/api/mark", {}); toast(r.message); if (tab === "check") renderCheck(); } catch (e) { toast(e.message, true); }
-};
+$("markBtn").onclick = () => openMoment();
 // Lines for global chat: the best one up front, then "Found this on Verse Shards: verseshards.com" as its own row, the rest folded.
 let FTS = true;
 try { FTS = localStorage.getItem("fts") !== "0"; } catch (e) {}
@@ -947,6 +1042,7 @@ document.addEventListener("click", async e => {
   const b = e.target.closest("[data-chat]"); if (!b) return;
   const plain = b.hasAttribute("data-plain"), t = plain ? b.dataset.chat : chatText(b.dataset.chat);
   try { await navigator.clipboard.writeText(t); } catch (x) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  flashCopied(b);
   toast(plain ? `✓ Copied ${t}. Send them a party invite in game.` : "✓ Copied. In game press Enter, then Ctrl+V.");
 });
 
@@ -1027,12 +1123,13 @@ function barChart(el, rows, key, color, unit) {
   const max = Math.max(...rows.map(r => r[key])) * 1.15 || 1;
   const bw = (W - L - R) / 24;
   const Y = v => T + (H - T - B) * (1 - v / max);
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Server fps by hour of day">
+  const first = !el.dataset.drawn; el.dataset.drawn = "1";
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Server fps by hour of day"${first ? ' class="draw"' : ""}>
     <g class="grid"><line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}"/></g>
     <g class="axis">${[0, 6, 12, 18].map(h => `<text x="${L + bw * h + bw / 2}" y="${H - 4}" text-anchor="middle">${String(h).padStart(2, "0")}:00</text>`).join("")}
       <text x="${L - 6}" y="${Y(max / 1.15) + 4}" text-anchor="end">${Math.round(max / 1.15)}</text></g>
     ${rows.map(r => { const x = L + bw * r.hour + 1, y = Y(r[key]), h = Y(0) - y;
-      return `<path d="M${x} ${Y(0)} V${y + 4} q0 -4 4 -4 H${x + bw - 6} q4 0 4 4 V${Y(0)} Z" fill="${color}"/>
+      return `<path style="--i:${r.hour}" d="M${x} ${Y(0)} V${y + 4} q0 -4 4 -4 H${x + bw - 6} q4 0 4 4 V${Y(0)} Z" fill="${color}"/>
         <rect class="hit" x="${L + bw * r.hour}" y="${T}" width="${bw}" height="${H - T - B}" data-h="${r.hour}"/>`; }).join("")}
   </svg><div class="tip" hidden></div>`;
   const tip = el.querySelector(".tip"), svg = el.querySelector("svg");
@@ -1055,14 +1152,218 @@ const sevRank = (sev, kind) => kind === "info" ? 3 : ({high: 0, medium: 1, low: 
 /* NEW in v3 on /api/now: pirates_here {here, elsewhere, area_name}, groups_on_shard, sharing {on, fed_week, status}, crash {ts, after_code} */
 let dialSwept = false;
 const nudgeHidden = () => { try { return sessionStorage.getItem("nudgeNo") === "1"; } catch (e) { return false; } };
-// Pirate reports in the area you're in, as one line; if none here but some elsewhere on your shard, a quieter line
+// ---- November round (Claude Design, v4) ----
+// Pirate reports in the area you're in, as one line each: sightings keep the rust beacon, patrolling talk is amber and
+// dashed with a slow radar sweep. Reports you filed for somewhere else on this shard show too. If nothing's near you
+// but some are elsewhere on your shard, a quieter line.
+const pirStrip = (x, where) => {
+  const patrol = x.kind === "patrol", two = x.reporters >= 2;
+  const what = patrol ? (two ? `${x.reporters} players say someone's patrolling` : "1 player says someone's patrolling") : (two ? `${x.reporters} pirate reports` : "1 pirate report");
+  return `<div class="pirate${patrol ? " patrol" : ""}"><i class="edge" aria-hidden="true"></i><b class="plab">${patrol ? `<i class="radar" aria-hidden="true"></i>Patrolling` : "Pirates"}</b><span class="ptxt">${what} ${where} in the last 45 min</span><span class="pclr">clears in ${minsLeft(x.expires)}</span></div>`;
+};
 function pirHere(d) {
   const p = d.pirates_here; if (!p) return "";
-  if (p.here) { const x = p.here, two = x.reporters >= 2;
-    return `<div class="pirate"><i class="edge" aria-hidden="true"></i><b class="plab">Pirates</b><span class="ptxt">${two ? `${x.reporters} pirate reports` : "1 pirate report"} near ${esc(x.area_name)} in the last 45 min</span><span class="pclr">clears in ${minsLeft(x.expires)}</span></div>`; }
-  if (p.elsewhere) return `<p class="pquiet">Nothing reported near ${esc(p.area_name || "you")}. ${p.elsewhere.reporters >= 2 ? `${p.elsewhere.reporters} reports` : "1 report"} near ${esc(p.elsewhere.area_name)} on this shard.</p>`;
-  return "";
+  const out = [];
+  if (p.here) out.push(pirStrip(p.here, `near ${esc(p.here.area_name)}`));
+  (p.yours || []).forEach(r => out.push(pirStrip(r, `near ${esc(r.area_name)} (you reported it)`)));
+  if (!out.length && p.elsewhere) return `<p class="pquiet">Nothing reported near ${esc(p.area_name || "you")}. ${p.elsewhere.reporters >= 2 ? `${p.elsewhere.reporters} reports` : "1 report"} near ${esc(p.elsewhere.area_name)} on this shard.</p>`;
+  return out.join("");
 }
+// The quick one-press report stays; this link beside it opens the full report (somewhere else, or patrolling)
+const pirMore = `<button type="button" class="pirmore" data-protected="true" data-pirmore>Somewhere else, or patrolling</button>`;
+document.addEventListener("click", e => { if (e.target.closest("[data-pirmore]")) openPirateReport(); });
+
+async function openPirateReport(startKind) {
+  let d = nowData || {}; try { d = await api("/api/now"); } catch (e) {}
+  const here = d.where && d.where.area_name, shard = d.shard ? (d.shard.name || d.shard.id) : "your shard";
+  const server = d.health && d.health.server_name ? d.health.server_name.split("-").slice(-1)[0] : "";
+  const S = {kind: startKind || "seen", where: here ? "here" : "else", area: "", sel: -1, hits: []};
+  openDrawer("Pirates", "Report pirates", `<div class="nv" id="nvPir">
+    <div><div class="nv-lbl" style="margin-bottom:8px">What happened</div><div class="nv-choice">
+      <button type="button" class="nv-opt seen" data-k="seen"><b>I saw them</b><span>They attacked you, or you watched them do it to someone.</span></button>
+      <button type="button" class="nv-opt patrol" data-k="patrol"><b>Someone says they're patrolling</b><span>In chat they say they're patrolling or camping a place. Often role-play, so it counts for less.</span></button></div></div>
+    <div><div class="nv-lbl" style="margin-bottom:8px">Where, on ${esc(shard)}</div><div class="nv-choice">
+      <button type="button" class="nv-opt" data-w="here" ${here ? "" : "disabled"}><b>Here${here ? `: ${esc(here)}` : ""}</b><span>${here ? `Your area${server ? `, server ${esc(server)}` : ""}` : "You're not in an area the app knows yet"}</span></button>
+      <button type="button" class="nv-opt" data-w="else"><b>Somewhere else</b><span>A planet, moon, station, Lagrange point or Pyro location on this shard.</span></button></div></div>
+    <div class="nv-ac" id="nvAc" hidden><input class="inp" id="nvArea" autocomplete="off" placeholder="Start typing, e.g. Yela, CRU-L4, Checkmate" role="combobox" aria-expanded="false" aria-controls="nvList" aria-autocomplete="list"><ul id="nvList" role="listbox" hidden></ul>
+      <p class="nv-note" style="margin-top:6px">Shows on the board with the shard and area only. The app can't tell which server runs a place you're not in.</p></div>
+    <p class="nv-err" id="nvErr" hidden></p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn pirbtn" type="button" id="nvSend" data-protected="true">Report</button><span class="sub">Area only. Never a name or an org tag. Clears in 45 min.</span></div>
+    <div id="nvDone"></div></div>`);
+  const root = $("nvPir"), inp = $("nvArea"), list = $("nvList");
+  const label = () => { const where = S.where === "here" ? here : S.area; $("nvSend").textContent = (S.kind === "patrol" ? "Report patrolling" : "Report pirates") + (where ? ` near ${where}` : ""); };
+  const sync = () => {
+    root.querySelectorAll("[data-k]").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === S.kind));
+    root.querySelectorAll("[data-w]").forEach(b => b.setAttribute("aria-pressed", b.dataset.w === S.where));
+    $("nvAc").hidden = S.where !== "else"; label();
+  };
+  let ask = 0;
+  const show = async () => {
+    const q = inp.value.trim(), n = ++ask;
+    let hits = [];
+    try { hits = (await api("/api/places?q=" + encodeURIComponent(q))).places || []; } catch (e) {}
+    if (n !== ask) return;                 // a newer keystroke is already on its way
+    S.hits = hits;
+    const ql = q.toLowerCase();
+    list.innerHTML = hits.length ? hits.map((p, i) => { const k = ql ? p.name.toLowerCase().indexOf(ql) : -1; const nm = k < 0 ? esc(p.name) : esc(p.name.slice(0, k)) + "<mark>" + esc(p.name.slice(k, k + q.length)) + "</mark>" + esc(p.name.slice(k + q.length));
+      return `<li role="option" data-n="${esc(p.name)}" aria-selected="${i === S.sel}"><bdi>${nm}</bdi><span>${esc(p.type)}</span></li>`; }).join("") : `<li aria-disabled="true">No place by that name on ${esc(shard)}</li>`;
+    list.hidden = false; inp.setAttribute("aria-expanded", "true");
+    list.querySelectorAll("[data-n]").forEach(li => li.onmousedown = e => { e.preventDefault(); pick(li.dataset.n); });
+  };
+  const pick = n => { S.area = n; inp.value = n; list.hidden = true; inp.setAttribute("aria-expanded", "false"); S.sel = -1; $("nvErr").hidden = true; label(); };
+  inp.oninput = () => { S.area = ""; S.sel = -1; show(); label(); };
+  inp.onfocus = show; inp.onblur = () => setTimeout(() => { list.hidden = true; }, 120);
+  inp.onkeydown = e => { const items = [...list.querySelectorAll("[data-n]")]; if (!items.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); S.sel = (S.sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; items.forEach((li, i) => li.setAttribute("aria-selected", i === S.sel)); }
+    if (e.key === "Enter") { e.preventDefault(); pick((items[S.sel] || items[0]).dataset.n); } };
+  root.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { S.kind = b.dataset.k; sync(); });
+  root.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { S.where = b.dataset.w; sync(); if (S.where === "else") inp.focus(); });
+  $("nvSend").onclick = async () => {
+    const area = S.where === "here" ? here : S.area;
+    if (!area) { $("nvErr").textContent = "Pick a place from the list, so the board knows where it is."; $("nvErr").hidden = false; return; }
+    $("nvSend").disabled = true;
+    try { await api("/api/groups/post", Object.assign({kind: "pirate", report_kind: S.kind}, S.where === "else" ? {place: area} : {})); }
+    catch (e) { $("nvErr").textContent = e.message; $("nvErr").hidden = false; $("nvSend").disabled = false; return; }
+    $("nvErr").hidden = true;
+    $("nvDone").innerHTML = `<div class="nv-ok"><i></i><div><b>${S.kind === "patrol" ? "Patrolling noted" : "Logged"} near ${esc(area)}.</b><div class="sub">Shows on the board under ${esc(shard)} for 45 minutes. Fly safe.</div></div></div>`;
+    if (tab === "now") renderNow(); else if (tab === "groups") renderGroups();
+  };
+  sync();
+}
+
+// ---- Mark this moment, start to finish: screenshots, what went wrong, your moment ----
+const clockM = ts => new Date(ts * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+const clockS = ts => new Date(ts * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"});
+async function openMoment(markTs) {
+  // A fresh moment is marked first, so the app has the log and your readings for that second; an earlier one
+  // (from the hotkey, or the list under What's gone wrong?) opens straight on its screenshots
+  const fresh = !markTs;
+  let t = markTs;
+  if (fresh) { try { t = (await api("/api/mark", {})).mark.ts; } catch (e) { return toast(e.message, true); } }
+  const S = {step: fresh ? 1 : 2, took: fresh ? null : true, shots: null, picked: new Set(), what: "", m: null, sent: null, drafted: null};
+  const steps = () => `<div class="nv-steps">${["Screenshots", "What went wrong", "Your moment"].map((x, i) => `<span class="${S.step === i + 1 ? "on" : S.step > i + 1 ? "done" : ""}"><b>${S.step > i + 1 ? "✓" : i + 1}</b>${x}</span>`).join("")}</div>`;
+  const fpsC = v => v == null ? "" : v < 9 ? "bad" : v < 15 ? "poor" : "";
+  const shotSrc = n => `/api/shot?name=${encodeURIComponent(n)}&t=${encodeURIComponent(TOKEN)}`;
+  const ago = ts => { const m = Math.max(1, Math.round(Math.abs((fresh ? Date.now() / 1000 : t) - ts) / 60)); return fresh ? `${m} min before` : `${m} min ${ts < t ? "before" : "after"}`; };
+  const loadShots = async () => { try { S.shots = (await api(`/api/moment?part=shots&ts=${t}`)).shots || []; } catch (e) { S.shots = []; toast(e.message, true); } };
+  const loadMoment = async () => { try { S.m = await api(`/api/moment?ts=${t}`); } catch (e) { S.m = {error: e.message}; } };
+  const view = () => {
+    if (S.step === 1) return `${steps()}
+      <div class="nv-mark"><span class="pin" aria-hidden="true">!</span><b>Marked at ${clockS(t)}</b><span>The app has the log and your readings for this second. Keep playing if you need to.</span></div>
+      <div><h4>Take screenshots now if you can.</h4><p class="nv-note" style="margin-top:4px">Press Print Screen in game. A shot of what went wrong helps CIG more than anything else.</p></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px"><button class="btn" type="button" data-took="1">I took screenshots</button><button class="btn ghost" type="button" data-took="0">I didn't</button></div>`;
+    if (S.step === 2) return `${steps()}
+      ${S.took ? `<div><div class="nv-lbl" style="margin-bottom:8px">Pick the ones that show it · ${fresh ? "from the last 10 minutes" : "from 10 minutes either side"}</div>
+        ${S.shots === null ? `<p class="nv-note">Looking in the game's screenshot folder…</p>` : S.shots.length ? `<div class="nv-shots">${S.shots.map((s, i) => `<button type="button" class="nv-shot" data-shot="${i}" aria-pressed="${S.picked.has(i)}"><img src="${shotSrc(s.name)}" alt="" loading="lazy"><i aria-hidden="true">${S.picked.has(i) ? "✓" : ""}</i><span>${clockM(s.ts)} · ${ago(s.ts)}</span></button>`).join("")}</div>`
+          : `<p class="nv-note">No screenshots ${fresh ? "from the last 10 minutes" : "around this moment"} in the game's screenshot folder. <button class="link" type="button" id="nvLook">Look again</button></p>`}
+        <p class="nv-note" style="margin-top:6px">Screenshots stay on this PC. They only go in the Issue Council report folder if you write one.</p></div>` : ""}
+      <label style="display:grid;gap:6px"><span class="nv-lbl">What went wrong?</span><textarea class="inp" id="nvWhat" maxlength="200" rows="3" placeholder="e.g. The freight elevator wouldn't take my cargo, three tries">${esc(S.what)}</textarea></label>
+      <div class="nv-chips">${["Elevator didn't come", "Ship blew up on the pad", "Contract didn't update", "Kicked to the menu", "Items went missing"].map(x => `<button type="button" data-chip="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn" type="button" id="nvNext">Show my moment</button>${fresh ? `<button class="btn ghost" type="button" id="nvBack">Back</button>` : ""}<span class="sub" id="nvCount">${S.what.length} / 200</span></div>`;
+    const m = S.m, sp = [...S.picked].map(i => S.shots[i]);
+    if (!m) return `${steps()}<p class="nv-note">Reading the log around ${clockS(t)}…</p>`;
+    if (m.error) return `${steps()}<p class="nv-err">${esc(m.error)}</p><div style="display:flex;gap:10px"><button class="btn ghost" type="button" id="nvBack">Back</button></div>`;
+    const r = m.readings || {}, fd = m.findings || [], top = fd[0];
+    return `${steps()}
+      <div><div class="nv-lbl" style="margin-bottom:8px">Your moment · ${clockS(t)}</div>
+      <p style="margin:0 0 10px">“${esc(S.what || "No description")}”</p>
+      <dl class="nv-cells" style="margin:0">
+        <div><dt>Shard</dt><dd>${esc(m.shard_name || m.shard_id || "–")}</dd></div><div><dt>Server</dt><dd>${esc(m.server || "–")}</dd></div><div><dt>Place</dt><dd title="${esc(m.place || "")}">${esc(m.place || "–")}</dd></div>
+        <div><dt>Server fps</dt><dd class="${fpsC(r.server_fps)}">${r.server_fps == null ? "–" : (+r.server_fps).toFixed(1)}</dd></div><div><dt>On your server</dt><dd>${r.pop_srv ?? "–"}</dd></div><div><dt>Ping</dt><dd>${r.ping_ms == null ? "–" : Math.round(r.ping_ms) + " ms"}</dd></div></dl></div>
+      <div><div class="nv-lbl" style="margin-bottom:8px">The log, 5 minutes either side</div><ul class="nv-log">${(m.log || []).map(e => `<li class="${esc(e.kind)}"><time>${clockS(e.ts)}</time><i></i>${e.kind === "mark" ? `<b>${esc(e.text)}</b>` : esc(e.text)}</li>`).join("")}</ul></div>
+      <div><div class="nv-lbl" style="margin-bottom:8px">What the log shows</div>${fd.length ? `<div class="nv-finds">${fd.map(f => `<div>${sevTag(f.severity)}<span>${esc(f.title)}</span></div>`).join("")}</div>` : `<p class="nv-note">Nothing in the library matched within 10 minutes of it. Your description still helps.</p>`}</div>
+      <div class="nv-outs">
+        <div class="nv-out${S.sent ? " sent" : ""}"><b>Send it to Verse Shards for review</b><p>Sends your description and what the log shows. Never your screenshots; they stay on this PC.</p>
+          ${S.sent ? `<div class="nv-ok"><i></i><div>${S.sent.matched && S.sent.matched.length ? `<b>Counted.</b><div class="sub">It matches “${esc(S.sent.matched[0].title)}”, so it shows as a player who hit it today on that issue's page.</div>` : `<b>Thanks, sent.</b>`}</div></div>` : `<button class="btn" type="button" id="nvSendRev" data-protected="true">Send for review</button>`}</div>
+        <div class="nv-out${S.drafted ? " sent" : ""}"><b>Write the Issue Council report</b><p>The draft uses ${clockM(t)}, your description and what the log shows.${sp.length ? ` Your ${sp.length === 1 ? "screenshot goes" : sp.length + " screenshots go"} in the report folder to attach.` : ""}</p>
+          ${S.drafted ? `<div class="nv-ok"><i></i><div><b>Draft ready.</b><div class="sub">Report folder made with Game.log${S.drafted.shot_names.length ? ` and ${S.drafted.shot_names.map(esc).join(", ")}` : ""}.</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" type="button" id="nvOpenDraft" data-protected="true">Open the draft</button><button class="btn sm ghost" type="button" id="nvOpenFolder" data-protected="true">Open the folder</button></div></div></div>` : `<button class="btn ghost" type="button" id="nvDraft" data-protected="true">Write the report</button>`}</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" type="button" id="nvBack">Back</button><button class="btn ghost" type="button" id="nvDoneBtn">Done</button><span class="sub" style="align-self:center">Both, one or neither. It's kept under What's gone wrong? either way.</span></div>`;
+  };
+  const draw = () => {
+    if (!$("drawer").classList.contains("open") || $("dTitle").textContent !== "Your moment") return;   // closed, or another drawer took over
+    $("dBody").innerHTML = `<div class="nv">${view()}</div>`;
+    const b = $("dBody");
+    b.querySelectorAll("[data-took]").forEach(x => x.onclick = async () => { S.took = x.dataset.took === "1"; S.step = 2; draw(); if (S.took) { await loadShots(); draw(); } });
+    b.querySelectorAll("[data-shot]").forEach(x => x.onclick = () => { const i = +x.dataset.shot; S.picked.has(i) ? S.picked.delete(i) : S.picked.add(i); draw(); });
+    b.querySelectorAll("[data-chip]").forEach(x => x.onclick = () => { S.what = x.dataset.chip; draw(); $("nvWhat").focus(); });
+    if ($("nvLook")) $("nvLook").onclick = async () => { S.shots = null; draw(); await loadShots(); draw(); };
+    if ($("nvWhat")) $("nvWhat").oninput = e => { S.what = e.target.value; $("nvCount").textContent = S.what.length + " / 200"; };
+    if ($("nvNext")) $("nvNext").onclick = async () => { S.step = 3; S.m = null; draw(); await loadMoment(); draw(); };
+    if ($("nvBack")) $("nvBack").onclick = () => { S.step = Math.max(fresh ? 1 : 2, S.step - 1); draw(); };
+    if ($("nvSendRev")) $("nvSendRev").onclick = async e => {
+      e.currentTarget.disabled = true;
+      try { S.sent = await api("/api/moment/review", {ts: t, what: S.what, issues: (S.m.findings || []).map(f => f.rule_id).filter(Boolean)}); draw(); }
+      catch (x) { toast(x.message, true); e.currentTarget.disabled = false; }
+    };
+    if ($("nvDraft")) $("nvDraft").onclick = async e => {
+      e.currentTarget.disabled = true;
+      try { S.drafted = await api("/api/moment/draft", {ts: t, what: S.what, shots: [...S.picked].map(i => S.shots[i].name)}); draw(); }
+      catch (x) { toast(x.message, true); e.currentTarget.disabled = false; }
+    };
+    if ($("nvOpenDraft")) $("nvOpenDraft").onclick = () => openReport(S.drafted.group, S.drafted.i);
+    if ($("nvOpenFolder")) $("nvOpenFolder").onclick = async () => { try { await api("/api/moment/open", {folder: S.drafted.folder}); } catch (x) { toast(x.message, true); } };
+    if ($("nvDoneBtn")) $("nvDoneBtn").onclick = () => { closeDrawer(); if (tab === "check") renderCheck(); };
+  };
+  openDrawer("Mark this moment", "Your moment", "");
+  draw();
+  if (!fresh) { await loadShots(); draw(); }
+}
+
+// ---- Issue Council: paste the report link back in, and say how it relates ----
+const IC_RE = /^https:\/\/issue-council\.robertsspaceindustries\.com\/projects\/STAR-CITIZEN\/issues\/STARC-\d+\/?$/i;
+function afterPostSection(linked) {
+  return `<section class="nv-after" id="nvAfter"><div><h4>After you post</h4><p class="nv-note" style="margin-top:4px">Paste your report's link and it shows on this issue's page on Verse Shards straight away. No need to go back to the site.</p></div>
+    <label style="display:grid;gap:6px"><span class="nv-lbl">Your report's link</span><input class="inp" id="nvIc" type="url" placeholder="https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN/issues/STARC-…"></label>
+    <p class="nv-err" id="nvIcErr" hidden>Only Issue Council links from robertsspaceindustries.com.</p>
+    <div><div class="nv-lbl" style="margin-bottom:8px">Your report is</div><div class="nv-choice">
+      <button type="button" class="nv-opt" data-rel="new" aria-pressed="true"><b>A new report</b><span>Nobody had reported it yet.</span></button>
+      <button type="button" class="nv-opt" data-rel="dup"><b>A duplicate</b><span>Of one already linked here. CIG may merge them.</span></button>
+      <button type="button" class="nv-opt" data-rel="linked"><b>Linked to another</b><span>Related, but not the same bug.</span></button>
+      <button type="button" class="nv-opt" data-rel="same"><b>The same as one found</b><span>You found an existing report and added to it.</span></button></div></div>
+    <div id="nvRelPick" hidden><div class="nv-lbl" style="margin-bottom:8px">Attach it to</div><div class="nv-rel">
+      ${linked.map((r, i) => `<label><input type="radio" name="nvRel" value="${esc(r.id)}" ${i ? "" : "checked"}><span><b>${esc(r.title)}</b><span class="sub" style="display:block">${esc(r.id)}</span></span><span>▲ ${r.votes || 0}</span></label>`).join("")}
+      <label><input type="radio" name="nvRel" value="other" ${linked.length ? "" : "checked"}><span><b>Another report</b><span class="sub" style="display:block">Paste its link below</span></span><span></span></label></div>
+      <input class="inp" id="nvIcOther" type="url" placeholder="The other report's link" style="margin-top:8px" ${linked.length ? "hidden" : ""}></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn" type="button" id="nvIcAdd" data-protected="true">Add to Verse Shards</button><span class="sub">Shows straight away. Three reports from players hide it until a moderator checks.</span></div>
+    <div id="nvIcDone"></div></section>`;
+}
+function bindAfterPost(issue) {
+  const root = $("nvAfter"); if (!root) return; let rel = "new";
+  root.querySelectorAll("[data-rel]").forEach(b => b.onclick = () => { rel = b.dataset.rel; root.querySelectorAll("[data-rel]").forEach(x => x.setAttribute("aria-pressed", x === b)); $("nvRelPick").hidden = rel === "new"; });
+  root.querySelectorAll('[name="nvRel"]').forEach(r => r.onchange = () => { $("nvIcOther").hidden = r.value !== "other" || !r.checked; });
+  $("nvIcAdd").onclick = async () => {
+    const url = $("nvIc").value.trim(), other = root.querySelector('[name="nvRel"]:checked');
+    const otherUrl = other && other.value === "other" ? $("nvIcOther").value.trim() : "";
+    if (!IC_RE.test(url) || (rel !== "new" && other && other.value === "other" && !IC_RE.test(otherUrl))) { $("nvIcErr").textContent = "Only Issue Council links from robertsspaceindustries.com."; $("nvIcErr").hidden = false; return; }
+    $("nvIcErr").hidden = true;
+    const to = rel === "new" ? null : other.value === "other" ? otherUrl : other.value;
+    $("nvIcAdd").disabled = true;
+    try {
+      const r = await api("/api/issue/link", {issue, url, relation: rel, to});
+      $("nvIcDone").innerHTML = `<div class="nv-ok"><i></i><div><b>${esc(r.message)}</b><div class="sub">Players can upvote it from there.</div></div></div>`;
+    } catch (e) { $("nvIcErr").textContent = e.message; $("nvIcErr").hidden = false; $("nvIcAdd").disabled = false; }
+  };
+}
+
+// ---- P4 Copied: the button turns teal and says Copied for 1.6 s ----
+function flashCopied(b) {
+  if (!b || !b.classList || !b.classList.contains("btn")) return;
+  if (!b.dataset.was) b.dataset.was = b.textContent;
+  b.classList.add("copied"); b.textContent = "Copied";
+  clearTimeout(b._copied); b._copied = setTimeout(() => { b.classList.remove("copied"); b.textContent = b.dataset.was; delete b.dataset.was; }, 1600);
+}
+// ---- P10 time-left bars drain smoothly: each minute, move to where they'll be a minute later ----
+function drainBars() {
+  const now = Date.now() / 1000;
+  document.querySelectorAll("[data-drain]").forEach(i => {
+    const exp = +i.dataset.drain, life = +i.dataset.life || 1;
+    requestAnimationFrame(() => requestAnimationFrame(() => { i.style.width = (Math.max(0, Math.min(1, (exp - now - 60) / life)) * 100).toFixed(1) + "%"; }));
+  });
+}
+// ---- P7 a crew spot fills with a pop: pips filled since the last draw ----
+const pipsSeen = {};
+function pipsPop(id, filled) { const prev = pipsSeen[id]; pipsSeen[id] = filled; return k => prev !== undefined && k >= prev && k < filled ? " pop" : ""; }
 const groupsHere = d => d.groups_on_shard || 0;
 const sharing = d => d.sharing || {on: false, fed_week: 0};
 // Library titles, for the crash line ("after the graphics driver crashed"); loaded once
@@ -1122,7 +1423,7 @@ async function renderNow() {
       : `The log check at ${tm(unp.checked)} found nothing on your side, so it's the server.`) + `</div>` : "";
   const sp = (d.spark || []).filter((p, k, a) => (a.length - 1 - k) % 5 === 0).slice(-14);
   const gb = (key, cf, max) => { const v = sp.map(p => p[key]).filter(x => x !== null && x !== undefined); if (v.length < 2) return `<span class="gbars"></span>`; const mx = max || Math.max(1, ...v) * 1.1;
-    return `<span class="gbars">${v.map(x => `<i style="height:${Math.max(3, Math.round(x / mx * 24))}px;background:${cf(x)}"></i>`).join("")}</span>`; };
+    return `<span class="gbars${sweep ? " draw" : ""}">${v.map((x, k) => `<i style="--i:${k};height:${Math.max(3, Math.round(x / mx * 24))}px;background:${cf(x)}"></i>`).join("")}</span>`; };
   const fpsC = x => x >= 15 ? "var(--st-good)" : x >= 9 ? "var(--st-poor)" : "var(--st-bad)";
   const pingC = x => x <= 80 ? "var(--st-good)" : x <= 200 ? "var(--st-poor)" : "var(--st-bad)";
   const flat = () => "#4a7f9a";
@@ -1171,7 +1472,7 @@ async function renderNow() {
       ${pir || ""}
       <div class="hacts">${trouble ? `<button class="btn" data-protected="true" id="goCheck">What's gone wrong?</button>` : `<button class="btn ghost" data-protected="true" id="markNow">Mark this moment</button>`}
         ${lines.length ? `<button class="btn ghost" type="button" data-protected="true" data-chat="${esc(lines[0])}">Copy for chat</button>` : ""}
-        <button class="btn pirbtn" type="button" data-protected="true" id="pirNow" ${areaName ? "" : "disabled"}>Pirates near ${esc(areaName || "here")}</button></div>
+        <button class="btn pirbtn" type="button" data-protected="true" id="pirNow" ${areaName ? "" : "disabled"}>Pirates near ${esc(areaName || "here")}</button>${pirMore}</div>
       <span class="sub">${esc([d.where ? `At ${d.where.place}` : "", h.ts ? `last reading ${ago(h.ts)}` : "", cmpTxt && !smooth ? cmpTxt : ""].filter(Boolean).join(" · "))}</span>
     </div>
     <div class="frame hreg">
@@ -1222,7 +1523,7 @@ async function renderNow() {
       if (b.dataset.pirate === "post") toast(r.message); b.closest(".notice").remove();
     } catch (e) { toast(e.message, true); }
   });
-  if ($("markNow")) $("markNow").onclick = async () => { try { const r = await api("/api/mark", {}); toast(r.message); } catch (e) { toast(e.message, true); } };
+  if ($("markNow")) $("markNow").onclick = () => openMoment();
   if ($("pirNow")) $("pirNow").onclick = async e => { const b = e.currentTarget; b.disabled = true; try { const r = await api("/api/groups/post", {kind: "pirate"}); toast(r.message); b.textContent = "Reported. Thanks"; } catch (x) { toast(x.message, true); b.disabled = false; } };
   if ($("goShare")) $("goShare").onclick = () => { show("setup"); setTimeout(() => { const c = $("commCard"); if (c) c.scrollIntoView({block: "start"}); }, 400); };
   if ($("nudgeNo")) $("nudgeNo").onclick = () => { try { sessionStorage.setItem("nudgeNo", "1"); } catch (e) {} renderNow(); };
@@ -1276,9 +1577,9 @@ async function renderCheck() {
   <div id="myReviews"></div>`;
   drawMyReviews();
   const marks = (nowData && nowData.marks) || (await api("/api/now").catch(() => ({marks: []}))).marks || [];
-  $("marks").innerHTML = marks.length ? `<span class="sub">Moments you marked:</span>${marks.slice().reverse().slice(0, 6).map(m => `<button class="btn sm ghost" data-protected="true" data-mark="${m.ts}">Check ${tm(m.ts)}</button>`).join("")}`
+  $("marks").innerHTML = marks.length ? `<span class="sub">Moments you marked:</span>${marks.slice().reverse().slice(0, 6).map(m => `<button class="btn sm ghost" data-protected="true" data-mark="${m.ts}">Your moment, ${tm(m.ts)}</button>`).join("")}`
     : `<span class="sub">Tip: press <b>Mark this moment</b> at the top${nowData && nowData.hotkey && nowData.hotkey.startsWith("on") ? ` (or ${esc(nowData.hotkey.slice(4))})` : ""} the moment something goes wrong, then check it here later.</span>`;
-  $("marks").querySelectorAll("[data-mark]").forEach(b => b.onclick = () => runCheck(+b.dataset.mark));
+  $("marks").querySelectorAll("[data-mark]").forEach(b => b.onclick = () => openMoment(+b.dataset.mark));
   $("mins").onchange = e => { try { sessionStorage.setItem("mins", e.target.value); } catch (x) {} };
   $("runCheck").onclick = () => runCheck();
   if (autoCheck) { autoCheck = false; runCheck(); }
@@ -1342,6 +1643,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(
 async function copyText(t, what) {
   try { await navigator.clipboard.writeText(t); }
   catch (e) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+  flashCopied(document.activeElement);
   toast(`${what} copied. Paste it into the matching box on the Issue Council.`);
 }
 const grow = el => { el.style.height = "auto"; el.style.height = (el.scrollHeight + 2) + "px"; };
@@ -1409,8 +1711,10 @@ async function openReport(group, i) {
     ${(() => { const sh = nowData ? sharing(nowData) : null; if (!sh) return ""; return sh.on
       ? `<div class="icshare on"><i></i><p><b>This counts on the board too.</b> Because you share readings, Verse Shards adds it to “players hit it today” on the issue's page, so the next player knows it's not just them.</p></div>`
       : `<div class="icshare"><i></i><p><b>Help the next player.</b> With sharing on, this issue counts on its Verse Shards page and on your shard's row, so others know it's not just them. Only the issue id and your shard are sent, never your handle.</p><button class="btn sm" type="button" id="icShare">See what's sent</button></div>`; })()}
-    <p class="sub">This tool never sends anything to CIG. You submit the report yourself. What happened ends with a line saying this tool compiled it from your Game.log, so CIG knows where it came from. The report folder includes your own Game.log, which is fine: that's you reporting to them.</p>`);
+    <p class="sub">This tool never sends anything to CIG. You submit the report yourself. What happened ends with a line saying this tool compiled it from your Game.log, so CIG knows where it came from. The report folder includes your own Game.log, which is fine: that's you reporting to them.</p>
+    ${d.rule_id ? afterPostSection(d.linked || []) : ""}`);
   const body = $("dBody");
+  if (d.rule_id) bindAfterPost(d.rule_id);
   if ($("icShare")) $("icShare").onclick = () => { closeDrawer(); show("setup"); setTimeout(() => { const x = $("commCard"); if (x) x.scrollIntoView({block: "start"}); }, 400); };
   body.querySelectorAll("textarea.rta").forEach(t => { grow(t); const lim = +t.closest("[data-sec]").dataset.limit || 0; t.addEventListener("input", () => { grow(t); counter(t, lim); }); counter(t, lim); });
   // "What were you doing?" starts "What happened?": edit one and the other follows, inside 520 characters
@@ -1551,8 +1855,8 @@ function gcard(p) {
     <div class="gline">${pill}${p.server ? `<span class="sub">server ${esc(p.server)}</span>` : ""}</div>
     ${p.note ? `<p class="gnote">“${esc(p.note)}”</p>` : ""}
     ${chips.length ? `<div class="dchips">${chips.map(x => `<span class="dchip">${esc(x)}</span>`).join("")}</div>` : ""}
-    <div class="gbottom">${p.kind === "recruit" && spots ? `<div class="gcrew"><span class="pips" aria-hidden="true">${Array.from({length: Math.min(spots, 12)}, (_, k) => `<i class="${k < filled ? "on" : k < filled + keen ? "keen" : ""}"></i>`).join("")}</span><span>${filled} of ${spots} filled${keen && !full ? ` · ${keen} keen` : ""}</span></div>` : ""}
-      <div class="gtime"><div class="tleft${ending ? " ending" : ""}" aria-hidden="true"><i style="width:${(lf * 100).toFixed(0)}%"></i></div><div class="sub"><span>Playing for ${plural(hours, "hour")}</span><span>${full ? "Crew full, closes itself" : (ending ? "Ends in " : "") + minsLeft(p.expires) + (ending ? "" : " left")}</span></div></div>
+    <div class="gbottom">${p.kind === "recruit" && spots ? `<div class="gcrew"><span class="pips" aria-hidden="true">${(pop => Array.from({length: Math.min(spots, 12)}, (_, k) => `<i class="${k < filled ? "on" + pop(k) : k < filled + keen ? "keen" : ""}"></i>`).join(""))(pipsPop("card:" + p.id, filled))}</span><span>${filled} of ${spots} filled${keen && !full ? ` · ${keen} keen` : ""}</span></div>` : ""}
+      <div class="gtime"><div class="tleft${ending ? " ending" : ""}" aria-hidden="true"><i style="width:${(lf * 100).toFixed(1)}%" data-drain="${p.expires}" data-life="${life}"></i></div><div class="sub"><span>Playing for ${plural(hours, "hour")}</span><span>${full ? "Crew full, closes itself" : (ending ? "Ends in " : "") + minsLeft(p.expires) + (ending ? "" : " left")}</span></div></div>
       <div class="gf"><span class="sub">${p.kind === "lfg" ? "Recruiters copy your handle" : full ? "Crew full" : plural(keen, "player") + " keen"}</span><span style="display:flex;gap:var(--s2)">${!full && p.can_extend ? `<button class="btn sm ghost" type="button" data-protected="true" data-extend="${esc(p.id)}" title="Posts run for 3 hours at most">+1 hour</button>` : ""}<button class="btn sm ghost" type="button" data-protected="true" data-close="${esc(p.id)}">Take it down</button></span></div></div></article>`;
 }
 async function renderGroups() {
@@ -1574,8 +1878,9 @@ async function renderGroups() {
   const life = P ? (P.hours || Math.max(1, Math.round((P.expires - (P.created || P.expires - 7200)) / 3600))) * 3600 : 1, left = P ? Math.max(0, Math.min(1, (P.expires - Date.now() / 1000) / life)) : 0;
   const liveSh = nowData && nowData.community && (nowData.community.shards || []).find(x => x.shard_id === (P ? P.shard_id : null) || x.name === c.shard);
   const gEdge = !P ? "idle" : newKeen ? "breath" : left < .2 ? "breath" : "calm";
-  const gPips = spots ? Array.from({length: Math.min(spots, 12)}, (_, k) => `<i class="${k < filled ? "on" : k < filled + keenN ? "keen" : ""}"></i>`).join("") : "";
-  const hudG = `<section class="hud ${gEdge}"><div class="hbar"><i style="width:${(left * 100).toFixed(0)}%;background:${left < .2 ? "var(--st-poor)" : "var(--st-good)"}"></i></div>
+  const popG = pipsPop("hud:" + (P ? P.id : ""), filled);
+  const gPips = spots ? Array.from({length: Math.min(spots, 12)}, (_, k) => `<i class="${k < filled ? "on" + popG(k) : k < filled + keenN ? "keen" : ""}"></i>`).join("") : "";
+  const hudG = `<section class="hud ${gEdge}"><div class="hbar drain"><i style="width:${(left * 100).toFixed(1)}%;background:${left < .2 ? "var(--st-poor)" : "var(--st-good)"}"${P ? ` data-drain="${P.expires}" data-life="${life}"` : ""}></i></div>
     <div class="hg ghg">
       <div class="gg gscore"><span class="gl ${P ? "good" : ""}">${P ? (P.kind === "lfg" ? "Looking for a group" : "Recruiting") : closed ? "Boards not open" : "No post up"}</span>
         <span class="gpost">${P ? `<span class="gicon" aria-hidden="true">${esc(ACT_ICON(P.activity))}</span><b>${esc(P.activity || "Group")}</b>` : `<b>–</b>`}</span>
@@ -1588,7 +1893,7 @@ async function renderGroups() {
     </div></section>`;
   $("view").innerHTML = hudG + `
   ${closed ? `<div class="sec notice"><p><b>The groups boards aren't open yet.</b> Recruiting, looking-for-group posts and pirate reports open on Verse Shards once there are moderators to look after them. Keen to help? <a href="${esc(COMMUNITY_SITE)}/help" target="_blank" rel="noopener">Help wanted</a></p></div>` : ""}
-  ${d.offer ? `<div class="sec notice rust"><p><b>Your ${esc(d.offer.ship)} was destroyed near ${esc(d.offer.area_name)}.</b> Was it another player? Report pirate activity here: only the area is sent, and it clears after 45 minutes.</p><button class="btn sm" data-protected="true" data-gp="pirate">Report pirates near ${esc(d.offer.area_name)}</button><button class="btn sm ghost" data-protected="true" data-gp="nopirate">No, it wasn't</button></div>` : ""}
+  ${d.offer ? `<div class="sec notice rust"><p><b>Your ${esc(d.offer.ship)} was destroyed near ${esc(d.offer.area_name)}.</b> Was it another player? Report pirate activity here: only the area is sent, and it clears after 45 minutes.</p><button class="btn sm" data-protected="true" data-gp="pirate">Report pirates near ${esc(d.offer.area_name)}</button>${pirMore}<button class="btn sm ghost" data-protected="true" data-gp="nopirate">No, it wasn't</button></div>` : ""}
   <section class="hud2 ghud2"><div class="gcolL">
   ${(d.interest || []).length ? `<section class="frame hsit keen"><span class="hl">Keen to join · send them a party invite in game</span>
     <div class="frame copyl keenl">${d.interest.map(i => { const st = decided(i) ? i.status : null; return `<div class="cl${st === "out" ? " out" : ""}"><span>${st === "in" ? `<i class="st good" title="In the crew"></i>` : fresh(i) && !st ? `<i class="st new" title="New"></i>` : `<i class="st"></i>`}<span><b style="font-family:var(--mono)">${esc(i.handle)}</b>${i.note ? ` “${esc(i.note)}”` : ""} <span class="sub">for ${esc(i.activity || "your group")}, ${ago(i.created)}${st === "in" ? " · in the crew" : st === "out" ? " · told not this time" : i.status === "seen" ? " · they can see you've seen them" : ""}</span></span></span>
@@ -1597,7 +1902,7 @@ async function renderGroups() {
   ${posts.length ? `<section><span class="hl" style="display:block;margin:0 0 var(--s2)">Your post, as others see it</span>
     <div class="gcards">${posts.map(gcard).join("")}</div>
     ${posts.some(p => p.chat) ? `<div style="margin-top:var(--s3)">${chatBox(posts.filter(p => p.chat).map(p => p.chat), "Copy for global chat", "gchat")}</div>` : ""}</section>` : ""}
-  ${pirates.length ? `<p class="sec sub">${pirates.map(p => `Pirate report near ${esc(p.area_name || "your area")}, clears in ${minsLeft(p.expires)}.`).join(" ")}</p>` : ""}
+  ${pirates.length ? `<p class="sec sub">${pirates.map(p => `${p.report_kind === "patrol" ? "Patrolling report" : "Pirate report"} near ${esc(p.area_name || "your area")}, clears in ${minsLeft(p.expires)}.`).join(" ")}</p>` : ""}
   </div><div class="gcolR"><form class="frame gform" id="fPost" novalidate>
     <div class="ghead"><h4>Post on Verse Shards</h4><p class="sub">${c.shard ? `Find crew or get invited. Your post shows on verseshards.com/groups with <b>${esc(where)}</b> filled in, never the exact spot.` : "Join a shard in game first. Posts say which shard, server and area you're on, never the exact place."}</p></div>
     <div class="gstep"><span class="gn">1</span><span class="gl">What kind of post</span></div>
@@ -1625,10 +1930,11 @@ async function renderGroups() {
       <span class="grow"></span><button class="btn" type="submit" data-protected="true" ${cant ? "disabled" : ""}>Post for ${plural(gHours, "hour")}</button></div>
   </form></div></section>
   <section class="sec"><div class="frame pline pbig"><span class="plab">Pirates</span><p><b>Got jumped${c.area_name ? ` near ${esc(c.area_name)}` : ""}?</b><span class="sub">Warn everyone on your shard. Area only, never the spot or anyone's name. Clears in 45 min. A heads-up, not a complaint.</span></p>
-    <button class="btn pirbtn" type="button" data-protected="true" data-gp="pirate" ${closed || !c.area ? "disabled" : ""}>Report pirates ${c.area_name ? "near " + esc(c.area_name) : "here"}</button></div></section>
+    <button class="btn pirbtn" type="button" data-protected="true" data-gp="pirate" ${closed || !c.area ? "disabled" : ""}>Report pirates ${c.area_name ? "near " + esc(c.area_name) : "here"}</button>${closed ? "" : pirMore}</div></section>
   <p class="sec sub">Global chat is per shard. To join someone on another server: accept their party invite, go back to the main menu, right-click their name in your party and join them on their server.</p>
   <section class="sec"><div class="frame card"><h4>Coming soon: org tools</h4><p class="sub">Plan org events, pick the healthiest shard and server for them from live readings, and rally your members to the right place at the right time.</p></div></section>
   ${d.error ? `<p class="sub">${esc(d.error)}</p>` : ""}`;
+  drainBars();
   const send = async (body, b) => { if (b) b.disabled = true; try { const r = await api("/api/groups/post", body); toast(r.message); renderGroups(); } catch (e) { toast(e.message, true); if (b) b.disabled = false; } };
   const f = $("fPost");
   f.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => {

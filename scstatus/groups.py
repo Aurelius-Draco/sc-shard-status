@@ -87,12 +87,46 @@ class Groups:
         s = self.app.session
         return s.handles[-1] if s and s.handles else None
 
-    def post(self, kind, activity=None, note=None, spots=None, handle=None, details=None, hours=None):
+    def shard_systems(self):
+        """The star systems on your shard: from the board's areas for your shard, plus where you are. Every shard
+        runs Stanton and Pyro, so those two when nothing says otherwise."""
+        ctx = self.context()
+        out = {"stanton", "pyro"}
+        if ctx.get("system"):
+            out.add(ctx["system"])
+        board = getattr(self.community, "board", None) or {}
+        for g in board.get("regions", []) or []:
+            for sh in g.get("shards", []) or []:
+                if sh.get("shard_id") == ctx.get("shard_id"):
+                    for sv in sh.get("servers", []) or []:
+                        out.update(a.get("system") for a in sv.get("areas", []) or [] if a.get("system"))
+        return out
+
+    def places(self, q):
+        """Autocomplete for reporting pirates somewhere else: places in the systems on your shard."""
+        from .locations import suggest_places
+        return [{"name": p["name"], "type": p["type"]} for p in suggest_places(q, self.shard_systems())]
+
+    def post(self, kind, activity=None, note=None, spots=None, handle=None, details=None, hours=None,
+             report_kind=None, place=None):
         ctx = self.context()
         if not ctx["shard_id"]:
             raise ValueError("Join a shard in game first, so the post can say where you are.")
         body = {"v": 1, "kind": kind, "install": self.app.store.install_id(), "shard_id": ctx["shard_id"],
                 "server": ctx["server"], "system": ctx["system"], "area": ctx["area"], "area_name": ctx["area_name"]}
+        if kind == "pirate":
+            # Seen or patrolling (someone says in chat they're patrolling a place); never a name or an org tag
+            body["report_kind"] = "patrol" if report_kind == "patrol" else "seen"
+            if place:
+                # Somewhere else on your shard: the place's area, never a server (the app can't tell which runs it)
+                from .locations import find_place
+                p = find_place(place, self.shard_systems())
+                if not p:
+                    raise ValueError("Pick a place from the list, so the board knows where it is.")
+                body.update(server=None, system=p["system"], area=p["area"], area_name=p["name"], elsewhere=True)
+                ctx = dict(ctx, server=None, area=p["area"], area_name=p["name"])
+            elif not ctx["area"]:
+                raise ValueError("The app doesn't know which area you're in yet. Pick the place instead.")
         if kind in ("recruit", "lfg"):
             body.update(activity=activity or None, note=(note or "").strip()[:80] or None,
                         spots=int(spots) if str(spots or "").isdigit() else None,
@@ -106,9 +140,13 @@ class Groups:
             raise ValueError(d.get("error") or f"Verse Shards answered {code}.")
         if d.get("key"):
             rows = [r for r in self._keys() if r.get("kind") != kind or kind == "pirate"]
+            if kind == "pirate":            # the same area again replaces your earlier report (the site does the same)
+                rows = [r for r in rows if not (r.get("kind") == "pirate" and r.get("shard_id") == ctx["shard_id"]
+                                                and r.get("area") == ctx["area"])]
             rows.append({"id": d["id"], "key": d["key"], "kind": kind, "activity": activity, "expires": d.get("expires"),
                          "spots": body.get("spots"), "shard": ctx["shard"], "shard_id": ctx["shard_id"],
-                         "server": ctx["server"], "area_name": ctx["area_name"], "handle": body.get("handle"),
+                         "server": ctx["server"], "area": ctx["area"], "area_name": ctx["area_name"],
+                         "report_kind": body.get("report_kind"), "handle": body.get("handle"),
                          "note": body.get("note"), "created": time.time(), "details": body.get("details"),
                          # an older site ignores hours and keeps a post for 2 hours
                          "hours": d.get("hours") or (2 if kind != "pirate" else None)})
@@ -116,7 +154,9 @@ class Groups:
             self.poll_at = 0
         h = d.get("hours") or 2
         span = "an hour" if h == 1 else f"{h} hours"
-        return {"pirate": "Reported. Other players see the area for 45 minutes.",
+        where = ctx["area_name"] or "your area"
+        return {"pirate": (f"Patrolling noted near {where}." if body.get("report_kind") == "patrol" else f"Logged near {where}.")
+                + " Other players see the area for 45 minutes.",
                 "recruit": f"Posted on Verse Shards for {span}. Players who are keen send their handle, and it pops up here.",
                 "lfg": f"Posted on Verse Shards for {span}. Recruiters can copy your handle and send a party invite."}[kind] \
             + (" You'd already reported this area." if d.get("duplicate") else "")
@@ -188,11 +228,18 @@ class Groups:
             return {"here": None, "elsewhere": None, "area_name": ctx.get("area_name")}
         mine = [p for p in feed.get("pirates", []) if p.get("shard_id") == ctx["shard_id"]]
         pick = (lambda p: {"area": p.get("area"), "area_name": p.get("area_name"), "system": p.get("system"),
+                           "kind": "patrol" if p.get("kind") == "patrol" else "seen",
                            "reporters": p.get("reporters"), "created": p.get("created"), "expires": p.get("expires"),
                            "last": p.get("latest") or p.get("last") or p.get("created")} if p else None)
         here = next((p for p in mine if ctx["area"] and p.get("area") == ctx["area"]), None)
         others = sorted((p for p in mine if p is not here), key=lambda p: -(p.get("reporters") or 0))
-        return {"here": pick(here), "elsewhere": pick(others[0] if others else None), "area_name": ctx["area_name"]}
+        # Reports this PC filed for somewhere else on this shard, so you can see they went in
+        yours = [{"area": r.get("area"), "area_name": r.get("area_name"), "kind": r.get("report_kind") or "seen",
+                  "reporters": 1, "expires": r.get("expires")}
+                 for r in self._keys() if r.get("kind") == "pirate" and r.get("shard_id") == ctx["shard_id"]
+                 and r.get("area") != ctx["area"] and r.get("area_name")]
+        return {"here": pick(here), "elsewhere": pick(others[0] if others else None), "area_name": ctx["area_name"],
+                "yours": yours}
 
     def groups_on_shard(self):
         ctx = self.context()
@@ -219,7 +266,7 @@ class Groups:
         out = []
         for r in self._keys():
             row = {k: r.get(k) for k in ("id", "kind", "activity", "expires", "spots", "shard", "shard_id", "server",
-                                         "area_name", "handle", "note", "created")}
+                                         "area_name", "handle", "note", "created", "report_kind")}
             row["keen"] = self.keen.get(r["id"], 0)
             spots, filled = r.get("spots"), min(r.get("spots") or 0, self.filled.get(r["id"], 0))
             full = bool(spots and filled >= spots)

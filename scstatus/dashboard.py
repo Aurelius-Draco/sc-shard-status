@@ -83,6 +83,13 @@ def start_server(app, open_browser=False):
             if path == "/favicon.ico":
                 ico = STATIC.parent / "assets" / "status.ico"
                 return self._send(200, ico.read_bytes(), "image/x-icon") if ico.exists() else self._send(404, {})
+            if path == "/api/shot":
+                # A picture for the moment picker. An <img> can't send the token header, so it comes in the address.
+                if not secrets.compare_digest(qs.get("t", ""), token):
+                    return self._send(403, {"error": "bad token"})
+                from .screenshots import thumbnail
+                got = thumbnail(app.game_dir / "screenshots", qs.get("name", ""))
+                return self._send(200, got[0], got[1]) if got else self._send(404, b"", "text/plain")
             if self.headers.get("X-Token") != token:
                 return self._send(403, {"error": "bad token"})
             try:
@@ -110,6 +117,12 @@ def start_server(app, open_browser=False):
                                             "offer": g.pirate_offer(), "error": g.error})
                 if path == "/api/profile":
                     return self._send(200, {"profile": app.profiles.get()})
+                if path == "/api/moment":
+                    if qs.get("part") == "shots":
+                        return self._send(200, {"shots": app.moment_shots(qs.get("ts"))})
+                    return self._send(200, app.moment(qs.get("ts")))
+                if path == "/api/places":
+                    return self._send(200, {"places": app.groups.places(qs.get("q", "")[:40])})
                 if path == "/api/reviews":
                     return self._send(200, app.store.reviews())
                 if path == "/api/about":
@@ -119,6 +132,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, {"author": au, "message": about.MESSAGE, "rules": about.RULES,
                                             "links": about.LINKS, "also_by": about.ALSO_BY, "version": VERSION,
                                             "star": about.STAR, "coming": about.COMING})
+            except ValueError as e:
+                return self._send(400, {"error": str(e)})
             except Exception as e:
                 say(f"Dashboard error on {path}: {e}")
                 from . import errors
@@ -182,10 +197,29 @@ def handle_post(app, path, body):
         if kind not in ("recruit", "lfg", "pirate"):
             raise ValueError("Unknown post type.")
         msg = app.groups.post(kind, body.get("activity"), body.get("note"), body.get("spots"), body.get("handle"),
-                              details=body.get("details"), hours=body.get("hours"))
-        if kind == "pirate":
-            app.groups.pirate_done()
+                              details=body.get("details"), hours=body.get("hours"),
+                              report_kind=body.get("report_kind"), place=body.get("place"))
+        if kind == "pirate" and not body.get("place"):
+            app.groups.pirate_done()           # the destroyed-ship offer is answered; a report for elsewhere isn't it
         return {"message": msg}
+    if path == "/api/moment/review":
+        return app.moment_review(body.get("ts"), body.get("what"), body.get("issues"))
+    if path == "/api/moment/draft":
+        out = app.moment_draft(body.get("ts"), body.get("what"), body.get("shots"))
+        if body.get("open"):
+            from .app import open_folder
+            open_folder(out["folder"])
+        return out
+    if path == "/api/moment/open":
+        from .app import open_folder
+        from .config import DATA
+        folder = Path(str(body.get("folder", ""))).resolve()
+        if (DATA / "reports").resolve() not in folder.parents or not folder.is_dir():
+            raise ValueError("unknown folder")
+        open_folder(folder)
+        return {"ok": True}
+    if path == "/api/issue/link":
+        return app.community.add_ic_link(str(body.get("issue", "")), body.get("url"), body.get("relation"), body.get("to"))
     if path == "/api/groups/extend":
         return app.groups.extend(str(body.get("id", "")))
     if path == "/api/groups/decide":

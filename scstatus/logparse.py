@@ -305,7 +305,7 @@ def _notification(ts, text, mission_id, objective_id=None):
 # --------------------------------------------------------------------------
 
 # Disconnect causes that are part of normal play. A 30016 while still spawning is not; the library flags it.
-NORMAL_CAUSES = {30010, 30016}
+NORMAL_CAUSES = {30010, 30016, 30028}      # 30028: kicked for being idle, not a server problem
 
 
 class Session:

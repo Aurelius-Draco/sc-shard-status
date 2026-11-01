@@ -151,3 +151,64 @@ class Places:
             return None
         sysname, name = self.area(key)
         return {"system": sysname, "area": key, "area_name": name}
+
+
+# Places a player can name when reporting pirates somewhere else, each with the area (game server) it belongs to, so
+# the board files it under the right area. Only the area is sent; the place name shows on the report.
+# (name, type, area key). Stations orbiting a body belong to that body's area (RR_P3_LEO is Bloom's area, and so on).
+_MOONS = {"hurston": ["Arial", "Aberdeen", "Magda", "Ita"], "crusader": ["Cellin", "Daymar", "Yela"],
+          "arccorp": ["Lyria", "Wala"], "microtech": ["Calliope", "Clio", "Euterpe"],
+          "pyro5": ["Adir", "Fairo", "Fuego", "Ignis", "Vatra", "Vuur"]}
+_STATIONS = [("Everus Harbor", "hurston"), ("Seraphim Station", "crusader"), ("Grim HEX", "crusader"),
+             ("Baijini Point", "arccorp"), ("Port Tressler", "microtech"),
+             ("Checkmate", "pyro2"), ("Orbituary", "pyro3"), ("Rat's Nest", "pyro5"), ("Ruin Station", "pyro6")]
+_CITIES = [("Lorville", "hurston"), ("Orison", "crusader"), ("Area18", "arccorp"), ("New Babbage", "microtech")]
+_LAGRANGE = {"HUR": "hurston", "CRU": "crusader", "ARC": "arccorp", "MIC": "microtech"}
+
+
+def report_places():
+    """Every place in REPORT order: [{name, type, area, system}]."""
+    out = []
+    planet = lambda key: AREAS[key][1]
+    for key, (sysname, name, _) in AREAS.items():
+        if key.endswith("-space"):
+            continue
+        if key.startswith("gate-"):
+            out.append({"name": name, "type": "jump point", "area": key, "system": sysname})
+        else:
+            out.append({"name": name, "type": "planet" if sysname == "stanton" else f"planet, {SYSTEMS[sysname]}",
+                        "area": key, "system": sysname})
+    for key, moons in _MOONS.items():
+        out += [{"name": m, "type": f"moon of {planet(key)}", "area": key, "system": AREAS[key][0]} for m in moons]
+    for name, key in _STATIONS:
+        sysname = AREAS[key][0]
+        out.append({"name": name, "type": f"station, {planet(key) if sysname == 'stanton' else SYSTEMS[sysname]}",
+                    "area": key, "system": sysname})
+    for name, key in _CITIES:
+        out.append({"name": name, "type": f"city, {planet(key)}", "area": key, "system": "stanton"})
+    for short, key in _LAGRANGE.items():
+        out += [{"name": f"{short}-L{n}", "type": "Lagrange point", "area": key, "system": "stanton"} for n in range(1, 6)]
+    return out
+
+
+def suggest_places(q, systems, limit=7):
+    """Places whose name holds q, in the given systems; names that start with q first."""
+    q = (q or "").strip().lower()
+    rows = [p for p in _in(systems) if not q or q in p["name"].lower()]
+    if q:
+        rank = lambda t: 0 if t.startswith("planet") else 1 if t.startswith("moon") else 3 if t == "jump point" \
+            else 4 if t == "Lagrange point" else 2
+        rows.sort(key=lambda p: (not p["name"].lower().startswith(q), rank(p["type"]), p["name"].lower()))
+    return rows[:limit]
+
+
+def _in(systems):
+    """Places in these systems; a jump point only when the system at its far end is on the shard too."""
+    return [p for p in report_places() if p["system"] in systems
+            and (not p["area"].startswith("gate-") or p["area"].split("-")[2] in systems)]
+
+
+def find_place(name, systems):
+    """The place with exactly this name (any case) in the given systems, or None."""
+    n = (name or "").strip().lower()
+    return next((p for p in _in(systems) if p["name"].lower() == n), None)

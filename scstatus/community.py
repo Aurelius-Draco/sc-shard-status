@@ -320,6 +320,52 @@ class Community:
             raise ValueError(d.get("error") or f"The board answered {code}.")
         return "Counted on the community board. Thanks: it shows others it's still happening."
 
+    IC_RX = r"https://issue-council\.robertsspaceindustries\.com/projects/STAR-CITIZEN/issues/(STARC-\d+)/?"
+    RELATIONS = {"new": "as a new report", "dup": "as a duplicate of {to}", "linked": "linked to {to}", "same": "as the same as {to}"}
+
+    def add_ic_link(self, rule_id, url, relation="new", to=None):
+        """Put your Issue Council report on this issue's page on Verse Shards, saying how it relates to the reports
+        already there. Sends the link, the relation and this install's random id; nothing else."""
+        import re
+        if not re.fullmatch(r"[a-z0-9-]{2,80}", rule_id or ""):
+            raise ValueError("That finding isn't on the community board.")
+        m = re.fullmatch(self.IC_RX, (url or "").strip(), re.I)
+        if not m:
+            raise ValueError("Only Issue Council links from robertsspaceindustries.com.")
+        relation = relation if relation in self.RELATIONS else "new"
+        to_id = None
+        if relation != "new":
+            t = (to or "").strip()
+            mt = re.fullmatch(self.IC_RX, t, re.I) or re.fullmatch(r"(STARC-\d+)", t, re.I)
+            if not mt:
+                raise ValueError("Pick the report it relates to, or paste its Issue Council link.")
+            to_id = mt.group(1).upper()
+        own = m.group(1).upper()
+        try:
+            code, d = self._req(f"/api/v1/issue/{rule_id}/link", {"voter": self.app.store.install_id(), "url": url.strip(),
+                                                                   "relation": relation, "to": to_id})
+        except Exception as e:
+            raise ValueError(f"Couldn't reach Verse Shards ({e.__class__.__name__}).")
+        if code != 200 or not d.get("ok", True):
+            raise ValueError(d.get("error") or f"Verse Shards answered {code}.")
+        return {"id": own, "relation": relation, "to": to_id,
+                "message": f"{own} is on the issue page {self.RELATIONS[relation].format(to=to_id)}."}
+
+    def send_moment(self, ts, build, shard_id, what, issues):
+        """Mark this moment, sent for review: the time, build, shard, the player's description and the library ids
+        found near it. Never screenshots, handles or log lines."""
+        import re
+        body = {"install": self.app.store.install_id(), "ts": int(ts), "build": build, "shard_id": shard_id,
+                "what": re.sub(r"\s+", " ", (what or "")).strip()[:200],
+                "issues": [i for i in (issues or []) if isinstance(i, str) and re.fullmatch(r"[a-z0-9-]{2,80}", i)][:10]}
+        try:
+            code, d = self._req("/api/v1/moment", body)
+        except Exception as e:
+            raise ValueError(f"Couldn't reach Verse Shards ({e.__class__.__name__}).")
+        if code != 200 or not d.get("ok"):
+            raise ValueError(d.get("error") or f"Verse Shards answered {code}.")
+        return {"matched": d.get("matched") or [], "sent": body}
+
     def run(self, stop):
         while not stop.wait(15):
             try:

@@ -91,3 +91,61 @@ class ScreenshotWatcher:
             except Exception:
                 pass
             stop.wait(self.every)
+
+
+SHOT_NAME_RX = re.compile(r"^[\w .()\-]{1,120}\.(jpg|jpeg|png)$", re.I)
+
+
+def list_shots(folder, lo, hi, limit=12):
+    """Screenshots in the game's folder taken between lo and hi (file time), newest first: [{name, ts}]."""
+    folder = Path(folder)
+    out = []
+    try:
+        for p in folder.iterdir():
+            if p.is_file() and SHOT_NAME_RX.match(p.name):
+                t = p.stat().st_mtime
+                if lo <= t <= hi:
+                    out.append({"name": p.name, "ts": t})
+    except OSError:
+        return []
+    out.sort(key=lambda x: -x["ts"])
+    return out[:limit]
+
+
+def shot_path(folder, name):
+    """The screenshot called name, only if it's a picture directly inside folder. None otherwise."""
+    if not isinstance(name, str) or not SHOT_NAME_RX.match(name) or name in (".", ".."):
+        return None
+    folder = Path(folder)
+    try:
+        p = (folder / name).resolve()
+        if p.parent != folder.resolve() or not p.is_file():
+            return None
+    except OSError:
+        return None
+    return p
+
+
+def thumbnail(folder, name, width=480):
+    """A small JPEG of one screenshot for the moment picker: (bytes, mime), or None. Falls back to the file itself
+    when it can't be shrunk."""
+    p = shot_path(folder, name)
+    if not p:
+        return None
+    try:
+        import cv2
+        import numpy as np
+        img = cv2.imdecode(np.fromfile(str(p), dtype=np.uint8), cv2.IMREAD_COLOR)
+        if img is not None:
+            h, w = img.shape[:2]
+            if w > width:
+                img = cv2.resize(img, (width, max(1, round(h * width / w))), interpolation=cv2.INTER_AREA)
+            ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ok:
+                return buf.tobytes(), "image/jpeg"
+    except Exception:
+        pass
+    try:
+        return p.read_bytes(), "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
+    except OSError:
+        return None

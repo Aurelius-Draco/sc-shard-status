@@ -288,8 +288,9 @@ def expected_for(f):
             }.get(f.get("area"), "It works without the error.")
 
 
-def bundle(finding, result, report, game_dir, out_root=None, minutes_around=20):
-    """Make a folder with the report, the log and nearby screenshots. Returns its path."""
+def bundle(finding, result, report, game_dir, out_root=None, minutes_around=20, shots=None):
+    """Make a folder with the report, the log and nearby screenshots. Returns its path. With shots (file names the
+    player picked), only those screenshots go in."""
     out_root = Path(out_root or DATA / "reports")
     stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M")
     slug = re.sub(r"[^a-z0-9]+", "-", (finding.get("rule_id") or finding["title"]).lower()).strip("-")[:40]
@@ -305,9 +306,16 @@ def bundle(finding, result, report, game_dir, out_root=None, minutes_around=20):
         shutil.copy2(log, folder / "Game.log")
     lo = (finding.get("first_ts") or time.time()) - minutes_around * 60
     hi = (finding.get("last_ts") or time.time()) + minutes_around * 60
-    shots = game / "screenshots"
+    picked, shots = shots, game / "screenshots"
     n = 0
-    if shots.exists():
+    if picked is not None:
+        from .screenshots import shot_path
+        for name in list(picked)[:10]:
+            p = shot_path(shots, name)
+            if p:
+                shutil.copy2(p, folder / p.name)
+                n += 1
+    elif shots.exists():
         for p in sorted(shots.iterdir()):
             if p.suffix.lower() in (".jpg", ".png") and lo <= p.stat().st_mtime <= hi and n < 10:
                 shutil.copy2(p, folder / p.name)

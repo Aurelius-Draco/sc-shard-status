@@ -1,5 +1,5 @@
 {
- "version": "2026-10-31.1",
+ "version": "2026-11-01.1",
  "rules": [
   {
    "id": "cargo-no-resource-container",
@@ -317,6 +317,23 @@
     "12660092",
     "12913470"
    ]
+  },
+  {
+   "id": "disconnect-30028",
+   "kind": "info",
+   "severity": "low",
+   "area": "Connection",
+   "match": {
+    "tag": "Channel Disconnected",
+    "regex": "cause=(?P<cause>30028) reason=\"(?P<reason>[^\"]*)\""
+   },
+   "title": "Kicked for being idle",
+   "explain": "Code 30028 is the game disconnecting a player who hasn't moved for a while (\"{reason}\"). Not a server problem.",
+   "links": [],
+   "fixes": [
+    "Move or press a key every few minutes if you need to stay logged in while away."
+   ],
+   "builds_seen": []
   },
   {
    "id": "loading-long-wait",
