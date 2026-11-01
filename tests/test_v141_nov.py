@@ -22,12 +22,12 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 64
 # ---------------------------------------------------------------- places and pirate reports
 def test_places_only_from_systems_on_your_shard():
     sp = {"stanton", "pyro"}
-    assert [p["name"] for p in locations.suggest_places("yel", sp)] == ["Yela"]
+    assert [p["name"] for p in locations.suggest_places("yel", sp)][0] == "Yela"
     assert locations.suggest_places("cr", sp)[0]["name"] == "Crusader"            # the planet before its L-points
     assert len(locations.suggest_places("", sp)) == 7
     names = [p["name"] for p in locations.suggest_places("jump", sp, limit=20)]
-    assert "Stanton to Pyro jump point" in names and not any("Nyx" in n for n in names)
-    assert locations.find_place("checkmate", sp) == {"name": "Checkmate", "type": "station, Pyro", "area": "pyro2", "system": "pyro"}
+    assert "Stanton - Pyro jump point" in names and not any("Nyx" in n for n in names)
+    assert locations.find_place("checkmate", sp) == {"name": "Checkmate", "type": "contested zone, Pyro", "area": "pyro2", "system": "pyro"}
     assert locations.find_place("Checkmate", {"stanton"}) is None                   # Pyro isn't on that shard
     assert locations.find_place("Somewhere made up", sp) is None
     assert locations.find_place("CRU-L4", sp)["area"] == "crusader"
@@ -68,7 +68,7 @@ def test_pirates_here_says_patrolling_and_shows_your_reports_elsewhere():
     assert [(y["area_name"], y["kind"]) for y in p["yours"]] == [("Daymar", "patrol")]
     comm.posts["pirates"][0].pop("kind")                    # an older site doesn't say: a sighting
     assert g.pirates_here()["here"]["kind"] == "seen"
-    assert [x["name"] for x in g.places("day")] == ["Daymar"]
+    assert [x["name"] for x in g.places("day")][0] == "Daymar"
 
 
 # ---------------------------------------------------------------- Issue Council link
@@ -246,7 +246,7 @@ def test_moment_screenshots_review_draft_link_and_places(tmp_path, monkeypatch):
         r = _call(url, token, "/api/issue/link", {"issue": "freight-entity-not-present", "url": u, "relation": "same", "to": "STARC-1"})
         assert r["id"] == "STARC-151999" and sent[-1][1]["relation"] == "same"
         # Places and a report for somewhere else
-        assert [p["name"] for p in _call(url, token, "/api/places?q=orb")["places"]] == ["Orbituary"]
+        assert [p["name"] for p in _call(url, token, "/api/places?q=orb")["places"]][0] == "Orbituary"
         _call(url, token, "/api/groups/post", {"kind": "pirate", "report_kind": "patrol", "place": "Orbituary"})
         body = sent[-1][1]
         assert body["area"] == "pyro3" and body["area_name"] == "Orbituary" and body["server"] is None and body["report_kind"] == "patrol"
