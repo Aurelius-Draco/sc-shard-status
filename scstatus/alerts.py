@@ -76,6 +76,7 @@ class Alerts:
         self.problem_at = 0
         self.problems_seen = set()
         self.restarts_seen = {}                # server name -> confirmed restarts already alerted on
+        self.unplayable = None                 # {since, fps, checked, findings} while the server is under 5 fps
 
     @property
     def mode(self):
@@ -85,6 +86,10 @@ class Alerts:
 
     def run(self, stop):
         while not stop.wait(EVERY_S):
+            try:
+                self.watch_unplayable()            # runs whether or not pop-up alerts are on
+            except Exception as e:
+                say(f"Unplayable check failed: {e}")
             if self.mode:
                 try:
                     self.tick()
@@ -189,6 +194,42 @@ class Alerts:
                 continue
             self.problems_seen.add(key)
             self.fire("problem:" + key, f["title"], (f.get("explain") or "")[:220])
+
+    def watch_unplayable(self, now=None):
+        """Server under 5 fps: run What's gone wrong? over the last 10 minutes straight away, then again every
+        3 minutes while it stays that low, so the Now tab can say what the log shows. Clears once it recovers."""
+        from . import score
+        now = now or self.clock()
+        with self.app.lock:
+            snaps = list(self.app.snaps)
+        a = score.assess(snaps, now=now)
+        if not a.get("unplayable"):
+            self.unplayable = None
+            return None
+        u = self.unplayable
+        if u is None:
+            u = self.unplayable = {"since": now, "fps": a["server_fps_now"], "checked": None, "findings": []}
+        u["fps"] = a["server_fps_now"]
+        if u["checked"] is None or now - u["checked"] >= PROBLEM_EVERY_S:
+            u["findings"] = self._check(now, snaps)
+            u["checked"] = now
+            say(f"Server unplayable ({u['fps']} fps). Log check found {len(u['findings'])} thing(s).")
+        return u
+
+    def _check(self, now, snaps):
+        """The same check as the What's gone wrong? button, last 10 minutes. Problems only, newest first."""
+        if not self.app.session or not self.app.game_found:
+            return []
+        from .diagnose import diagnose
+        try:
+            res = diagnose(self.app.game_dir / "Game.log", self.app.library, self.app.names, snaps, lookback_min=10,
+                           now=now, session=self.app.session)
+        except Exception:
+            return []
+        out = [{"title": f["title"], "severity": f.get("severity"), "rule_id": f.get("rule_id")}
+               for f in res.get("findings", []) if f.get("kind", "problem") == "problem"
+               and f["title"] != "Server running very slowly"]      # the alarm already says that
+        return out[:4]
 
     def info(self):
         return {"mode": self.mode, "recent": list(self.recent)[:10]}

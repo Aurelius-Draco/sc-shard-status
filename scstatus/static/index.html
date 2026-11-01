@@ -690,7 +690,7 @@ i.st.new { background: var(--amber); }
 .gcolL .keen .copyl { padding: 0; border: 0; background: none; box-shadow: none; }
 .gcolL .gcards { grid-template-columns: 1fr; }
 .gcolR .gform { margin: 0; }
-@media (prefers-reduced-motion: reduce) { .hud, .hud *, .hreg * { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .hud, .hud *, .hreg *, .sgshare * { animation: none !important; } .dial circle, .hbar i { transition: none !important; } }
 /* About: same as the site */
 /* about */
 .ab-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--s7); align-items: center; margin-top: var(--s6); }
@@ -1113,7 +1113,13 @@ async function renderNow() {
   const lines = d.chat_lines || [];
   // ---- Cockpit HUD (Now tab, direction 1b) ----
   const crash = d.crash || null;
-  const edgeCls = crash ? "alarm" : {good: "calm", ok: "calm", poor: "breath", bad: "beacon"}[h.cls] || "idle";
+  // Unplayable (server under 5 fps in the last minute) gets the crash alarm, as the design's card edge sets out
+  const unp = !crash && h.unplayable ? (d.unplayable || {fps: h.server_fps_now, checked: null, findings: []}) : null;
+  const edgeCls = crash || unp ? "alarm" : {good: "calm", ok: "calm", poor: "breath", bad: "beacon"}[h.cls] || "idle";
+  const unpLine = unp ? `<div class="crashline" role="alert"><b>Unplayable: the server's at ${fmt(unp.fps ?? h.server_fps_now, 1)} fps.</b> Hold off take-off, cargo moves and anything you can't afford to lose. A server hop is your best bet. `
+    + (!unp.checked ? "Checking the log now." : unp.findings.length
+      ? `The log check at ${tm(unp.checked)} found: ${unp.findings.map(f => esc(f.title)).join("; ")}.`
+      : `The log check at ${tm(unp.checked)} found nothing on your side, so it's the server.`) + `</div>` : "";
   const sp = (d.spark || []).filter((p, k, a) => (a.length - 1 - k) % 5 === 0).slice(-14);
   const gb = (key, cf, max) => { const v = sp.map(p => p[key]).filter(x => x !== null && x !== undefined); if (v.length < 2) return `<span class="gbars"></span>`; const mx = max || Math.max(1, ...v) * 1.1;
     return `<span class="gbars">${v.map(x => `<i style="height:${Math.max(3, Math.round(x / mx * 24))}px;background:${cf(x)}"></i>`).join("")}</span>`; };
@@ -1142,10 +1148,10 @@ async function renderNow() {
     <span class="txa"><button class="btn sm" type="button" id="goShare">Put ${esc((d.shard && d.shard.name) || "it")} on the board</button><button class="link" type="button" id="seeSent">See what's sent</button>${nudge ? `<button class="link" type="button" id="nudgeNo">Not now</button>` : ""}</span></div>`;
   $("view").innerHTML = `
   <section class="hud ${edgeCls}">
-    ${crash ? `<div class="hazard" aria-hidden="true"></div>` : ""}
+    ${crash || unp ? `<div class="hazard" aria-hidden="true"></div>` : ""}
     <div class="hbar${sweep ? " sweep" : ""}"><i style="width:${score === null ? 0 : score}%;background:${col}"></i></div>
     <div class="hg">
-      <div class="gg gscore"><span class="gl ${crash ? "bad" : h.cls}">${crash ? "Crashed" : esc(h.label)}</span><span class="gbig">${score ?? "–"}</span><span class="gs">${crash ? "game closed at " + tm(crash.ts) : "health / 100"}</span></div>
+      <div class="gg gscore"><span class="gl ${crash || unp ? "bad" : h.cls}">${crash ? "Crashed" : unp ? "Unplayable" : esc(h.label)}</span><span class="gbig">${score ?? "–"}</span><span class="gs">${crash ? "game closed at " + tm(crash.ts) : unp ? `server at ${fmt(unp.fps ?? h.server_fps_now, 1)} fps, under 5` : "health / 100"}</span></div>
       ${gauge("Server fps", fmt(h.server_fps, 1), tone(h.server_fps, 15, 9), gb("server_fps", fpsC, 30), h.server_fps_low != null ? `low ${fmt(h.server_fps_low, 1)}` : "")}
       ${gauge("On your server", fmt(h.pop_srv), "", gb("pop_srv", flat), "")}
       ${gauge("On the shard", fmt(h.pop_shard), "", gb("pop_shard", flat), "")}
@@ -1158,7 +1164,7 @@ async function renderNow() {
     <div class="frame hsit">
       <span class="hl">Situation${sh.id ? ` · ${esc(sh.name || sh.id)}` : ""}${srvName ? ` · server ${esc(srvName)}` : ""}${areaName ? `, ${esc(areaName)}` : ""}</span>
       ${crash ? `<div class="crashline" role="alert"><b>Star Citizen closed without a clean exit at ${tm(crash.ts)}.</b> ${crash.after_code && libTitle(crash.after_code) ? `Just before, the log shows: ${esc(libTitle(crash.after_code))}.` : "Game.log stops without the usual shutdown lines."} What's gone wrong? looks at the last few minutes before it closed.</div>`
-        : `<p class="hv">${esc(h.summary)}</p>`}
+        : unp ? unpLine : `<p class="hv">${esc(h.summary)}</p>`}
       ${smooth ? `<p class="goodline">Smooth flying. ${esc(cmpTxt.charAt(0).toUpperCase() + cmpTxt.slice(1))}.</p>` : ""}
       ${pts.length ? `<ul class="hwhy">${pts.slice(0, 2).map(p => `<li>${esc(p)}</li>`).join("")}</ul>${pts.length > 2 ? `<details class="why"><summary>${pts.length - 2} more</summary><ul class="hwhy">${pts.slice(2).map(p => `<li>${esc(p)}</li>`).join("")}</ul></details>` : ""}` : ""}
       ${hop ? `<div class="hhop"><b>Hop:</b> ${esc(hop.name || hop.shard_id)} is at ${hop.score} with ${fmt(hop.server_fps, 1)} fps, from ${hop.reporters} players. A server hop could land you there, though the game picks the shard.</div>` : ""}

@@ -290,6 +290,7 @@ class App:
             else {"here": None, "elsewhere": None, "area_name": None},
             "groups_on_shard": self.groups.groups_on_shard() if self.cfg.get("community_board") else 0,
             "crash": self.crash_state(),
+            "unplayable": self.alerts.unplayable,
             "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
             "update": self.updater.info(), "patch": self.patch_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,

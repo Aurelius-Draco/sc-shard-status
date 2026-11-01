@@ -17,6 +17,8 @@ SERVER_FPS_CURVE = [(0, 0), (3, 5), (6, 25), (10, 50), (15, 80), (18, 95), (20, 
 PING_CURVE = [(0, 100), (80, 100), (150, 75), (250, 40), (400, 10), (1000, 0)]
 LOSS_CURVE = [(0, 100), (0.5, 90), (2, 50), (5, 15), (10, 0)]
 
+UNPLAYABLE_FPS = 5
+
 BANDS = [(80, "Healthy", "good"), (60, "OK", "ok"), (40, "Struggling", "poor"), (0, "Bad", "bad")]
 
 
@@ -88,9 +90,15 @@ def assess(snaps, now=None, window_s=300):
     have = [(v, w) for v, w in parts if v is not None]
     score = round(sum(v * w for v, w in have) / sum(w for _, w in have)) if have else None
     label, cls = band(score) if score is not None else ("No readings", "none")
+    # Unplayable: the last minute's typical server rate under 5 fps. The game can't keep up at that rate, so it
+    # shows the alarm the design gives a crash. Needs 3 readings so one misread can't set it off.
+    last_min = _vals([s for s in recent if now - s["ts"] <= 60], "server_fps")
+    fps_now = st.median(last_min) if len(last_min) >= 3 else None
+    unplayable = fps_now is not None and fps_now < UNPLAYABLE_FPS
 
     return {
         "score": score, "label": label, "cls": cls, "readings": len(recent), "ts": last["ts"],
+        "unplayable": unplayable, "server_fps_now": round(fps_now, 1) if fps_now is not None else None,
         "server_fps": round(med_fps, 1) if med_fps is not None else None,
         "server_fps_low": round(sfps_low, 1) if sfps_low is not None else None,
         "ping_ms": round(ping) if ping is not None else None, "loss_pct": loss,
