@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.1
+
+- **Unplayable server:** when your server stays under 5 fps for a minute, the Now tab shows the red alarm and hazard stripe labelled Unplayable, and checks the log straight away so you can see what it found. A Bad server now breathes slowly the whole time instead of blinking.
+- **Mark this moment, start to finish:** mark it, take screenshots if you can, pick them from your last 10 minutes, say what went wrong, and see your moment: the readings at that second, the log either side and what it shows. Then send it to Verse Shards for review (only your description and what the log found, never screenshots), write the Issue Council report (your picked screenshots go in its folder), or both. Earlier marks open the same way from What's gone wrong?.
+- **Pirate reports:** "Someone says they're patrolling" as well as "I saw them", and you can now report somewhere else on your shard. Start typing and pick from 882 places across Stanton, Pyro and Nyx: stations, rest stops, outposts and settlements, from Ruin Station to Ashland. Patrolling reports show amber and count for less.
+- **Issue Council, after you post:** paste your report's link into the draft and it goes on that issue's page on verseshards.com. Say if it's a duplicate, linked or the same as one already there, and attach it in the same step.
+- Copy buttons say Copied, crew spots pop as they fill, and your post's time-left bar runs down smoothly.
+- Kicked for being idle (30028) is now treated as a normal disconnect, not an error, and no longer counts against the patch.
+- Fixes since 1.4.0: copy fixes, the pirate beacon matches the site, and an oversized request is refused cleanly.
+
 ## 1.4.0
 
 The app is now **Verse Shards for PC**, with a new look that matches verseshards.com. Your install, settings and history stay where they are (it still installs as SC Shard Status).
