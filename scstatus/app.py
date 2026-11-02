@@ -292,7 +292,7 @@ class App:
             "crash": self.crash_state(),
             "unplayable": self.alerts.unplayable,
             "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
-            "update": self.updater.info(), "patch": self.patch_state(), "alerts": list(self.alerts.recent)[:5],
+            "update": self.updater.info(), "patch": self.patch_state(), "notice": self.notice_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
             "marks": self.marks(), "hotkey": self.hotkey.status,
             "readings_paused": bool(self.watcher and self.watcher.status.startswith("overlay off")),
@@ -334,6 +334,21 @@ class App:
                    and self.store.meta("patch_dismissed") != b)
         return {"build": b, "previous": prev, "new": new, "since": at or None}
 
+    def notice_state(self, now=None):
+        """The message of the week from verseshards.com: it comes with the board the app already downloads when "Show
+        other shards" is on, so it costs no extra request and sends nothing. Shown until its end date or until Hide."""
+        if not self.cfg.get("community_board"):
+            return None
+        n = (self.community.board or {}).get("notice") if isinstance(self.community.board, dict) else None
+        if not isinstance(n, dict) or not n.get("id") or not n.get("text"):
+            return None
+        url = str(n.get("url") or "")
+        if not url.startswith("https://") or (n.get("ends") or 0) <= (now or time.time()):
+            return None
+        if self.store.meta("notice_dismissed") == str(n["id"]):
+            return None
+        return {"id": str(n["id"])[:16], "text": str(n["text"])[:200], "label": str(n.get("label") or "Have a look")[:40], "url": url[:300]}
+
     def quit(self):
         """Close the app (the updater calls this once the new installer is running)."""
         self.quitting = True
@@ -347,6 +362,10 @@ class App:
             return "OK."
         if what == "patch":
             self.store.set_meta("patch_dismissed", self.build or "")
+            return "OK."
+        if what == "notice":
+            n = (self.community.board or {}).get("notice") if isinstance(self.community.board, dict) else None
+            self.store.set_meta("notice_dismissed", str((n or {}).get("id") or ""))
             return "OK."
         raise ValueError("Unknown notice.")
 
