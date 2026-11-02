@@ -61,14 +61,27 @@ def shard_report(snap, install_id, build, findings=(), app_version=None, where=N
 
 def quality(snaps, tries=0, failed=0, screen=None):
     """How cleanly the overlay was read in these 5 minutes: counts only, so a screen setup that misreads can be
-    spotted and helped. misreads = single odd values that were thrown away (see clean.settle)."""
-    from . import clean
+    spotted and helped.
+
+    misreads = blips: a value that shows up for a single reading between two readings that agree (A, B, A). A real
+    change sticks; a misread doesn't. Numbers that genuinely move up and down (players, hitches, packet loss) only
+    count when the blip is a big jump (more than a fifth away from the readings either side), so a busy server
+    doesn't look like a bad reader. Before 1.5 this counted every changed value, which mostly measured how busy
+    the server was."""
     ok = [s for s in snaps if s.get("ok")]
     mis = 0
-    for k in ("restarts", "hitches", "loss_pct", "pop_shard", "pop_srv"):
-        raw = [s.get(k) for s in ok]
-        settled = clean.settle(raw, 2)
-        mis += sum(1 for r, v in zip(raw, settled) if r is not None and v is not None and r != v)
+    for k in ("restarts", "server_name", "shard_id", "pop_shard", "pop_srv", "hitches", "loss_pct"):
+        vals = [s.get(k) for s in ok]
+        for a, b, c in zip(vals, vals[1:], vals[2:]):
+            if a is None or b is None or c is None or a != c or b == a:
+                continue
+            if k in ("pop_shard", "pop_srv", "hitches", "loss_pct"):
+                try:
+                    if abs(float(b) - float(a)) <= 0.2 * max(abs(float(a)), 5.0):
+                        continue
+                except (TypeError, ValueError):
+                    pass
+            mis += 1
     return {"readings": min(1000, tries or len(ok)), "failed": min(1000, failed),
             "no_server": sum(1 for s in ok if not s.get("server_name")),
             "no_players": sum(1 for s in ok if s.get("pop_shard") is None), "misreads": min(10000, mis), "screen": screen}

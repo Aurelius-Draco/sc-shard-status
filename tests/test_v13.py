@@ -30,12 +30,21 @@ def test_new_log_signals_keep_no_names():
     assert s.deaths[-1]["collision"] is False and s.deaths[-1]["ship"] == "RSI_Aurora_Mk2"
 
 
-def test_quality_counts_thrown_away_values():
+def test_quality_counts_blips_not_real_changes():
     now = time.time()
     snaps = [{"ts": now - 60 + i * 5, "ok": True, "server_name": "game-1" if i != 3 else None, "pop_shard": 400,
               "pop_srv": 30, "restarts": 435 if i == 5 else 0, "hitches": 0, "loss_pct": 0.0} for i in range(12)]
     q = community.quality(snaps, tries=14, failed=2, screen="2560x1440")
     assert q == {"readings": 14, "failed": 2, "no_server": 1, "no_players": 0, "misreads": 1, "screen": "2560x1440"}
+    # A busy server: players and hitches move every reading. None of that is a misread.
+    busy = [{"ok": True, "server_name": "game-1", "pop_shard": 400 + i, "pop_srv": 30 + (i % 3), "restarts": 0,
+             "hitches": i % 2, "loss_pct": 0.0} for i in range(12)]
+    assert community.quality(busy)["misreads"] == 0
+    # A real misread of the player count (432 read as 132) and of the server name, each for one reading
+    blip = [dict(b) for b in busy]
+    blip[4]["pop_shard"], blip[3]["pop_shard"], blip[5]["pop_shard"] = 132, 405, 405
+    blip[8]["server_name"] = "game-7"
+    assert community.quality(blip)["misreads"] == 2
     p = community.shard_report({"ts": now, "shard_id": "pub_apse2b_1_090"}, "0123456789abcdef", "1", quality=q)
     assert p["quality"]["misreads"] == 1
 
