@@ -565,10 +565,10 @@ class App:
                 "board": bool(self.cfg.get("community_board"))}
 
     def moment_review(self, ts, what, issues=None):
-        """Send the moment for review: the description and the library ids found near it. Never screenshots."""
+        """Send the moment for review: the time, game build, shard, the description and the library ids found near
+        it. Never screenshots or log lines. Pressing Send for review is the player's own yes, so it doesn't depend
+        on Show other shards or sharing being on."""
         m = self._mark_at(ts)
-        if not self.cfg.get("community_board"):
-            raise ValueError("Turn on the community board on Set up to send it.")
         known = {r["id"] for r in self.library.listing()}
         ids = [i for i in (issues or []) if i in known]
         out = self.community.send_moment(m["ts"], self.build, m.get("shard_id"), what, ids)

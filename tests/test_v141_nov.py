@@ -235,16 +235,16 @@ def test_moment_screenshots_review_draft_link_and_places(tmp_path, monkeypatch):
         assert m["shard_name"] == "AU-90" and m["server"] == "37" and m["readings"]["server_fps"] == 4.6
         assert m["log"][-1]["kind"] == "mark" or any(x["kind"] == "mark" for x in m["log"])
         assert m["board"] is False
-        # Send for review needs the community board on, and never carries screenshots
-        with pytest.raises(urllib.error.HTTPError) as e:
-            _call(url, token, "/api/moment/review", {"ts": ts, "what": "Elevator didn't come", "issues": ["not-in-library"]})
-        assert e.value.code == 400 and "Turn on the community board" in json.loads(e.value.read())["error"]
-        app.cfg["community_board"] = True
+        # Send for review: pressing the button is the yes, so it goes with Show other shards and sharing both off.
+        # Only the time, build, shard, what was typed and issue ids. Never screenshots or log lines
+        assert not app.cfg.get("community_board") and not app.cfg.get("share_readings")
         r = _call(url, token, "/api/moment/review", {"ts": ts, "what": "Elevator didn't come", "issues": ["not-in-library"]})
         assert r["message"] == "Thanks, sent."
         body = sent[-1][1]
         assert sent[-1][0] == "/api/v1/moment" and body["issues"] == [] and body["what"] == "Elevator didn't come"
+        assert set(body) == {"install", "ts", "build", "shard_id", "what", "issues"}
         assert "ScreenShot" not in json.dumps(body)
+        assert "Send for review" in PAGE and "Never your screenshots or log lines" in PAGE
         # The draft: your description, and only the screenshots you picked
         d = _call(url, token, "/api/moment/draft", {"ts": ts, "what": "Elevator didn't come", "shots": ["ScreenShot-b.jpg", "../Game.log"]})
         files = sorted(p.name for p in Path(d["folder"]).iterdir())
