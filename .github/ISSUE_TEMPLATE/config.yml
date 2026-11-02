@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Known Star Citizen issues and workarounds
+    url: https://verseshards.com/issues
+    about: Problems in the game itself that players are hitting right now, with workarounds and Issue Council links.
+  - name: "Discord: shard alerts and help"
+    url: https://discord.gg/8kH5pfHYbe
+    about: Quick questions, help with the app and shard alerts as they happen.
+  - name: Something wrong with the game itself? Report it on the Issue Council
+    url: https://issue-council.robertsspaceindustries.com
+    about: RSI's own bug tracker for Star Citizen. Verse Shards can't fix the game.

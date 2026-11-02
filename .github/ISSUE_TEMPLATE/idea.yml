@@ -1,0 +1,20 @@
+name: Idea
+description: Something that would make Verse Shards for PC more useful
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like it to do
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it would help
+      description: What you're trying to do in game, and how you do it today.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Links, sketches or examples from other tools. Crop the in-game QR code and other players' handles out of any screenshots.

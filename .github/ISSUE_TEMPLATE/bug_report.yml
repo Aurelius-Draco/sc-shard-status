@@ -1,0 +1,63 @@
+name: Something isn't working
+description: Readings, checks, reports, the dashboard or the installer going wrong in Verse Shards for PC
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. This page is public, so please don't paste raw Game.log lines, your handle or anyone else's.
+        Is the problem in Star Citizen itself rather than the app? Check [known issues](https://verseshards.com/issues) or report it on the [Issue Council](https://issue-council.robertsspaceindustries.com).
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Shown under "Verse Shards" at the top of the dashboard (for example 1.4.1).
+      placeholder: "1.4.1"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Windows 10 or 11, and the version if you know it (Settings, System, About).
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: input
+    id: screen
+    attributes:
+      label: Screen size and display scaling
+      description: Helps with overlay reading problems.
+      placeholder: "2560x1440, 125%"
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to make it happen again
+      description: As best you can. If you can't make it happen again, say so.
+      placeholder: |
+        1. Started the app from the Start menu
+        2. Opened What's gone wrong?
+        3. ...
+  - type: textarea
+    id: log
+    attributes:
+      label: status.log (optional)
+      description: |
+        The app's own log is in `%LOCALAPPDATA%\SC Shard Status\status.log` (paste that into File Explorer's address bar). Drag the file in here if you're happy to share it.
+        Open it first and check for anything personal, such as your Windows user name in folder paths, and take it out.
+  - type: markdown
+    attributes:
+      value: |
+        **Screenshots:** welcome, but crop out the in-game QR code and any chat or other players' handles before you attach them. Please don't post them uncropped.
