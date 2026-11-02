@@ -1,4 +1,7 @@
-"""Writes installer/version_info.txt (the version details Windows shows in the exe's Properties) for PyInstaller."""
+"""Writes installer/version_info.txt (the version details Windows shows in the exe's Properties) for PyInstaller.
+
+FileDescription and ProductName are the shown name (Task Manager, Properties). InternalName and OriginalFilename
+stay SC Shard Status, matching the exe's file name, which never changes."""
 import sys
 from pathlib import Path
 
@@ -10,12 +13,12 @@ Path(__file__).with_name("version_info.txt").write_text(f"""VSVersionInfo(
   kids=[
     StringFileInfo([StringTable('040904B0', [
       StringStruct('CompanyName', 'Aurelius_Draco'),
-      StringStruct('FileDescription', 'SC Shard Status'),
+      StringStruct('FileDescription', 'Verse Shards for PC'),
       StringStruct('FileVersion', '{ver}'),
       StringStruct('InternalName', 'SC Shard Status'),
       StringStruct('LegalCopyright', 'MIT licence. Fan made, not affiliated with Cloud Imperium Games.'),
       StringStruct('OriginalFilename', 'SC Shard Status.exe'),
-      StringStruct('ProductName', 'SC Shard Status'),
+      StringStruct('ProductName', 'Verse Shards for PC'),
       StringStruct('ProductVersion', '{ver}')])]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]

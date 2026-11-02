@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Windows now calls the app **Verse Shards for PC** in Settings, Apps, the installer, Task Manager and the exe's Properties. It still installs as SC Shard Status: same folder, same Start menu shortcuts, and your settings and history stay where they are. Updating and uninstalling work as before.
+
 ## 1.4.1
 
 - **Unplayable server:** when your server stays under 5 fps for a minute, the Now tab shows the red alarm and hazard stripe labelled Unplayable, and checks the log straight away so you can see what it found. A Bad server now breathes slowly the whole time instead of blinking.

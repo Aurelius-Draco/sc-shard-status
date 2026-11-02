@@ -9,14 +9,18 @@
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif
+; AppName is the install name: program and data folders, exe and Start menu shortcuts. It never changes.
+; DisplayName is what Windows shows in the installer and in Settings, Apps. Safe to change because AppId is fixed:
+; the uninstall entry and upgrades go by AppId, not by name.
 #define AppName "SC Shard Status"
+#define DisplayName "Verse Shards for PC"
 #define AppExe "SC Shard Status.exe"
 
 [Setup]
 AppId={{6C1E3F0A-5B7D-4E2A-9D41-8F3A2C7B5E19}
-AppName={#AppName}
+AppName={#DisplayName}
 AppVersion={#AppVersion}
-AppVerName={#AppName} {#AppVersion}
+AppVerName={#DisplayName} {#AppVersion}
 AppPublisher=Aurelius_Draco
 AppPublisherURL=https://verseshards.com
 AppSupportURL=https://github.com/Aurelius-Draco/sc-shard-status/issues
@@ -36,7 +40,7 @@ OutputDir=..\dist
 OutputBaseFilename=SC-Shard-Status-Setup-{#AppVersion}
 SetupIconFile=..\scstatus\assets\status.ico
 UninstallDisplayIcon={app}\{#AppExe}
-UninstallDisplayName={#AppName}
+UninstallDisplayName={#DisplayName}
 WizardStyle=modern
 Compression=lzma2/max
 SolidCompression=yes
