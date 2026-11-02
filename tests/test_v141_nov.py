@@ -40,9 +40,10 @@ def test_patrolling_and_somewhere_else_reports():
     msg = g.post("pirate", report_kind="patrol", place="Yela")
     path, body = comm.sent[-1]
     assert path == "/api/v1/posts" and body["report_kind"] == "patrol" and body["elsewhere"] is True
-    assert body["area"] == "crusader" and body["area_name"] == "Yela" and body["system"] == "stanton" and body["server"] is None
+    assert body["area"] == "crusader" and body["area_name"] == "Crusader" and body["system"] == "stanton" and body["server"] is None
     assert body["shard_id"] == "pub_apse2b_9945425_090" and "handle" not in body and "note" not in body
-    assert msg.startswith("Patrolling noted near Yela.")
+    assert "Yela" not in json.dumps(body)                   # area only: the place picked never goes
+    assert msg.startswith("Patrolling noted near Crusader.") and g.last_area_name == "Crusader"
     # Reported here, as a sighting: your area and server, as before
     g.post("pirate")
     body = comm.sent[-1][1]
@@ -50,7 +51,7 @@ def test_patrolling_and_somewhere_else_reports():
     # The same area again replaces your earlier report
     g.post("pirate", report_kind="seen", place="Yela")
     rows = [r for r in g._keys() if r["kind"] == "pirate"]
-    assert [(r["area_name"], r["report_kind"]) for r in rows] == [("Hurston", "seen"), ("Yela", "seen")]
+    assert [(r["area_name"], r["report_kind"]) for r in rows] == [("Hurston", "seen"), ("Crusader", "seen")]
     with pytest.raises(ValueError, match="Pick a place from the list"):
         g.post("pirate", place="Nowhere Station")
     with pytest.raises(ValueError, match="Pick a place"):
@@ -65,10 +66,25 @@ def test_pirates_here_says_patrolling_and_shows_your_reports_elsewhere():
                                              "kind": "patrol", "reporters": 2, "expires": time.time() + 900}]}
     p = g.pirates_here()
     assert p["here"]["kind"] == "patrol" and p["here"]["reporters"] == 2
-    assert [(y["area_name"], y["kind"]) for y in p["yours"]] == [("Daymar", "patrol")]
+    assert [(y["area_name"], y["kind"]) for y in p["yours"]] == [("Crusader", "patrol")]
     comm.posts["pirates"][0].pop("kind")                    # an older site doesn't say: a sighting
     assert g.pirates_here()["here"]["kind"] == "seen"
     assert [x["name"] for x in g.places("day")][0] == "Daymar"
+
+
+def test_somewhere_else_sends_the_area_never_the_place():
+    """Every place in the list, in every system: the body sent names the area, never the place picked."""
+    app, comm = _App(), _Comm()
+    g = groups.Groups(app, comm)
+    g.shard_systems = lambda: {"stanton", "pyro", "nyx"}
+    for name in {p["name"] for p in locations.report_places()}:
+        p = locations.find_place(name, {"stanton", "pyro", "nyx"})   # a name used twice goes to the first match
+        area_name = locations.AREAS[p["area"]][1]
+        g.post("pirate", place=name)
+        body = comm.sent[-1][1]
+        assert body["area"] == p["area"] and body["area_name"] == area_name, name
+        if name not in area_name:                           # a planet's own name is the area's name
+            assert name not in json.dumps(body), name
 
 
 # ---------------------------------------------------------------- Issue Council link
@@ -247,9 +263,10 @@ def test_moment_screenshots_review_draft_link_and_places(tmp_path, monkeypatch):
         assert r["id"] == "STARC-151999" and sent[-1][1]["relation"] == "same"
         # Places and a report for somewhere else
         assert [p["name"] for p in _call(url, token, "/api/places?q=orb")["places"]][0] == "Orbituary"
-        _call(url, token, "/api/groups/post", {"kind": "pirate", "report_kind": "patrol", "place": "Orbituary"})
+        r = _call(url, token, "/api/groups/post", {"kind": "pirate", "report_kind": "patrol", "place": "Orbituary"})
         body = sent[-1][1]
-        assert body["area"] == "pyro3" and body["area_name"] == "Orbituary" and body["server"] is None and body["report_kind"] == "patrol"
+        assert body["area"] == "pyro3" and body["area_name"] == "Bloom" and body["server"] is None and body["report_kind"] == "patrol"
+        assert "Orbituary" not in json.dumps(body) and r["area_name"] == "Bloom"
         # Opening a folder outside the report folders is refused
         with pytest.raises(urllib.error.HTTPError):
             _call(url, token, "/api/moment/open", {"folder": str(tmp_path)})

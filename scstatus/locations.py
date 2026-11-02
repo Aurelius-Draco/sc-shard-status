@@ -156,7 +156,8 @@ class Places:
 # Places a player can name when reporting pirates somewhere else: stations, rest stops, outposts, settlements, caves,
 # wrecks, Lagrange points, gateways, planets and moons in Stanton, Pyro and Nyx (library/places.json, built by
 # tools/build_places.py from a researched list checked against the live patch). Each is tied to the area (game server)
-# it belongs to, so the board files the report under the right area; the place's own name shows on the report.
+# it belongs to, so the board files the report under the right area. Only the area's name goes on the report, never
+# the place.
 PLACES_FILE = Path(__file__).resolve().parent / "library" / "places.json"
 _places = None
 

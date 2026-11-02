@@ -201,6 +201,8 @@ def handle_post(app, path, body):
                               report_kind=body.get("report_kind"), place=body.get("place"))
         if kind == "pirate" and not body.get("place"):
             app.groups.pirate_done()           # the destroyed-ship offer is answered; a report for elsewhere isn't it
+        if kind == "pirate":
+            return {"message": msg, "area_name": getattr(app.groups, "last_area_name", None)}
         return {"message": msg}
     if path == "/api/moment/review":
         return app.moment_review(body.get("ts"), body.get("what"), body.get("issues"))

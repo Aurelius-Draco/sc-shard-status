@@ -118,13 +118,17 @@ class Groups:
             # Seen or patrolling (someone says in chat they're patrolling a place); never a name or an org tag
             body["report_kind"] = "patrol" if report_kind == "patrol" else "seen"
             if place:
-                # Somewhere else on your shard: the place's area, never a server (the app can't tell which runs it)
-                from .locations import find_place
+                # Somewhere else on your shard: the place you pick only tells the app which area it's in. Only the
+                # area goes (the planet, jump point or open space), never the place, and never a server (the app
+                # can't tell which runs it)
+                from .locations import AREAS, find_place
                 p = find_place(place, self.shard_systems())
                 if not p:
                     raise ValueError("Pick a place from the list, so the board knows where it is.")
-                body.update(server=None, system=p["system"], area=p["area"], area_name=p["name"], elsewhere=True)
-                ctx = dict(ctx, server=None, area=p["area"], area_name=p["name"])
+                names = getattr(self.community, "places", None)
+                area_name = names.area(p["area"])[1] if hasattr(names, "area") else AREAS[p["area"]][1]
+                body.update(server=None, system=p["system"], area=p["area"], area_name=area_name, elsewhere=True)
+                ctx = dict(ctx, server=None, area=p["area"], area_name=area_name)
             elif not ctx["area"]:
                 raise ValueError("The app doesn't know which area you're in yet. Pick the place instead.")
         if kind in ("recruit", "lfg"):
@@ -155,6 +159,7 @@ class Groups:
         h = d.get("hours") or 2
         span = "an hour" if h == 1 else f"{h} hours"
         where = ctx["area_name"] or "your area"
+        self.last_area_name = ctx["area_name"]       # for the dashboard's confirmation: the area, never the place
         return {"pirate": (f"Patrolling noted near {where}." if body.get("report_kind") == "patrol" else f"Logged near {where}.")
                 + " Other players see the area for 45 minutes.",
                 "recruit": f"Posted on Verse Shards for {span}. Players who are keen send their handle, and it pops up here.",

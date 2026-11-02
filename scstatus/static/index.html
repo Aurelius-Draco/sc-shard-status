@@ -1222,10 +1222,12 @@ async function openPirateReport(startKind) {
     const area = S.where === "here" ? here : S.area;
     if (!area) { $("nvErr").textContent = "Pick a place from the list, so the board knows where it is."; $("nvErr").hidden = false; return; }
     $("nvSend").disabled = true;
-    try { await api("/api/groups/post", Object.assign({kind: "pirate", report_kind: S.kind}, S.where === "else" ? {place: area} : {})); }
+    let r = {};
+    try { r = await api("/api/groups/post", Object.assign({kind: "pirate", report_kind: S.kind}, S.where === "else" ? {place: area} : {})) || {}; }
     catch (e) { $("nvErr").textContent = e.message; $("nvErr").hidden = false; $("nvSend").disabled = false; return; }
     $("nvErr").hidden = true;
-    $("nvDone").innerHTML = `<div class="nv-ok"><i></i><div><b>${S.kind === "patrol" ? "Patrolling noted" : "Logged"} near ${esc(area)}.</b><div class="sub">Shows on the board under ${esc(shard)} for 45 minutes. Fly safe.</div></div></div>`;
+    // The board gets the area (the planet, jump point or open space), never the place picked, so say that
+    $("nvDone").innerHTML = `<div class="nv-ok"><i></i><div><b>${S.kind === "patrol" ? "Patrolling noted" : "Logged"} near ${esc(r.area_name || area)}.</b><div class="sub">Shows on the board under ${esc(shard)} for 45 minutes. Fly safe.</div></div></div>`;
     if (tab === "now") renderNow(); else if (tab === "groups") renderGroups();
   };
   sync();
