@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-
+- Fixed: the overlay wasn't found when the game runs at a lower resolution than the monitor (for example 1440p on a 4K screen). Thanks to the player who reported it on GitHub.
 - Windows now calls the app **Verse Shards for PC** in Settings, Apps, the installer, Task Manager and the exe's Properties. It still installs as SC Shard Status: same folder, same Start menu shortcuts, and your settings and history stay where they are. Updating and uninstalling work as before.
 - **Pirate reports for somewhere else send only the area.** You still pick a place, so the app knows which planet, moon group, jump point or open space it's in, but only that area goes to the board, never the place you picked. The confirmation names the area too.
 - **Update checks wait for your answer.** The app no longer asks GitHub for a new version before you've answered the update question in set-up. The About tab's GitHub star count only shows with update checks on. If you've already answered, your choice stays as it was and you won't be asked again.

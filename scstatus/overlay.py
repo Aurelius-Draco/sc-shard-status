@@ -507,6 +507,8 @@ class OverlayReader:
         self._last_wide = 0.0
         self.wide_search_every = wide_search_every
         self.last_path = None        # "fast", "search", "wide" or None (diagnostics)
+        self._game_h = None          # the height the game draws at, once found (None: the screen's)
+        self._last_alt = time.monotonic()     # smaller game sizes are first tried a little after start
         self.last_ms = None
 
     # ---- OCR engine -------------------------------------------------------
@@ -575,15 +577,20 @@ class OverlayReader:
 
     # ---- search -----------------------------------------------------------
 
-    def _search(self, img, wide=False):
+    def _search(self, img, wide=False, game_h=None):
         """Find the block: detect text in the top right, read the first few
-        characters of each line and look for the overlay's line labels."""
+        characters of each line and look for the overlay's line labels.
+
+        game_h is the height the game draws at, when that's smaller than the
+        screen (a 1440p game on a 4K monitor draws 1440p-sized text): the text
+        size, and so the detection scale, follow the game, not the screen."""
         H, W = img.shape[:2]
-        s = H / REF_H
+        s_screen = H / REF_H
+        s = (game_h or H) / REF_H
         if wide:
             rw, rh = int(W * 0.6), int(H * 0.7)
         else:
-            rw, rh = int(min(W, 1500 * s)), int(min(H, 800 * s))
+            rw, rh = int(min(W, 1500 * s_screen)), int(min(H, 800 * s_screen))
         ox = W - rw
         ds = float(np.clip(DET_SCALE / s, 0.25, 2.0))
         rects = self._det(img[0:rh, ox:W], ds, ox, 0)
@@ -726,21 +733,34 @@ class OverlayReader:
                 if snap is None:
                     self._cache = None
                     self._seen = {}
+                    H = img_bgr.shape[0]
+                    # The game may draw smaller than the screen (rendering at 1440p on a 4K monitor). Try the
+                    # height that worked last, then the screen's own, then the common smaller ones; the extra
+                    # heights cost a search each, so only while the overlay was recently there or now and then.
+                    heights = [h for h in (self._game_h, H) if h]
+                    if time.monotonic() - self._last_alt >= self.wide_search_every:
+                        self._last_alt = time.monotonic()
+                        heights += [h for h in (1440, 1080) if h < 0.9 * H]
+                    heights = list(dict.fromkeys(heights))
                     for wide in (False, True):
                         if wide:
                             # a wider search costs more, so only now and then
                             if self._fails < 2 or time.monotonic() - self._last_wide < self.wide_search_every:
                                 break
                             self._last_wide = time.monotonic()
-                        blk = self._search(img_bgr, wide=wide)
-                        if blk:
-                            snap, _ = self._read_rows(img_bgr, blk, blk["rows"])
-                            if snap["ok"]:
-                                self._cache = blk
-                                path = "wide" if wide else "search"
-                                break
-                            snap = None
-                            self._seen = {}
+                        for gh in heights:
+                            blk = self._search(img_bgr, wide=wide, game_h=None if gh == H else gh)
+                            if blk:
+                                snap, _ = self._read_rows(img_bgr, blk, blk["rows"])
+                                if snap["ok"]:
+                                    self._cache = blk
+                                    self._game_h = gh
+                                    path = "wide" if wide else "search"
+                                    break
+                                snap = None
+                                self._seen = {}
+                        if snap is not None:
+                            break
             if snap is None:
                 self._fails += 1
                 snap = dict.fromkeys(FIELDS)

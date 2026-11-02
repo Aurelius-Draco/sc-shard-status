@@ -323,3 +323,30 @@ def test_reader_rejects_bad_input(reader):
     for bad in (None, np.zeros((100, 100, 3), np.uint8), np.zeros((1080, 1920), np.uint8)):
         s = reader.read(bad)
         assert s["ok"] is False
+
+
+@pytest.mark.parametrize("where", ["top-right", "centred", "top-left"])
+def test_reader_game_smaller_than_screen(reader, where):
+    """GitHub issue #2: the game drawn at 1440p on a 4K monitor. The text is 1440p-sized on a 4K screen, so the
+    reader has to try the game's size, not just the screen's. Only the top-right of the screen is grabbed, as the
+    companion does."""
+    name = sorted(EXPECTED)[0]
+    small = frame(name, size=(2560, 1440))
+    big = np.zeros((2160, 3840, 3), np.uint8)
+    y, x = {"top-right": (0, 3840 - 2560), "centred": (360, 640), "top-left": (0, 0)}[where]
+    big[y:y + 1440, x:x + 2560] = small
+    crop = big[0:int(2160 * 0.4), 1920:3840]
+    f = np.zeros_like(big)
+    f[0:crop.shape[0], 3840 - crop.shape[1]:] = crop
+    reader.reset()
+    old = reader.wide_search_every
+    reader.wide_search_every = 0
+    try:
+        for _ in range(3):
+            s = reader.read(f)
+            if s["ok"]:
+                break
+    finally:
+        reader.wide_search_every = old
+    assert s["ok"] is True
+    _assert_matches(s, EXPECTED[name], CORE)
