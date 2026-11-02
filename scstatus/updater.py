@@ -1,6 +1,7 @@
 """Telling players about a new version, and installing it with one click.
 
-Checks GitHub's latest release once a minute after start and then every 6 hours (only when check_updates is on).
+Checks GitHub's latest release a minute after start and then every 6 hours, but only once the player has answered
+the update question in set-up and said yes (check_updates). Before that, nothing is asked of GitHub.
 The installed app (SC Shard Status.exe) can update itself: it downloads SC-Shard-Status-Setup-<version>.exe from the
 release, checks it against the .sha256 file published beside it, runs it silently and closes. The installer puts the
 new version in place and starts it again. A zip copy just gets a link to the download page."""
@@ -23,6 +24,7 @@ DOWNLOAD_PAGE = "https://verseshards.com/app"
 SETUP_RX = re.compile(r"^SC-Shard-Status-Setup-(\d+(?:\.\d+)*)\.exe$")
 FIRST_CHECK_S = 60
 EVERY_S = 6 * 3600
+ASKED_IN = 2            # the set-up version that brought the update question (App.QUESTIONS["updates"])
 
 
 def vtuple(v):
@@ -71,8 +73,16 @@ class Updater:
         self.lock = threading.Lock()
 
     @property
+    def asked(self):
+        """Whether the player has answered the update question in set-up yet."""
+        since = (getattr(self.app, "QUESTIONS", None) or {}).get("updates", ASKED_IN)
+        return int(self.app.cfg.get("setup_version") or 0) >= since
+
+    @property
     def enabled(self):
-        return bool(self.app.cfg.get("check_updates", True))
+        """On only once the update question is answered, and answered yes. This also covers the About tab's star
+        count, which asks GitHub too."""
+        return self.asked and bool(self.app.cfg.get("check_updates", True))
 
     def run(self, stop):
         if stop.wait(FIRST_CHECK_S):

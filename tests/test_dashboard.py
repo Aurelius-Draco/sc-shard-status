@@ -63,6 +63,9 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
             assert _call(url, token, p) is not None
         # First-run questions: asked until every one is answered, then applied in one go
         assert now["setup_needed"] is True
+        # No update checks and no GitHub star count before the update question is answered
+        assert _call(url, token, "/api/about")["star"]["show_count"] is False
+        assert _call(url, token, "/api/settings")["updates"] is False and app.updater.checked_at is None
         try:
             _call(url, token, "/api/setup", {"choices": {"game": "ok", "live": True}})
             raise AssertionError("half-answered set-up accepted")
@@ -79,6 +82,7 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
         now = _call(url, token, "/api/now")
         assert now["setup_needed"] is False and now["setup_ask"] == []
         assert r["settings"]["updates"] is False and now["update"]["current"] == config.VERSION
+        assert _call(url, token, "/api/about")["star"]["show_count"] is False      # answered no
         # Someone who answered the first set of questions is asked only the ones added since
         app.cfg["setup_version"] = 1
         assert _call(url, token, "/api/now")["setup_ask"] == ["updates", "library", "alerts", "errors"]

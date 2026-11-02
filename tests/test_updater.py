@@ -19,7 +19,33 @@ def _release(ver, with_setup=True, with_sha=True, base="https://example.invalid/
 
 class _App:
     def __init__(self, **cfg):
-        self.cfg = dict(check_updates=True, **cfg)
+        self.cfg = dict(dict(check_updates=True, setup_version=2), **cfg)
+
+
+def test_no_update_check_until_the_question_is_answered(monkeypatch):
+    """A fresh install never asks GitHub before set-up's update question is answered, even with the default on."""
+    monkeypatch.setattr(updater, "FIRST_CHECK_S", 0.01)
+    monkeypatch.setattr(updater, "EVERY_S", 0.01)
+    checks = []
+    fresh = _App(setup_version=0)
+    u = updater.Updater(fresh, version="1.0.1")
+    monkeypatch.setattr(u, "check", lambda: checks.append(1))
+    stop = threading.Event()
+    t = threading.Thread(target=u.run, args=(stop,), daemon=True)
+    t.start()
+    time.sleep(0.2)
+    assert checks == [] and not u.enabled and not u.info()["enabled"]
+    fresh.cfg["setup_version"] = 2                           # answered yes
+    for _ in range(100):
+        if checks:
+            break
+        time.sleep(0.01)
+    stop.set()
+    t.join(1)
+    assert checks and u.enabled
+    # Answered no: never checks. An install that answered before keeps its answer
+    assert not updater.Updater(_App(check_updates=False)).enabled
+    assert updater.Updater(_App(setup_version=4)).enabled
 
 
 def test_versions_compare_as_numbers():

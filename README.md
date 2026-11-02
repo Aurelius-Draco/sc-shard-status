@@ -129,7 +129,7 @@ Players on shard is everyone on the shard; on your server is the server node han
 ## Ground rules
 
 - It only reads your screen (the game's own overlay), Game.log and the game's text file. It never touches the game's memory or network traffic, and never sends mouse or keyboard input.
-- Nothing leaves your PC unless you turn on sharing. The dashboard only answers this PC (127.0.0.1).
+- What leaves your PC, and when. Update checks ask GitHub for the latest version (and the About tab's star count), only when switched on; it's asked on first start, and nothing is checked before you answer. **Show other shards** and library updates download from verseshards.com and send nothing about you. Sharing readings, app error reports and the buttons you press (group posts, pirate reports, Send for review) are what send things to verseshards.com. The dashboard only answers this PC (127.0.0.1).
 - When sharing is on, the app sends one summary every 5 minutes and shows you exactly what it sent. It never includes your handle, other players' names, account or session numbers, file paths or your IP address.
 - Issue Council reports are drafts. You check them and submit them yourself. Each one ends with a line saying it was compiled by this tool.
 - The optional Mark this moment hotkey is registered with Windows, which tells the app only when that one combination is pressed. The app never watches the keyboard.

@@ -51,8 +51,11 @@ MESSAGE = [
 RULES = [
     "It only reads your screen (the game's own debug overlay), Game.log and the game's text file. It never "
     "touches the game's memory or network traffic, and never sends mouse or keyboard input.",
-    "Nothing leaves your PC unless you turn on sharing. The community board summary is shown to you on the Set up "
-    "tab and never includes your handle, other players' names, account or session numbers, or IP address.",
+    "Update checks ask GitHub for the latest version (and the About tab's star count), only when switched on. "
+    "Show other shards and library updates download from verseshards.com and send nothing about you. Sharing "
+    "readings, app error reports and the buttons you press are what send things to verseshards.com.",
+    "The sharing summary is shown to you on the Set up tab and never includes your handle, other players' names, "
+    "account or session numbers, or IP address.",
     "Issue Council reports are drafts for you to check and submit yourself.",
     "The optional Mark this moment hotkey is registered with Windows, which tells the app only when that one "
     "combination is pressed. The app never watches the keyboard.",

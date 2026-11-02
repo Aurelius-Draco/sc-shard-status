@@ -65,7 +65,8 @@ DEFAULT_CONFIG = {
     "open_browser": True,
     # Add r_displayinfo to the game's USER.cfg when it's missing (asks first)
     "offer_user_cfg": True,
-    # Check GitHub for a newer version (once at start, then every 6 hours). Nothing installs until you click Update.
+    # Check GitHub for a newer version (a minute after start, then every 6 hours), and show the GitHub star count on
+    # About. Never before the player answers the update question in set-up. Nothing installs until you click Update.
     "check_updates": True,
     # Fetch newer copies of the known-issues library from the community site (a plain download; nothing sent)
     "library_updates": False,

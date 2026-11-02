@@ -131,7 +131,9 @@ def start_server(app, open_browser=False):
                     au["picture"] = f"/img/{au['picture']}" if au.get("picture") else ""
                     return self._send(200, {"author": au, "message": about.MESSAGE, "rules": about.RULES,
                                             "links": about.LINKS, "also_by": about.ALSO_BY, "version": VERSION,
-                                            "star": about.STAR, "coming": about.COMING})
+                                            # the star count comes from GitHub, so only with update checks on
+                                            "star": dict(about.STAR, show_count=app.updater.enabled),
+                                            "coming": about.COMING})
             except ValueError as e:
                 return self._send(400, {"error": str(e)})
             except Exception as e:

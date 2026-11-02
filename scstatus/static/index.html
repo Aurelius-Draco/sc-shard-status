@@ -2253,7 +2253,7 @@ async function renderSetup() {
   </section>
   <section class="sec frame setcard" id="updCard">
     <h4>Updates</h4>
-    <p>The app asks GitHub whether there's a newer version a minute after it starts and every 6 hours after that. It only asks; nothing is sent about you, and nothing installs until you click Update now. The installed app then updates itself and starts again, keeping your settings and history.</p>
+    <p>The app asks GitHub whether there's a newer version a minute after it starts and every 6 hours after that, and the About tab asks GitHub for the star count. Both only with this on. It only asks; nothing is sent about you, and nothing installs until you click Update now. The installed app then updates itself and starts again, keeping your settings and history.</p>
     <div class="swlist" id="updToggles"></div>
     <div id="updState" style="display:grid;gap:var(--s2);margin-top:var(--s3)"></div>
   </section>
@@ -2392,7 +2392,7 @@ async function renderAbout() {
 
   <section class="sec ab-two"><div><h2 class="ab-h">Ground rules</h2><div class="ab-rules">
       <div><b>Reads, never touches</b><span>Only your screen's overlay, Game.log and the game's text file. Never the game's memory or network traffic, never your mouse or keyboard.</span></div>
-      <div><b>Nothing leaves unless you say so</b><span>Sharing is off until you switch it on, and you can see exactly what was last sent. Never your handle, other players' names or your IP.</span></div>
+      <div><b>Nothing leaves unless you say so</b><span>Update checks ask GitHub, only when switched on. Show other shards downloads the board and sends nothing about you. Sharing readings, app error reports and the buttons you press send to verseshards.com, and you can see what was last sent. Never your handle, other players' names or your IP.</span></div>
       <div><b>No accounts</b><span>Verse Shards stores no IP addresses. The app uses a random install id, never your handle, so nothing is counted twice.</span></div>
       <div><b>You file the reports</b><span>Issue Council reports are drafts. You check them and submit them yourself.</span></div></div>
       <p class="sub" style="margin:var(--s2) 0 0">Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.</p></div>
@@ -2414,7 +2414,8 @@ async function renderAbout() {
   <section class="sec"><h3>Look</h3><div class="seg" role="radiogroup" aria-label="Theme">
     ${[["", "Match Windows"], ["dark", "Dark"], ["light", "Light"]].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${theme === v}">${l}</button>`).join("")}</div></section>
   <p class="foot">Verse Shards for PC v${esc(d.version)}</p>`;
-  fetch(d.star.api, {headers: {accept: "application/vnd.github+json"}}).then(r => r.ok ? r.json() : null)
+  // The star count asks GitHub, so only when update checks are on (the same yes); otherwise no count
+  if (d.star.show_count) fetch(d.star.api, {headers: {accept: "application/vnd.github+json"}}).then(r => r.ok ? r.json() : null)
     .then(j => { if (j && $("starN")) $("starN").textContent = "· " + j.stargazers_count; }).catch(() => {});
   $("view").querySelectorAll("[data-theme]").forEach(x => x.onclick = () => {
     const t = x.dataset.theme;
@@ -2459,7 +2460,7 @@ async function openWizard(all) {
       `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build, a random install id, your screen size and counts of how cleanly the overlay was read. After each game session: its build, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
       yn("share", "Yes, share", "No, don't share") + now(st.share)],
     ["updates", "This app", "Tell you when there's a new version?",
-      `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. Nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,
+      `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. The About tab also asks GitHub for the app's star count. Nothing is sent about you, nothing is asked until you answer this, and nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,
       yn("updates", "Yes, tell me", "No, I'll check myself") + now(st.updates)],
     ["alerts", "This app", "Pop up an alert when something goes wrong while you play?",
       `A Windows notification when the server's fps falls off a cliff, the server restarts, packet loss climbs, you're disconnected, or a known problem turns up (like contract deliveries not counting). Each kind at most once every 10 minutes. Windows holds notifications back over full-screen games, so borderless window mode or a second screen works best; the sound plays either way.`,

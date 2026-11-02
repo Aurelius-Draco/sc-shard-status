@@ -1,6 +1,6 @@
 """What's shared with the community board, and the code that shares it.
 
-Nothing is sent unless you switch sharing on (Set up tab). When it's on, the app
+Readings are sent only when you switch sharing on (Set up tab). When it's on, the app
 sends one 5-minute summary of your overlay readings; the Set up tab shows the
 exact last payload. Reading the board (other shards in your region) is a
 separate switch and sends nothing about you.
