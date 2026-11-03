@@ -364,13 +364,17 @@ class Community:
         return {"id": own, "relation": relation, "to": to_id,
                 "message": f"{own} is on the issue page {self.RELATIONS[relation].format(to=to_id)}."}
 
-    def send_moment(self, ts, build, shard_id, what, issues):
-        """Mark this moment, sent for review: the time, build, shard, the player's description and the library ids
-        found near it. Never screenshots, handles or log lines."""
+    def send_moment(self, ts, build, shard_id, what, issues, detail=None):
+        """Mark this moment, sent for review: the time, build, shard, the player's description, the library ids
+        found near it and the checked detail (see moment_detail_clean). Never screenshots, handles or log lines."""
         import re
         body = {"install": self.app.store.install_id(), "ts": int(ts), "build": build, "shard_id": shard_id,
                 "what": re.sub(r"\s+", " ", (what or "")).strip()[:200],
                 "issues": [i for i in (issues or []) if isinstance(i, str) and re.fullmatch(r"[a-z0-9-]{2,80}", i)][:10]}
+        d = moment_detail_clean(detail)
+        if d:
+            body["detail"] = d
+            body["version"] = self.version
         try:
             code, d = self._req("/api/v1/moment", body)
         except Exception as e:
@@ -402,6 +406,47 @@ class Community:
         return {"region": name, "shards": shards[:8], "mine": mine, "best": best, "areas": picks,
                 "reporters": self.board.get("reporters"), "updated": self.board.get("updated"),
                 "error": self.board_error}
+
+
+_ID = re.compile(r"[a-z0-9-]{2,80}")
+_KIND = re.compile(r"[a-z_]{2,24}")
+_NODE = re.compile(r"[A-Za-z0-9]{1,8}")
+
+
+def moment_detail_clean(d):
+    """The extra detail a moment carries, cut down to exactly the allowed shape and sizes. Anything else is dropped,
+    so nothing new can ride along by accident. Returns a dict, or None when there's nothing to add."""
+    if not isinstance(d, dict):
+        return None
+    out = {}
+
+    def num(v, lo, hi):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return None
+        return v if lo <= v <= hi else None
+
+    earlier = [{"id": e["id"], "min": int(num(e.get("min"), 0, 60) or 0)} for e in d.get("earlier") or []
+               if isinstance(e, dict) and isinstance(e.get("id"), str) and _ID.fullmatch(e["id"])][:6]
+    unknown = [{"sig": re.sub(r"\s+", " ", e["sig"]).strip()[:200], "n": int(num(e.get("n"), 1, 100000) or 1),
+                "level": "error" if e.get("level") == "error" else "warning"}
+               for e in d.get("unknown") or [] if isinstance(e, dict) and isinstance(e.get("sig"), str) and e["sig"].strip()][:5]
+    events = [{"k": e["k"], "s": int(num(e.get("s"), 0, 600))} for e in d.get("events") or []
+              if isinstance(e, dict) and isinstance(e.get("k"), str) and _KIND.fullmatch(e["k"])
+              and num(e.get("s"), 0, 600) is not None][-12:]
+    for k, v in (("earlier", earlier), ("unknown", unknown), ("events", events)):
+        if v:
+            out[k] = v
+    a = d.get("area")
+    if isinstance(a, dict) and isinstance(a.get("area_name"), str) and a["area_name"].strip():
+        out["area"] = {"system": str(a.get("system") or "")[:20] or None, "area_name": a["area_name"].strip()[:60]}
+    if isinstance(d.get("server"), str) and _NODE.fullmatch(d["server"]):
+        out["server"] = d["server"]
+    fps = num(d.get("fps"), 0, 1000)
+    if fps is not None:
+        out["fps"] = round(fps, 1)
+    return out or None
 
 
 def review_request(finding, session, redactor, install_id, contracts=()):

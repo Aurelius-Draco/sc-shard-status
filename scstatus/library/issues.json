@@ -1,5 +1,5 @@
 {
- "version": "2026-11-01.1",
+ "version": "2026-11-03.1",
  "rules": [
   {
    "id": "cargo-no-resource-container",
@@ -147,10 +147,11 @@
     "regex": "Type\\[(?P<type>\\w+)\\] Result\\[(?P<result>(?!Succeed\\])\\w+)\\]"
    },
    "title": "An inventory action failed ({type})",
-   "explain": "The server refused or dropped an inventory request of type {type}. The item usually snaps back to where it was. A burst of these means the inventory service is struggling on this server.",
+   "explain": "The server refused or dropped an inventory request of type {type}. The item usually snaps back to where it was. A burst of these means the inventory service is struggling on this server, and items moved during a burst can end up somewhere else or go missing. It's often only noticed later.",
    "fixes": [
     "Close the inventory, wait a few seconds and try again.",
     "Don't drag lots of items quickly; the requests queue up and fail together.",
+    "If items are missing, check the station's local inventory and your ship, then relog and check again before replacing anything.",
     "If every move fails, relog. Server hop if it carries on."
    ],
    "ic_title": "Inventory {type} request fails (Result {result})",
@@ -300,6 +301,23 @@
    ]
   },
   {
+   "id": "disconnect-30028",
+   "kind": "info",
+   "severity": "low",
+   "area": "Connection",
+   "match": {
+    "tag": "Channel Disconnected",
+    "regex": "cause=(?P<cause>30028) reason=\"(?P<reason>[^\"]*)\""
+   },
+   "title": "Kicked for being idle",
+   "explain": "Code 30028 means the game disconnected you for being inactive too long: \"{reason}\". It isn't a server problem.",
+   "fixes": [
+    "Rejoin when you're back. Anything you left out in the world may have been cleaned up while you were away."
+   ],
+   "links": [],
+   "builds_seen": []
+  },
+  {
    "id": "disconnect-30010",
    "kind": "noise",
    "severity": "low",
@@ -317,23 +335,6 @@
     "12660092",
     "12913470"
    ]
-  },
-  {
-   "id": "disconnect-30028",
-   "kind": "info",
-   "severity": "low",
-   "area": "Connection",
-   "match": {
-    "tag": "Channel Disconnected",
-    "regex": "cause=(?P<cause>30028) reason=\"(?P<reason>[^\"]*)\""
-   },
-   "title": "Kicked for being idle",
-   "explain": "Code 30028 is the game disconnecting a player who hasn't moved for a while (\"{reason}\"). Not a server problem.",
-   "links": [],
-   "fixes": [
-    "Move or press a key every few minutes if you need to stay logged in while away."
-   ],
-   "builds_seen": []
   },
   {
    "id": "loading-long-wait",

@@ -242,8 +242,12 @@ def test_moment_screenshots_review_draft_link_and_places(tmp_path, monkeypatch):
         assert r["message"] == "Thanks, sent."
         body = sent[-1][1]
         assert sent[-1][0] == "/api/v1/moment" and body["issues"] == [] and body["what"] == "Elevator didn't come"
-        assert set(body) == {"install", "ts", "build", "shard_id", "what", "issues"}
+        assert set(body) <= {"install", "ts", "build", "shard_id", "what", "issues", "detail", "version"}
         assert "ScreenShot" not in json.dumps(body)
+        # 1.5: the detail the player was shown. The area, never the place; the server's number and fps
+        assert body["detail"]["server"] == "37" and body["detail"]["fps"] == 4.6 and body["version"]
+        assert "Orison" not in json.dumps(body["detail"]) and "Game.log" not in json.dumps(body)
+        assert m["send"]["lines"] and any("fps" in x for x in m["send"]["lines"])
         assert "Send for review" in PAGE and "Never your screenshots or log lines" in PAGE
         # The draft: your description, and only the screenshots you picked
         d = _call(url, token, "/api/moment/draft", {"ts": ts, "what": "Elevator didn't come", "shots": ["ScreenShot-b.jpg", "../Game.log"]})

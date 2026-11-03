@@ -42,3 +42,25 @@ Plain direct English. Say what the player will notice, why, and what actually he
 python status.py --check --file "path\to\Game.log" --minutes 0
 python -m pytest -q tests
 ```
+
+## Rules learnt from moments and reviews
+
+Most new rules come from other players: a moment sent for review carries the codes (signatures) of errors the library
+doesn't know yet, and the review queue carries the same codes with stripped example lines. Nobody needs the player's
+own Game.log.
+
+In `library-builder/rules.py` (site repo), give the rule the signatures it was written from and where it came from:
+
+```python
+rule("atc-landing-no-response", "problem", "medium", "Vehicles",
+     tag="...", regex=r"...",
+     title="...", explain="...", fixes=[...],
+     sigs=["<the signature exactly as the admin page shows it>"],
+     learnt="moment 3 Nov 2026, Crusader, server change just before")
+```
+
+`python library-builder/build_library.py --no-corpus --write` turns each signature back into a log line, checks
+this rule is the one that matches it (not an earlier rule, not nothing), keeps `builds_seen` from the current file,
+and writes both copies: this app's `scstatus/library/issues.json` and the site's `live/public/library/issues.json`.
+`sigs` and `learnt` stay out of the shipped file. Bump `VERSION` first. With Ray's logs to hand, run it without
+`--no-corpus` as well to see corpus hits.

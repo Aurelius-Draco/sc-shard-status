@@ -16,6 +16,25 @@ from .names import Names
 from .store import Store
 
 
+def moment_findings(found, t, earlier_s=1800):
+    """Split diagnosis findings for a marked moment: problems within 10 minutes of it (near_mark), and known problems
+    from further back in the half hour before. Some problems are only noticed late: items that failed to move are
+    often spotted 20 or 30 minutes after the failure, by which time the failure is outside the 10 minutes."""
+    near, earlier = [], []
+    for i, f in enumerate(found):
+        if f.get("kind", "problem") != "problem":
+            continue
+        row = {"i": i, "title": f["title"], "severity": f.get("severity"), "rule_id": f.get("rule_id"),
+               "first_ts": f.get("first_ts"), "last_ts": f.get("last_ts")}
+        last = f.get("last_ts") or f.get("first_ts")
+        if f.get("near_mark"):
+            near.append(row)
+        elif f.get("rule_id") and last and t - earlier_s <= last < t:
+            earlier.append(dict(row, min_before=int((t - last) // 60)))
+    earlier.sort(key=lambda r: r["min_before"])
+    return near, earlier
+
+
 class App:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -559,11 +578,7 @@ class App:
         server = (m.get("server") or snap.get("server_name") or "").rsplit("-", 1)[-1] or None
         place = self.places.place(m.get("location") or snap.get("location")) or None
         res = self.run_diagnosis(None, t)
-        findings = []
-        for i, f in enumerate(res.get("findings", [])):
-            if f.get("near_mark") and f.get("kind", "problem") == "problem":
-                findings.append({"i": i, "title": f["title"], "severity": f.get("severity"), "rule_id": f.get("rule_id"),
-                                 "first_ts": f.get("first_ts"), "last_ts": f.get("last_ts")})
+        findings, earlier = moment_findings(res.get("findings", []), t, self.EARLIER_S)
         log = []
         s = self.session
         if s:
@@ -577,20 +592,115 @@ class App:
                     log.append({"ts": when, "text": f["title"], "kind": "bad"})
         log.append({"ts": t, "text": "You marked this moment", "kind": "mark"})
         log.sort(key=lambda x: x["ts"])
+        detail = self._moment_detail(t, res, snap, findings, earlier)
         return {"ts": t, "shard_id": shard, "shard_name": community.shard_name(shard) if shard else None,
                 "server": server, "place": place,
                 "readings": {"server_fps": snap.get("server_fps"), "pop_srv": snap.get("pop_srv"), "ping_ms": snap.get("ping_ms")},
-                "log": log[-40:], "findings": findings[:6], "shots": self.moment_shots(t),
-                "board": bool(self.cfg.get("community_board"))}
+                "log": log[-40:], "findings": findings[:6], "earlier": earlier[:6], "shots": self.moment_shots(t),
+                "board": bool(self.cfg.get("community_board")),
+                "send": {"issues": [f["rule_id"] for f in findings if f.get("rule_id")][:10], "detail": detail,
+                         "lines": self._moment_send_lines(detail)}}
+
+    # A moment noticed late: known problems this long before the mark go with it as "earlier"
+    EARLIER_S = 30 * 60
+    # Kinds of thing that happened in the 5 minutes before the mark. Only the kind and how long before, never the
+    # text, a place, a ship or a contract name
+    EVENT_KINDS = {"join", "loaded", "qt_target", "qt_arrived", "location", "armistice", "ship_retrieved", "accepted",
+                   "objective_complete", "objective_failed", "contract_complete", "contract_failed", "contract_abandoned",
+                   "contract_dropped", "elevator", "left", "disconnect", "quit", "crash"}
+
+    def _moment_detail(self, t, res, snap, findings, earlier):
+        """What a moment sent for review carries besides the description and the issue ids near it, so it can be
+        diagnosed without the player's files: known problems from the half hour before, the codes of errors the
+        library doesn't know yet (names and numbers already stripped), the kinds of thing that happened in the 5
+        minutes before, a server change, the area (never the place), the server's number and fps, the app version."""
+        from .timeline import timeline
+        d = {"earlier": [{"id": f["rule_id"], "min": f["min_before"]} for f in earlier[:6]]}
+        # Errors the library doesn't know, within 10 minutes of the mark. Signatures are already normalised; one
+        # that still holds a handle from this log is dropped, not sent
+        handles = []
+        try:
+            handles = community.make_redactor(self.game_dir / "Game.log").handles
+        except Exception:
+            pass
+        from .redact import leaks
+        unk = []
+        for f in res.get("unknown", []):
+            a, b = f.get("first_ts") or 0, f.get("last_ts") or f.get("first_ts") or 0
+            sig = (f.get("fields") or {}).get("sig")
+            if not sig or not (a - 600 <= t <= b + 600) or leaks(sig, handles):
+                continue
+            level = "error" if "error" in (f.get("title") or "").lower() else "warning"
+            unk.append({"sig": sig[:200], "n": int(f.get("count") or 1), "level": level})
+        d["unknown"] = unk[:5]
+        # What was happening: event kinds in the 5 minutes before, and a change of game server from the readings
+        ev = []
+        s = self.session
+        if s:
+            for it in timeline(s, self.places, since=t - 300, until=t):
+                if it["kind"] in self.EVENT_KINDS:
+                    ev.append({"k": it["kind"], "s": int(max(0, t - it["ts"]))})
+        try:
+            rows = [x for x in self.store.snapshots(since=t - 300, limit=400) if x.get("ts", 0) <= t and x.get("server_name")]
+        except Exception:
+            rows = []
+        rows.sort(key=lambda x: x["ts"])
+        for a, b in zip(rows, rows[1:]):
+            if a["server_name"] != b["server_name"] and a.get("shard_id") == b.get("shard_id"):
+                ev.append({"k": "server_change", "s": int(max(0, t - b["ts"]))})
+        ev.sort(key=lambda e: -e["s"])
+        d["events"] = ev[-12:]
+        w = self.community.places.where(snap.get("location")) if snap.get("location") else None
+        if w and w.get("area_name"):
+            d["area"] = {"system": w.get("system"), "area_name": w.get("area_name")}
+        node = (snap.get("server_name") or "").rsplit("-", 1)[-1] or None
+        if node:
+            d["server"] = node
+        if snap.get("server_fps") is not None:
+            d["fps"] = round(float(snap["server_fps"]), 1)
+        return d
+
+    EVENT_WORDS = {"join": "joined a shard", "loaded": "loaded in", "qt_target": "set a quantum course",
+                   "qt_arrived": "arrived from quantum", "location": "moved to a new place", "armistice": "armistice zone",
+                   "ship_retrieved": "retrieved a ship", "accepted": "accepted a contract",
+                   "objective_complete": "finished an objective", "objective_failed": "failed an objective",
+                   "contract_complete": "finished a contract", "contract_failed": "contract failed",
+                   "contract_abandoned": "contract abandoned", "contract_dropped": "contract dropped",
+                   "elevator": "used a freight elevator", "left": "left the server", "disconnect": "disconnected",
+                   "quit": "quit", "crash": "crashed", "server_change": "changed game server"}
+
+    def _moment_send_lines(self, d):
+        """The extra things Send for review carries, in words, so the player sees them before pressing it."""
+        out = []
+        if d.get("area"):
+            out.append(f"The area: {d['area']['area_name']} (never the exact place)")
+        if d.get("server") or d.get("fps") is not None:
+            out.append("Your game server's number and its fps then" if d.get("server") else "The server's fps then")
+        if d.get("earlier"):
+            out.append(f"{len(d['earlier'])} known {'problem' if len(d['earlier']) == 1 else 'problems'} from the half hour before, by id")
+        if d.get("events"):
+            kinds = list(dict.fromkeys(self.EVENT_WORDS.get(e["k"], e["k"]) for e in d["events"]))
+            out.append("What was happening in the 5 minutes before: " + ", ".join(kinds[:6]))
+        if d.get("unknown"):
+            n = len(d["unknown"])
+            out.append(f"{n} error {'code' if n == 1 else 'codes'} the app doesn't know yet, with names and numbers stripped")
+        return out
 
     def moment_review(self, ts, what, issues=None):
-        """Send the moment for review: the time, game build, shard, the description and the library ids found near
-        it. Never screenshots or log lines. Pressing Send for review is the player's own yes, so it doesn't depend
-        on Show other shards or sharing being on."""
+        """Send the moment for review: the time, game build, shard, the description, the library ids found near
+        it, and the detail from _moment_detail. Never screenshots, log lines or the exact place. Pressing Send for
+        review is the player's own yes, so it doesn't depend on Show other shards or sharing being on."""
         m = self._mark_at(ts)
         known = {r["id"] for r in self.library.listing()}
-        ids = [i for i in (issues or []) if i in known]
-        out = self.community.send_moment(m["ts"], self.build, m.get("shard_id"), what, ids)
+        # What goes is worked out here from the moment itself, the same as the player was shown; ids from the page
+        # are only kept if the app found them too
+        try:
+            mo = self.moment(m["ts"])
+            ids, detail = mo["send"]["issues"], mo["send"]["detail"]
+        except Exception:
+            ids, detail = [], None
+        ids = [i for i in ids if i in known]
+        out = self.community.send_moment(m["ts"], self.build, m.get("shard_id"), what, ids, detail)
         titles = [x.get("title") for x in out["matched"] if x.get("title")]
         return {"matched": out["matched"],
                 "message": (f"Counted. It matches \u201c{titles[0]}\u201d, so it shows as a player who hit it today on that issue's page."
