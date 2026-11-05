@@ -1607,7 +1607,7 @@ function patchFixes(p) {
   const all = (p && p.fixes) || [];
   if (!all.length) return "";
   const mine = all.filter(f => f.you), ask = all.filter(f => f.ask);
-  const line = f => `<li>${esc(f.titles && f.titles.length ? f.titles[0] : f.said)}${f.starc ? ` <span class="sub">${esc(f.starc)}</span>` : ""}</li>`;
+  const line = f => `<li>${esc(f.titles && f.titles.length ? generic(f.titles[0]) : f.said)}${f.starc ? ` <span class="sub">${esc(f.starc)}</span>` : ""}</li>`;
   const card = `<a href="${esc(COMMUNITY_SITE)}/trends#patch" target="_blank" rel="noopener">the patch card</a>`;
   let h = mine.length
     ? `<p><b>CIG's ${esc(all[0].patch)} notes list potential fixes for ${mine.length === 1 ? "a problem" : mine.length + " problems"} you hit in the last fortnight:</b></p><ul>${mine.map(line).join("")}</ul><p class="sub">If any of them turns up again, the check says so and its Issue Council draft mentions the listed fix. ${card} shows whether other players still hit them.</p>`
