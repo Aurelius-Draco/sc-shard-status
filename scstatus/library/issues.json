@@ -2091,5 +2091,22 @@
    "rules": [],
    "ask": false
   }
+ ],
+ "activity_hints": [
+  {
+   "activity": "Vanduul Incursion",
+   "titles": [
+    "Engage Shattered Blade and Vanduul",
+    "Stop Vanduul and Shattered Blade Hostilities",
+    "Neutralize Vanduul and Shattered Blade Threat",
+    "Living Vanduul Sample",
+    "Seek and Destroy Super Stingers",
+    "Draw Out Maulers",
+    "Interdict Vanduul Maulers",
+    "Vanduul Strike Group Detected",
+    "Intercept Vanduul Fleet",
+    "Counterstrike Against Vanduul Raiders"
+   ]
+  }
  ]
 }

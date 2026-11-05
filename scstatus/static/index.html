@@ -1861,7 +1861,7 @@ async function renderTimeline() {
 /* ---------- Groups ---------- */
 // Recruiting, looking for a group and pirate reports on Verse Shards. Nothing goes until you press a button.
 // Composer choices survive a redraw
-let gKind = "recruit", gAct = null, gSpots = 2; let gDet = {voice: null, exp: null, style: null, seat: null, ship: "", lang: "", org: ""}, gHours = 2;
+let gSuggested = null; let gKind = "recruit", gAct = null, gSpots = 2; let gDet = {voice: null, exp: null, style: null, seat: null, ship: "", lang: "", org: ""}, gHours = 2;
 const ACT_ICON = a => (a || "Group").replace(/[^A-Za-z ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "GR";
 const minsLeft = ts => { const m = Math.max(1, Math.round((ts - Date.now() / 1000) / 60)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -1899,6 +1899,8 @@ async function renderGroups() {
   const where = [c.shard, c.server ? `server ${c.server}` : null, c.area_name].filter(Boolean).join(", ");
   const closed = d.open === false, cant = closed || !c.shard;
   if (gAct && acts.length && !acts.includes(gAct)) gAct = null;
+  // A contract you've taken that points to an activity (e.g. a Vanduul Incursion mission) picks it, once
+  if (!gAct && c.suggest_activity && acts.includes(c.suggest_activity) && gSuggested !== c.suggest_activity) { gAct = c.suggest_activity; gSuggested = gAct; }
   const mine = d.mine || [], posts = mine.filter(p => p.kind !== "pirate"), pirates = mine.filter(p => p.kind === "pirate");
   const fresh = i => i.created && Date.now() / 1000 - i.created < 600;
   // A full crew: no more Mark filled buttons for that post

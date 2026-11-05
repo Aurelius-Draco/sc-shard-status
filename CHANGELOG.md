@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- **Taken a Vanduul Incursion contract?** A new group post starts on the Vanduul Incursion activity (change it if you like). The contract titles come with library updates, so new mission packs don't need a new app.
 - **What CIG's patch notes say about your problems.** When a check finds something CIG's notes list a potential fix for, the card says so: a fix on the way in a later patch, or, if it turns up on the patch that listed the fix, that it's still happening (and the Issue Council draft says so too). The list comes with library updates, so it's ready on patch day without a new app.
 - **Patch day names fixes for problems you hit.** The new-build notice lists the fixes in CIG's notes for problems your own logs showed in the fortnight before, and links the patch report card, which shows whether other players still hit them.
 - **Saw into someone else's hangar?** When CIG asks players to report where something still happens, Mark this moment offers it as a quick pick, and the Issue Council draft is set up for it.

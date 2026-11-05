@@ -79,8 +79,12 @@ class Groups:
         server = (snap.get("server_name") or "").rsplit("-", 1)[-1] or None
         code = snap.get("location") or _last_location(s)
         w = self.community.places.where(code) if code else None
+        from .issues import activity_for
+        hints = getattr(getattr(self.app, "library", None), "activity_hints", [])
+        suggest = activity_for(hints, list(s.contracts.values())) if s is not None and hints else None
         return {"shard_id": shard, "shard": shard_name(shard) if shard else None, "server": server,
-                "system": (w or {}).get("system"), "area": (w or {}).get("area"), "area_name": (w or {}).get("area_name")}
+                "system": (w or {}).get("system"), "area": (w or {}).get("area"), "area_name": (w or {}).get("area_name"),
+                "suggest_activity": suggest}
 
     def handle(self):
         """Your handle from Game.log, offered (never sent) until you confirm it on a looking-for-group post."""

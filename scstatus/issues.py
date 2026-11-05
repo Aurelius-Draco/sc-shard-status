@@ -87,6 +87,28 @@ def has_fix(f, branch, build=None):
     return mine is not None and mine >= patch_tuple(f["patch"])
 
 
+def clean_hints(items):
+    """Contract titles that mean an activity (library activity_hints), lower-cased for matching."""
+    out = []
+    for h in items if isinstance(items, list) else []:
+        if isinstance(h, dict) and isinstance(h.get("activity"), str) and isinstance(h.get("titles"), list):
+            out.append({"activity": h["activity"][:40],
+                        "titles": [t.lower().strip()[:80] for t in h["titles"] if isinstance(t, str) and t.strip()][:60]})
+    return out
+
+
+def activity_for(hints, contracts):
+    """The activity an active contract points to (newest first), or None."""
+    active = sorted((c for c in contracts or [] if c.get("result") == "active" and c.get("name")),
+                    key=lambda c: c.get("accepted") or 0, reverse=True)
+    for c in active:
+        name = c["name"].lower().strip()
+        for h in hints:
+            if any(t == name or t in name for t in h["titles"]):
+                return h["activity"]
+    return None
+
+
 def fix_for(fixes, rule_id, branch, build=None):
     """What CIG's notes say about this problem, for a player on this build (or patch `branch`):
     state "coming" when the fix is in a later patch than theirs, "listed" when their game has the patch that
@@ -121,6 +143,7 @@ class Library:
         self.version = ""
         self.rules = []
         self.cig_fixes = []
+        self.activity_hints = []
         self.by_tag = defaultdict(list)
         self.untagged = []
         self.path = path or self._pick()
@@ -131,6 +154,7 @@ class Library:
             data = {"rules": []}
         self.version = data.get("version", "")
         self.cig_fixes = clean_fixes(data.get("cig_fixes"))
+        self.activity_hints = clean_hints(data.get("activity_hints"))
         for d in data.get("rules", []):
             try:
                 r = Rule(d)

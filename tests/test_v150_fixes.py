@@ -111,3 +111,12 @@ def test_moment_quick_pick_and_hangar_draft():
     d = report.draft(f, {"session": {"branch": "4.10.3", "build": "13200000"}})
     assert d["title"] == "Personal hangar overlaps other players' hangars"
     assert "still happens on 4.10.3, whose patch notes listed a potential fix." in next(s for s in d["sections"] if s["key"] == "happened")["text"]
+
+
+def test_a_vanduul_contract_suggests_the_activity():
+    lib = issues.Library()
+    cs = [{"name": "Intercept Vanduul Fleet", "result": "active", "accepted": 5},
+          {"name": "Deliver medical supplies", "result": "active", "accepted": 9}]
+    assert issues.activity_for(lib.activity_hints, cs) == "Vanduul Incursion"
+    assert issues.activity_for(lib.activity_hints, [{"name": "Intercept Vanduul Fleet", "result": "complete"}]) is None
+    assert issues.activity_for(lib.activity_hints, []) is None
