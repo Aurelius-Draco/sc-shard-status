@@ -235,6 +235,12 @@ class App:
         say(f"Game folder set to {p} (from {source}).")
         return f"Game folder set to {p}."
 
+    @property
+    def channel(self):
+        """LIVE, or the test channel (PTU, EPTU, TECH-PREVIEW, HOTFIX) this copy is reading, from the game folder."""
+        from .config import channel_of
+        return channel_of(self.game_dir)
+
     def on_reading(self, snap):
         # Game.log is the authority on which shard you're on; small text at 1080p can misread a digit
         s = self.session
@@ -501,7 +507,7 @@ class App:
         snap = self._snap_at(at) if at else None
         if snap is None and (not at or time.time() - at < 900):
             snap = self.latest_snap()
-        channel = self.game_dir.name if self.game_dir.name.upper() in ("LIVE", "PTU", "EPTU", "TECH-PREVIEW", "HOTFIX") else "LIVE"
+        channel = self.channel
         return report.draft(f, self.last_result, snap, session=self.session, places=self.places, names=self.names,
                             mark=mark, channel=channel, ic_link=ic_link)
 

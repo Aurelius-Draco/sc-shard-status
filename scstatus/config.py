@@ -102,6 +102,13 @@ def _is_game_dir(p):
 CHANNELS = ("LIVE", "PTU", "EPTU", "TECH-PREVIEW", "HOTFIX")
 
 
+def channel_of(game_dir):
+    """Which game channel a game folder is (its name: LIVE, PTU, EPTU, TECH-PREVIEW or HOTFIX). Anything else is
+    taken as LIVE, since people put LIVE in all sorts of places."""
+    name = str(getattr(game_dir, "name", "") or "").upper()
+    return name if name in CHANNELS else "LIVE"
+
+
 def find_game_dir(channel="LIVE"):
     """Look for the StarCitizen\\LIVE folder: next to this app, the usual install places on every drive, then one
     and two folders deep on each drive (custom library folders like D:\\Games\\RSI\\StarCitizen\\LIVE)."""

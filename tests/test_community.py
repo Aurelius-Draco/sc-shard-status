@@ -37,7 +37,7 @@ def test_payload_has_nothing_identifying():
     now = time.time()
     p = community.shard_report(community.summarise(snaps(now=now), now), "0123456789abcdef", "12913470",
                                [{"rule_id": "cargo.no_box_size"}], "1.0")
-    assert set(p) == {"v", "kind", "install", "build", "ts", "shard_id", "server", "server_fps", "server_fps_min",
+    assert set(p) == {"v", "kind", "install", "build", "channel", "ts", "shard_id", "server", "server_fps", "server_fps_min",
                       "server_fps_max", "hitches", "restarts", "pop_shard", "pop_srv", "ping_ms", "loss_pct",
                       "issues", "readings", "app"}
     assert p["server"] == "07" and p["ping_ms"] == 30 and p["ts"] % 60 == 0

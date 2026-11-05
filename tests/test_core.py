@@ -116,7 +116,7 @@ def test_shard_report_has_nothing_personal():
     assert p["ts"] % 60 == 0 and p["ping_ms"] == 20 and p["server"] == "07"
     # Long numbers here are the build and the time, nothing else
     assert set(leaks(json.dumps(p), [])) <= {"long number"}
-    assert set(p) == {"v", "kind", "install", "build", "ts", "shard_id", "server", "server_fps", "server_fps_min",
+    assert set(p) == {"v", "kind", "install", "build", "channel", "ts", "shard_id", "server", "server_fps", "server_fps_min",
                       "server_fps_max", "hitches", "restarts", "pop_shard", "pop_srv", "ping_ms", "loss_pct", "issues",
                       "readings", "app"}
 

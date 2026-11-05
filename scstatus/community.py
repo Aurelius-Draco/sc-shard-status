@@ -37,11 +37,21 @@ def shard_name(shard_id):
     return f"{REGION_TAGS.get(m.group(1), m.group(1).upper())}-{int(m.group(2))}" if m else (shard_id or "")
 
 
-def shard_report(snap, install_id, build, findings=(), app_version=None, where=None, quality=None):
+PAUSED_TEST = "paused: this copy reads a test server ({ch}), so its readings stay on your PC"
+
+
+def _channel(app):
+    """The app's game channel (LIVE unless it's reading a PTU, EPTU, Tech Preview or Hotfix folder)."""
+    from .config import channel_of
+    ch = getattr(app, "channel", None)
+    return ch if isinstance(ch, str) else channel_of(getattr(app, "game_dir", None))
+
+
+def shard_report(snap, install_id, build, findings=(), app_version=None, where=None, quality=None, channel="LIVE"):
     """One health reading (or a 5-minute summary of several) for the live shard status board. `where` is the
     area only (a planet, a jump point or open space: {system, area, area_name}), never the exact place."""
     out = {
-        "v": PAYLOAD_VERSION, "kind": "shard", "install": install_id, "build": build,
+        "v": PAYLOAD_VERSION, "kind": "shard", "install": install_id, "build": build, "channel": channel,
         "ts": int(snap["ts"] // 60 * 60),
         "shard_id": snap.get("shard_id"),
         "server": (snap.get("server_name") or "").rsplit("-", 1)[-1] or None,   # e.g. "game-07" -> "07"
@@ -87,7 +97,7 @@ def quality(snaps, tries=0, failed=0, screen=None):
             "no_players": sum(1 for s in ok if s.get("pop_shard") is None), "misreads": min(10000, mis), "screen": screen}
 
 
-def sessions_report(install_id, sessions, since, now=None):
+def sessions_report(install_id, sessions, since, now=None, channel="LIVE"):
     """Finished game sessions for the patch report card: build, length, load time, whether it crashed, and the
     error codes of any disconnects. No shard, place, handle or anything else."""
     from .logparse import NORMAL_CAUSES
@@ -103,7 +113,7 @@ def sessions_report(install_id, sessions, since, now=None):
                      # The game's own wording for each error, so codes nobody has explained yet can be looked into
                      "reasons": _reasons(s.get("disconnect_reasons", []))})
     rows.sort(key=lambda r: r["start"])
-    return {"v": PAYLOAD_VERSION, "kind": "sessions", "install": install_id, "sessions": rows[:20]} if rows else None
+    return {"v": PAYLOAD_VERSION, "kind": "sessions", "install": install_id, "channel": channel, "sessions": rows[:20]} if rows else None
 
 
 REASON_KEEP = re.compile(r"[^A-Za-z .,:;'()_\-]")
@@ -235,7 +245,7 @@ class Community:
         """Finished game sessions since the last ones sent (patch report card). Only with sharing on."""
         now = now or time.time()
         since = float(self.app.store.meta("sessions_sent_upto", 0) or 0)
-        payload = sessions_report(self.app.store.install_id(), self.app.store.sessions(limit=60), since, now)
+        payload = sessions_report(self.app.store.install_id(), self.app.store.sessions(limit=60), since, now, _channel(self.app))
         if not payload:
             return 0
         code, d = self._req("/api/v1/sessions", payload)
@@ -257,7 +267,8 @@ class Community:
                 self.rsi = d if code == 200 else self.rsi
             except Exception:
                 pass
-        if cfg.get("share_readings") and now - self.sessions_at >= SESSIONS_EVERY_S:
+        live = _channel(self.app) == "LIVE"
+        if live and cfg.get("share_readings") and now - self.sessions_at >= SESSIONS_EVERY_S:
             self.sessions_at = now
             try:
                 self.send_sessions(now)
@@ -285,6 +296,10 @@ class Community:
             self.share_status = "off"
             self.fed_week = None
             return
+        if not live:
+            # A PTU (or other test) folder: the board, trends and patch card are for LIVE servers only
+            self.share_status = PAUSED_TEST.format(ch=_channel(self.app))
+            return
         if now - self.sent_at < SHARE_EVERY_S or now < self.retry_at:
             return
         with self.app.lock:
@@ -302,7 +317,7 @@ class Community:
             self._q_tries, self._q_failed = w.tries, w.failed
         payload = shard_report(snap, self.app.store.install_id(), self.app.build, findings, self.version,
                                self.places.where(snap.get("location")),
-                               quality(recent, max(0, tries), max(0, failed), w.screen if w else None))
+                               quality(recent, max(0, tries), max(0, failed), w.screen if w else None), _channel(self.app))
         self.last_payload = payload
         try:
             code, d = self._req("/api/v1/report", payload)

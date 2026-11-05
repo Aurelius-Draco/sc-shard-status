@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- **Test servers stay off the board.** Pointed at a PTU, EPTU, Tech Preview or Hotfix folder, the app reads and checks as usual but shares nothing: no readings, no session summaries, no group posts or pirate reports. Set up says sharing is paused and why. Shared readings now also say they come from LIVE.
 - **Message of the week.** Now and then the Now tab shows a short message from Verse Shards with a link, for example a Spectrum post worth an upvote. It comes with the board the app already downloads when Show other shards is on, so nothing extra is sent. Hide puts that message away for good.
 - Reading-quality counts (sent with shared readings) now count a misread only when a value blips for one reading and comes straight back, not every time the player count moves. The old count mostly measured how busy the server was.
 - Fixed: the overlay wasn't found when the game runs at a lower resolution than the monitor (for example 1440p on a 4K screen). Thanks to the player who reported it on GitHub.

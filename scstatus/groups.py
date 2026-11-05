@@ -109,6 +109,9 @@ class Groups:
 
     def post(self, kind, activity=None, note=None, spots=None, handle=None, details=None, hours=None,
              report_kind=None, place=None):
+        from .community import _channel
+        if (ch := _channel(self.app)) != "LIVE":
+            raise ValueError(f"Group posts and pirate reports are for LIVE servers. This copy is reading {ch}.")
         ctx = self.context()
         if not ctx["shard_id"]:
             raise ValueError("Join a shard in game first, so the post can say where you are.")
