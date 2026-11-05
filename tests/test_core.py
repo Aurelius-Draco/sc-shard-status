@@ -162,7 +162,7 @@ def test_shipped_library_is_valid():
     assert len(ids) == len(set(ids)), "duplicate rule ids"
     blob = path.read_text(encoding="utf-8")
     # Build numbers and Issue Council ids (STARC-123456, from CIG's patch notes) are public, not anyone's
-    assert "Aurelius" not in blob and not leaks(re.sub(r"STARC-\d+", "", blob.replace("12913470", "").replace("12660092", "").replace("12572603", "")), [])
+    assert "Aurelius" not in blob and not leaks(re.sub(r"STARC-\d+|\"ptu\": \d+|\"ptu\": \"\d+\"", "", blob.replace("12913470", "").replace("12660092", "").replace("12572603", "")), [])
 
 
 def test_check_reaches_back_into_earlier_sessions(tmp_path):

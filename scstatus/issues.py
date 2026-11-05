@@ -64,6 +64,7 @@ def clean_fixes(items):
         if not isinstance(f, dict) or not f.get("id") or not patch_tuple(f.get("patch")) or not f.get("said"):
             continue
         out.append({"id": str(f["id"])[:40], "patch": str(f["patch"]), "said": str(f["said"])[:300],
+                    "ptu": int(f["ptu"]) if str(f.get("ptu", "")).isdigit() else None,
                     "starc": str(f["starc"])[:20] if f.get("starc") else None,
                     "rules": [str(r) for r in f.get("rules") or [] if isinstance(r, str)][:10],
                     "how": "same" if f.get("how") == "same" else "related",
@@ -76,33 +77,43 @@ def clean_fixes(items):
     return out
 
 
-def fix_for(fixes, rule_id, branch):
-    """What CIG's notes say about this problem, for a player on patch `branch`:
-    state "coming" when the fix is in a later patch than theirs, "listed" when their patch (or an earlier one)
-    listed a fix and the problem still turned up. None when the notes don't mention it."""
+def has_fix(f, branch, build=None):
+    """Is this player's game at or past the patch that listed fix f? By build number when there is one (they only
+    go up, and the Branch line can't be trusted: the 4.10.3 PTU calls itself sc-alpha-4.10.0), else by patch."""
+    b = str(build or "")
+    if f.get("ptu") and b.isdigit():
+        return int(b) >= f["ptu"]
+    mine = patch_tuple(branch)
+    return mine is not None and mine >= patch_tuple(f["patch"])
+
+
+def fix_for(fixes, rule_id, branch, build=None):
+    """What CIG's notes say about this problem, for a player on this build (or patch `branch`):
+    state "coming" when the fix is in a later patch than theirs, "listed" when their game has the patch that
+    listed it and the problem still turned up. None when the notes don't mention it."""
     if not rule_id:
         return None
-    mine = patch_tuple(branch)
     for f in fixes:
         if rule_id not in f["rules"]:
             continue
-        p = patch_tuple(f["patch"])
-        state = "coming" if (mine is None or p > mine) else "listed"
+        state = "listed" if has_fix(f, branch, build) else "coming"
         return {"id": f["id"], "patch": f["patch"], "said": f["said"], "starc": f["starc"], "how": f["how"],
                 "ask": f["ask"], "state": state}
     return None
 
 
-def asks_for(fixes, branch):
-    """CIG's "tell us where it still happens" items for this patch or a later one (quick picks for a moment)."""
+def asks_for(fixes, branch, build=None):
+    """CIG's "tell us where it still happens" items (quick picks for a moment): from the build that listed the fix
+    (PTU included) until a later patch (by the Branch line, when it names a later one)."""
     mine = patch_tuple(branch)
-    return [f for f in fixes if f["ask"] and f["chip"] and (mine is None or patch_tuple(f["patch"]) >= mine)]
+    return [f for f in fixes if f["ask"] and f["chip"] and has_fix(f, branch, build)
+            and (mine is None or mine <= patch_tuple(f["patch"]))]
 
 
-def ask_matching(fixes, branch, what):
+def ask_matching(fixes, branch, what, build=None):
     """The ask item a moment's description is about (its words appear in it), or None."""
     text = (what or "").lower()
-    return next((f for f in asks_for(fixes, branch) if f["words"] and any(w in text for w in f["words"])), None)
+    return next((f for f in asks_for(fixes, branch, build) if f["words"] and any(w in text for w in f["words"])), None)
 
 
 class Library:

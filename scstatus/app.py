@@ -367,8 +367,12 @@ class App:
     def patch_fixes(self, build, since):
         """CIG's listed fixes for this patch, each marked "you" when this player hit the problem in the fortnight
         before the patch (from their own logbackups and session list, read once per build in the background)."""
-        branch = getattr(getattr(self, "session", None), "branch", None)
-        fixes = [f for f in getattr(getattr(self, "library", None), "cig_fixes", []) if branch and f["patch"] == branch]
+        # The fixes this build brought: its number is at or past the PTU build that listed them, and the build
+        # before wasn't (the Branch line can't be trusted to name the patch)
+        prev = str(self.store.meta("prev_build") or "")
+        b = str(build or "")
+        fixes = [f for f in getattr(getattr(self, "library", None), "cig_fixes", [])
+                 if f.get("ptu") and b.isdigit() and int(b) >= f["ptu"] and not (prev.isdigit() and int(prev) >= f["ptu"])]
         if not fixes:
             return []
         import json
@@ -470,7 +474,8 @@ class App:
         from .issues import fix_for
         branch = getattr(self.session, "branch", None) or (res.get("session") or {}).get("branch")
         for f in res.get("findings", []):
-            note = fix_for(getattr(self.library, "cig_fixes", []), f.get("rule_id"), branch)
+            note = fix_for(getattr(self.library, "cig_fixes", []), f.get("rule_id"), branch,
+                           getattr(self, "build", None) or (res.get("session") or {}).get("build"))
             if note:
                 f["cig_fix"] = note
         if mark:
@@ -787,15 +792,16 @@ class App:
             else self.run_diagnosis(None, m["ts"])
         what = re.sub(r"\s+", " ", (what or "")).strip()[:200]
         near = [(i, f) for i, f in enumerate(res["findings"]) if f.get("near_mark") and f.get("kind", "problem") == "problem"]
-        from .issues import ask_matching, patch_tuple
+        from .issues import ask_matching, has_fix
         branch = getattr(self.session, "branch", None) or (res.get("session") or {}).get("branch")
-        ask = ask_matching(getattr(self.library, "cig_fixes", []), branch, what)
+        build = getattr(self, "build", None) or (res.get("session") or {}).get("build")
+        ask = ask_matching(getattr(self.library, "cig_fixes", []), branch, what, build)
         if near and not ask:
             i, f = near[0]
         elif ask:
             # Something CIG asked players to report (e.g. hangars overlapping): its own title and words, and the
             # note that the patch notes listed a fix, so the report says it hasn't held
-            state = "listed" if branch and patch_tuple(branch) >= patch_tuple(ask["patch"]) else "coming"
+            state = "listed" if has_fix(ask, branch, build) else "coming"
             f = {"title": ask["ic_title"], "ic_title": ask["ic_title"], "area": "Hangar", "severity": "medium", "kind": "problem",
                  "first_ts": m["ts"], "last_ts": m["ts"], "count": 1, "explain": ask["explain"], "fixes": [], "examples": [],
                  "fields": {}, "near_mark": True, "rule_id": None, "moment": True,

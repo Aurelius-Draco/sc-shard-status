@@ -120,7 +120,8 @@ def start_server(app, open_browser=False):
                 if path == "/api/moment":
                     if qs.get("part") == "shots":
                         from .issues import asks_for
-                        asks = asks_for(getattr(app.library, "cig_fixes", []), getattr(app.session, "branch", None))
+                        asks = asks_for(getattr(app.library, "cig_fixes", []), getattr(app.session, "branch", None),
+                                        getattr(app, "build", None))
                         return self._send(200, {"shots": app.moment_shots(qs.get("ts")),
                                                 "asks": [{"chip": a["chip"], "patch": a["patch"]} for a in asks]})
                     return self._send(200, app.moment(qs.get("ts")))

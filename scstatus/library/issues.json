@@ -2020,6 +2020,7 @@
   {
    "id": "4103-asop-freeze",
    "patch": "4.10.3",
+   "ptu": "13107423",
    "said": "ASOP terminals freezing the game for 3 to 4 seconds on interaction, with a one minute failsafe timeout added for requests that never return",
    "starc": "STARC-214984",
    "rules": [
@@ -2030,6 +2031,7 @@
   {
    "id": "4103-ground-vehicle-pad",
    "patch": "4.10.3",
+   "ptu": "13107423",
    "said": "Ground vehicles being destroyed on the hangar pad when retrieved",
    "starc": "STARC-219816",
    "rules": [
@@ -2041,6 +2043,7 @@
   {
    "id": "4103-client-crashes",
    "patch": "4.10.3",
+   "ptu": "13107423",
    "said": "Client crashes when streaming a render-to-texture texture, from unchecked weapon binding indexes in the memory allocator, from the Drake Cutter's front landing gear and from a missing impact effect on Pulverizer LMG ammunition",
    "starc": null,
    "rules": [
@@ -2052,6 +2055,7 @@
   {
    "id": "4103-server-deadlock",
    "patch": "4.10.3",
+   "ptu": "13107423",
    "said": "A server deadlock on the main thread while an entity was being detached and queued for deletion",
    "starc": null,
    "rules": [],
@@ -2060,6 +2064,7 @@
   {
    "id": "4103-hangar-overlap",
    "patch": "4.10.3",
+   "ptu": "13093654",
    "said": "Personal hangars visually overlapping, so players can see parts of other hangars and the vehicles inside them",
    "starc": null,
    "rules": [],
@@ -2080,6 +2085,7 @@
   {
    "id": "4103-atc-distribution",
    "patch": "4.10.3",
+   "ptu": "13107423",
    "said": "Unable to contact ATC to land at or depart from Distribution Centers",
    "starc": "STARC-220137",
    "rules": [],
