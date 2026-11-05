@@ -107,7 +107,7 @@ def sessions_report(install_id, sessions, since, now=None, channel="LIVE"):
         start = s.get("start")
         if not start or start <= since or start < now - 6 * 86400 or not s.get("build"):
             continue
-        rows.append({"start": int(start), "build": str(s["build"]), "region": s.get("region"),
+        rows.append({"start": int(start), "build": str(s["build"]), "branch": s.get("branch"), "region": s.get("region"),
                      "minutes": s.get("minutes"), "load_s": s.get("load_s"), "crashed": bool(s.get("crashed")),
                      "disconnects": [c for c in s.get("disconnect_causes", []) if c not in NORMAL_CAUSES][:10],
                      # The game's own wording for each error, so codes nobody has explained yet can be looked into

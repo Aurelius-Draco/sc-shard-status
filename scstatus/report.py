@@ -165,6 +165,11 @@ def draft(finding, result, snapshot=None, location_hint=None, session=None, plac
         f"{finding['title'].rstrip('.')}. {finding.get('explain', '').strip()}".strip())
     if mark and mark.get("ts"):
         base = f"I marked the moment at {_hm(mark['ts'])}. " + base
+    cf = finding.get("cig_fix") or {}
+    if cf.get("state") == "listed":
+        # CIG's notes listed a fix and it still happened: say so, it's the most useful line in the report
+        base += (f" This still happens on {cf['patch']}, whose patch notes listed a potential fix"
+                 + (f" ({cf['starc']})" if cf.get("starc") else "") + ".")
     happened = compose_happened(doing, base)
     expected = fit(expected_for(finding), LIMITS["expected"])
     fixes = finding.get("fixes") or []

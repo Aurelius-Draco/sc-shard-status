@@ -357,7 +357,67 @@ class App:
         prev, at = self.store.meta("prev_build"), int(self.store.meta("patch_seen_at", 0) or 0)
         new = bool(prev and prev != b and time.time() - at < self.PATCH_NOTICE_S
                    and self.store.meta("patch_dismissed") != b)
-        return {"build": b, "previous": prev, "new": new, "since": at or None}
+        out = {"build": b, "previous": prev, "new": new, "since": at or None}
+        if new:
+            out["fixes"] = self.patch_fixes(b, at)
+        return out
+
+    FIX_LOOKBACK_S = 14 * 86400
+
+    def patch_fixes(self, build, since):
+        """CIG's listed fixes for this patch, each marked "you" when this player hit the problem in the fortnight
+        before the patch (from their own logbackups and session list, read once per build in the background)."""
+        branch = getattr(getattr(self, "session", None), "branch", None)
+        fixes = [f for f in getattr(getattr(self, "library", None), "cig_fixes", []) if branch and f["patch"] == branch]
+        if not fixes:
+            return []
+        import json
+        key = f"patch_fix_hits:{build}"
+        cached = self.store.meta(key)
+        if cached is None:
+            if not getattr(self, "_fix_scan", None):
+                self._fix_scan = threading.Thread(target=self._scan_fix_hits, args=(key, fixes, since), daemon=True)
+                self._fix_scan.start()
+            hits = None
+        else:
+            try:
+                hits = set(json.loads(cached))
+            except ValueError:
+                hits = set()
+        rules = {r.id: r for r in self.library.rules}
+        return [{"id": f["id"], "said": f["said"], "starc": f["starc"], "ask": f["ask"], "patch": f["patch"],
+                 "titles": [rules[r].d.get("title", r) for r in f["rules"] if r in rules],
+                 "you": None if hits is None else f["id"] in hits} for f in fixes]
+
+    def _scan_fix_hits(self, key, fixes, since):
+        """Which listed fixes this player would have noticed: a linked rule matched in their logs, or a crash for
+        the crash fixes, in the 14 days before the patch arrived."""
+        import json
+        from .logparse import LINE, TEAMS, _joined_lines
+        start, end = (since or time.time()) - self.FIX_LOOKBACK_S, since or time.time()
+        want = {r: f["id"] for f in fixes for r in f["rules"]}
+        hits = set()
+        try:
+            folder = self.game_dir / "logbackups"
+            files = [p for p in folder.glob("*.log") if start <= p.stat().st_mtime <= end + 3600] if folder.exists() else []
+            for p in files:
+                with open(p, encoding="utf-8", errors="replace") as fh:
+                    for raw in _joined_lines(fh):
+                        m = LINE.match(raw)
+                        if not m or not (m.group(2) or m.group(3)):
+                            continue
+                        msg = TEAMS.sub("", m.group(4) or "").rstrip()
+                        rule, _ = self.library.match(m.group(2), m.group(3) or "", msg)
+                        if rule is not None and rule.id in want:
+                            hits.add(want[rule.id])
+            if any(f.get("measure") == "crashes" for f in fixes):
+                if any(s.get("crashed") or s.get("crash") for s in self.store.sessions(limit=80)
+                       if start <= (s.get("start") or 0) <= end):
+                    hits.update(f["id"] for f in fixes if f.get("measure") == "crashes")
+        except Exception as e:
+            say(f"Couldn't check past logs against the patch notes ({e}).")
+        self.store.set_meta(key, json.dumps(sorted(hits)))
+        self._fix_scan = None
 
     def notice_state(self, now=None):
         """The message of the week from verseshards.com: it comes with the board the app already downloads when "Show
@@ -406,6 +466,13 @@ class App:
                        backups_dir=self.game_dir / "logbackups")
         res["checked_at"] = time.time()
         res["mark"] = mark
+        # What CIG's patch notes say about each problem: a fix coming in a later patch, or one listed that hasn't held
+        from .issues import fix_for
+        branch = getattr(self.session, "branch", None) or (res.get("session") or {}).get("branch")
+        for f in res.get("findings", []):
+            note = fix_for(getattr(self.library, "cig_fixes", []), f.get("rule_id"), branch)
+            if note:
+                f["cig_fix"] = note
         if mark:
             # The marked moment first: findings within 10 minutes of it, nearest first
             def dist(f):
@@ -720,15 +787,31 @@ class App:
             else self.run_diagnosis(None, m["ts"])
         what = re.sub(r"\s+", " ", (what or "")).strip()[:200]
         near = [(i, f) for i, f in enumerate(res["findings"]) if f.get("near_mark") and f.get("kind", "problem") == "problem"]
-        if near:
+        from .issues import ask_matching, patch_tuple
+        branch = getattr(self.session, "branch", None) or (res.get("session") or {}).get("branch")
+        ask = ask_matching(getattr(self.library, "cig_fixes", []), branch, what)
+        if near and not ask:
             i, f = near[0]
+        elif ask:
+            # Something CIG asked players to report (e.g. hangars overlapping): its own title and words, and the
+            # note that the patch notes listed a fix, so the report says it hasn't held
+            state = "listed" if branch and patch_tuple(branch) >= patch_tuple(ask["patch"]) else "coming"
+            f = {"title": ask["ic_title"], "ic_title": ask["ic_title"], "area": "Hangar", "severity": "medium", "kind": "problem",
+                 "first_ts": m["ts"], "last_ts": m["ts"], "count": 1, "explain": ask["explain"], "fixes": [], "examples": [],
+                 "fields": {}, "near_mark": True, "rule_id": None, "moment": True,
+                 "cig_fix": {"id": ask["id"], "patch": ask["patch"], "said": ask["said"], "starc": ask["starc"], "how": "same",
+                             "ask": True, "state": state}}
+            res["findings"].append(f)
+            i = len(res["findings"]) - 1
         else:
             f = {"title": what or "Problem at the moment I marked", "area": "", "severity": "medium", "kind": "problem",
                  "first_ts": m["ts"], "last_ts": m["ts"], "count": 1, "explain": "", "fixes": [], "examples": [],
                  "fields": {}, "near_mark": True, "rule_id": None, "moment": True}
             res["findings"].append(f)
             i = len(res["findings"]) - 1
-        if what:
+        if what and ask:
+            f["ic_summary"] = f"{what.rstrip('.')}. {ask['explain']}"
+        if what and not ask:
             base = f.get("ic_summary", "").strip() or f"{f['title'].rstrip('.')}. {f.get('explain', '').strip()}".strip()
             if not base.startswith(what.rstrip(".")):
                 f["ic_summary"] = f"{what.rstrip('.')}. {base}" if not f.get("moment") else f"{what.rstrip('.')}."

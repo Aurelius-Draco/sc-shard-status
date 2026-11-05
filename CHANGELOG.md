@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **What CIG's patch notes say about your problems.** When a check finds something CIG's notes list a potential fix for, the card says so: a fix on the way in a later patch, or, if it turns up on the patch that listed the fix, that it's still happening (and the Issue Council draft says so too). The list comes with library updates, so it's ready on patch day without a new app.
+- **Patch day names fixes for problems you hit.** The new-build notice lists the fixes in CIG's notes for problems your own logs showed in the fortnight before, and links the patch report card, which shows whether other players still hit them.
+- **Saw into someone else's hangar?** When CIG asks players to report where something still happens, Mark this moment offers it as a quick pick, and the Issue Council draft is set up for it.
+- Shared session summaries also say which patch they're on (like 4.10.3), so the patch report card can line builds up with CIG's patch notes.
 - **Test servers stay off the board.** Pointed at a PTU, EPTU, Tech Preview or Hotfix folder, the app reads and checks as usual but shares nothing: no readings, no session summaries, no group posts or pirate reports. Set up says sharing is paused and why. Shared readings now also say they come from LIVE.
 - **Message of the week.** Now and then the Now tab shows a short message from Verse Shards with a link, for example a Spectrum post worth an upvote. It comes with the board the app already downloads when Show other shards is on, so nothing extra is sent. Hide puts that message away for good.
 - Reading-quality counts (sent with shared readings) now count a misread only when a value blips for one reading and comes straight back, not every time the player count moves. The old count mostly measured how busy the server was.

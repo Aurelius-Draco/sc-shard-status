@@ -51,10 +51,65 @@ class Rule:
         return v.format_map(_Safe(fields)) if isinstance(v, str) else v
 
 
+def patch_tuple(v):
+    """"4.10.3" -> (4, 10, 3); anything else -> None."""
+    m = re.fullmatch(r"(\d+)\.(\d+)(?:\.(\d+))?", str(v or "").strip())
+    return tuple(int(x or 0) for x in m.groups()) if m else None
+
+
+def clean_fixes(items):
+    """CIG's claimed fixes from the library (cig_fixes), keeping only well-formed entries."""
+    out = []
+    for f in items if isinstance(items, list) else []:
+        if not isinstance(f, dict) or not f.get("id") or not patch_tuple(f.get("patch")) or not f.get("said"):
+            continue
+        out.append({"id": str(f["id"])[:40], "patch": str(f["patch"]), "said": str(f["said"])[:300],
+                    "starc": str(f["starc"])[:20] if f.get("starc") else None,
+                    "rules": [str(r) for r in f.get("rules") or [] if isinstance(r, str)][:10],
+                    "how": "same" if f.get("how") == "same" else "related",
+                    "measure": f.get("measure") if f.get("measure") in ("crashes", "restarts") else None,
+                    "ask": bool(f.get("ask")),
+                    "chip": str(f["chip"])[:60] if f.get("ask") and f.get("chip") else None,
+                    "words": [str(w).lower()[:30] for w in f.get("words") or [] if isinstance(w, str)][:10] if f.get("ask") else [],
+                    "ic_title": str(f["ic_title"])[:120] if f.get("ic_title") else None,
+                    "explain": str(f["explain"])[:400] if f.get("explain") else None})
+    return out
+
+
+def fix_for(fixes, rule_id, branch):
+    """What CIG's notes say about this problem, for a player on patch `branch`:
+    state "coming" when the fix is in a later patch than theirs, "listed" when their patch (or an earlier one)
+    listed a fix and the problem still turned up. None when the notes don't mention it."""
+    if not rule_id:
+        return None
+    mine = patch_tuple(branch)
+    for f in fixes:
+        if rule_id not in f["rules"]:
+            continue
+        p = patch_tuple(f["patch"])
+        state = "coming" if (mine is None or p > mine) else "listed"
+        return {"id": f["id"], "patch": f["patch"], "said": f["said"], "starc": f["starc"], "how": f["how"],
+                "ask": f["ask"], "state": state}
+    return None
+
+
+def asks_for(fixes, branch):
+    """CIG's "tell us where it still happens" items for this patch or a later one (quick picks for a moment)."""
+    mine = patch_tuple(branch)
+    return [f for f in fixes if f["ask"] and f["chip"] and (mine is None or patch_tuple(f["patch"]) >= mine)]
+
+
+def ask_matching(fixes, branch, what):
+    """The ask item a moment's description is about (its words appear in it), or None."""
+    text = (what or "").lower()
+    return next((f for f in asks_for(fixes, branch) if f["words"] and any(w in text for w in f["words"])), None)
+
+
 class Library:
     def __init__(self, path=None):
         self.version = ""
         self.rules = []
+        self.cig_fixes = []
         self.by_tag = defaultdict(list)
         self.untagged = []
         self.path = path or self._pick()
@@ -64,6 +119,7 @@ class Library:
             say(f"Couldn't load the known-issues library ({e}).")
             data = {"rules": []}
         self.version = data.get("version", "")
+        self.cig_fixes = clean_fixes(data.get("cig_fixes"))
         for d in data.get("rules", []):
             try:
                 r = Rule(d)

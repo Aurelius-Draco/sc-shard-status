@@ -1,5 +1,5 @@
 {
- "version": "2026-11-03.1",
+ "version": "2026-11-05.1",
  "rules": [
   {
    "id": "cargo-no-resource-container",
@@ -2014,6 +2014,76 @@
     "12660092",
     "12913470"
    ]
+  }
+ ],
+ "cig_fixes": [
+  {
+   "id": "4103-asop-freeze",
+   "patch": "4.10.3",
+   "said": "ASOP terminals freezing the game for 3 to 4 seconds on interaction, with a one minute failsafe timeout added for requests that never return",
+   "starc": "STARC-214984",
+   "rules": [
+    "asop-atc-timeout"
+   ],
+   "how": "related"
+  },
+  {
+   "id": "4103-ground-vehicle-pad",
+   "patch": "4.10.3",
+   "said": "Ground vehicles being destroyed on the hangar pad when retrieved",
+   "starc": "STARC-219816",
+   "rules": [
+    "vehicle-bad-spawn",
+    "vehicle-destroyed"
+   ],
+   "how": "related"
+  },
+  {
+   "id": "4103-client-crashes",
+   "patch": "4.10.3",
+   "said": "Client crashes when streaming a render-to-texture texture, from unchecked weapon binding indexes in the memory allocator, from the Drake Cutter's front landing gear and from a missing impact effect on Pulverizer LMG ammunition",
+   "starc": null,
+   "rules": [
+    "crash-exception"
+   ],
+   "how": "related",
+   "measure": "crashes"
+  },
+  {
+   "id": "4103-server-deadlock",
+   "patch": "4.10.3",
+   "said": "A server deadlock on the main thread while an entity was being detached and queued for deletion",
+   "starc": null,
+   "rules": [],
+   "measure": "restarts"
+  },
+  {
+   "id": "4103-hangar-overlap",
+   "patch": "4.10.3",
+   "said": "Personal hangars visually overlapping, so players can see parts of other hangars and the vehicles inside them",
+   "starc": null,
+   "rules": [],
+   "ask": true,
+   "chip": "Saw into someone else's hangar",
+   "words": [
+    "someone else's hangar",
+    "other hangar",
+    "another hangar",
+    "hangars overlap",
+    "hangar overlap",
+    "overlapping hangar",
+    "hangar was overlapping"
+   ],
+   "ic_title": "Personal hangar overlaps other players' hangars",
+   "explain": "My personal hangar overlapped other hangars: I could see parts of other players' hangars and the ships in them."
+  },
+  {
+   "id": "4103-atc-distribution",
+   "patch": "4.10.3",
+   "said": "Unable to contact ATC to land at or depart from Distribution Centers",
+   "starc": "STARC-220137",
+   "rules": [],
+   "ask": false
   }
  ]
 }

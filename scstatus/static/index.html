@@ -160,6 +160,8 @@ select { background: var(--field); border: 1px solid var(--line2); border-radius
 .notice { display: flex; gap: var(--s2); align-items: flex-start; margin: 0; padding: var(--s2) var(--s3); border: 1px solid var(--line2); border-left: 2px solid var(--amber); background: var(--raise); border-radius: var(--r-sm); font-size: .875rem; }
 .notice.rust { border-left-color: var(--rust); } .notice.teal { border-left-color: var(--teal); }
 .notice p, .notice .nt { margin: 0; flex: 1; }
+.notice .nt p + p, .notice .nt ul { margin-top: var(--s1); } .notice .nt ul { margin-bottom: 0; padding-left: 1.2em; }
+.find .cfix { border-left: 2px solid var(--teal); padding-left: var(--s2); } .find .cfix.warn { border-left-color: var(--amber); }
 .shardline { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: center; font-size: .8125rem; color: var(--muted); }
 .shardline code { color: var(--text); }
 
@@ -1247,7 +1249,7 @@ async function openMoment(markTs) {
   const fpsC = v => v == null ? "" : v < 9 ? "bad" : v < 15 ? "poor" : "";
   const shotSrc = n => `/api/shot?name=${encodeURIComponent(n)}&t=${encodeURIComponent(TOKEN)}`;
   const ago = ts => { const m = Math.max(1, Math.round(Math.abs((fresh ? Date.now() / 1000 : t) - ts) / 60)); return fresh ? `${m} min before` : `${m} min ${ts < t ? "before" : "after"}`; };
-  const loadShots = async () => { try { S.shots = (await api(`/api/moment?part=shots&ts=${t}`)).shots || []; } catch (e) { S.shots = []; toast(e.message, true); } };
+  const loadShots = async () => { try { const r = await api(`/api/moment?part=shots&ts=${t}`); S.shots = r.shots || []; S.asks = r.asks || []; } catch (e) { S.shots = []; toast(e.message, true); } };
   const loadMoment = async () => { try { S.m = await api(`/api/moment?ts=${t}`); } catch (e) { S.m = {error: e.message}; } };
   const view = () => {
     if (S.step === 1) return `${steps()}
@@ -1260,7 +1262,8 @@ async function openMoment(markTs) {
           : `<p class="nv-note">No screenshots ${fresh ? "from the last 10 minutes" : "around this moment"} in the game's screenshot folder. <button class="link" type="button" id="nvLook">Look again</button></p>`}
         <p class="nv-note" style="margin-top:6px">Screenshots stay on this PC. They only go in the Issue Council report folder if you write one.</p></div>` : ""}
       <label style="display:grid;gap:6px"><span class="nv-lbl">What went wrong?</span><textarea class="inp" id="nvWhat" maxlength="200" rows="3" placeholder="e.g. The freight elevator wouldn't take my cargo, three tries">${esc(S.what)}</textarea></label>
-      <div class="nv-chips">${["Elevator didn't come", "Ship blew up on the pad", "Contract didn't update", "Kicked to the menu", "Items went missing"].map(x => `<button type="button" data-chip="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+      <div class="nv-chips">${["Elevator didn't come", "Ship blew up on the pad", "Contract didn't update", "Kicked to the menu", "Items went missing", ...(S.asks || []).map(a => a.chip)].map(x => `<button type="button" data-chip="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+      ${(S.asks || []).length ? `<p class="nv-note">CIG's ${esc(S.asks[0].patch)} patch notes ask players to report where ${S.asks.length === 1 ? "this still happens" : "these still happen"}: ${S.asks.map(a => esc(a.chip.toLowerCase())).join(", ")}. Pick it and the Issue Council draft is set up for it.</p>` : ""}
       <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn" type="button" id="nvNext">Show my moment</button>${fresh ? `<button class="btn ghost" type="button" id="nvBack">Back</button>` : ""}<span class="sub" id="nvCount">${S.what.length} / 200</span></div>`;
     const m = S.m, sp = [...S.picked].map(i => S.shots[i]);
     if (!m) return `${steps()}<p class="nv-note">Reading the log around ${clockS(t)}…</p>`;
@@ -1401,7 +1404,7 @@ async function renderNow() {
   // Message of the week from verseshards.com (it comes with the board; Hide hides this one message)
   if (d.notice) setup.push(`<div class="notice teal"><p><b>From Verse Shards:</b> ${esc(d.notice.text)}</p><a class="btn sm" href="${esc(d.notice.url)}" target="_blank" rel="noopener">${esc(d.notice.label)} ↗</a><button class="btn sm ghost" data-protected="true" data-dismiss="notice">Hide</button></div>`);
   if (d.rsi) setup.push(`<div class="notice rust"><p><b>RSI reports a problem right now:</b> ${esc((d.rsi.issues || []).map(i => i.system + ": " + i.title).join("; ") || "see their status page")}.</p><a class="btn sm ghost" href="https://status.robertsspaceindustries.com/" target="_blank" rel="noopener">RSI status</a></div>`);
-  if (d.patch && d.patch.new) setup.push(`<div class="notice"><p><b>New game build today</b> (${esc(d.patch.build)}, was ${esc(d.patch.previous)}). The first day after a patch, servers are often busier and slower than usual. Your "usual fps on this patch" starts again from nothing, so that comparison shows once you've played a while. Some known issues may be fixed and new ones may turn up; <a href="${esc(COMMUNITY_SITE)}/issues" target="_blank" rel="noopener">the community site</a> marks which ones players are still hitting.</p><button class="btn sm ghost" data-protected="true" data-dismiss="patch">Got it</button></div>`);
+  if (d.patch && d.patch.new) setup.push(`<div class="notice"><div class="nt"><p><b>New game build today</b> (${esc(d.patch.build)}, was ${esc(d.patch.previous)}). The first day after a patch, servers are often busier and slower than usual. Your "usual fps on this patch" starts again from nothing, so that comparison shows once you've played a while. Some known issues may be fixed and new ones may turn up; <a href="${esc(COMMUNITY_SITE)}/issues" target="_blank" rel="noopener">the community site</a> marks which ones players are still hitting.</p>${patchFixes(d.patch)}</div><button class="btn sm ghost" data-protected="true" data-dismiss="patch">Got it</button></div>`);
   if (d.migrated_from) setup.push(`<div class="notice teal"><p><b>Your settings and history came across</b> from the copy you unzipped before, in <code>${esc(d.migrated_from)}</code>. That folder isn't used any more, so delete it when you're ready.</p><button class="btn sm ghost" data-protected="true" data-dismiss="migrated">Got it</button></div>`);
   if (!d.game_found) setup.push(`<div class="notice rust"><p><b>Game folder not found yet.</b> Start Star Citizen and the app picks it up by itself, or paste the folder on the Set up tab.</p><button class="btn sm" id="goSetup3">Set up</button></div>`);
   if (h.score === null && d.overlay_status !== "off" && d.user_cfg && !d.user_cfg.has_displayinfo)
@@ -1599,6 +1602,29 @@ async function runCheck(mark) {
   b.disabled = false; b.textContent = "What's gone wrong?";
 }
 
+// The new-build notice: CIG's listed fixes for this patch that this player hit in the fortnight before it
+function patchFixes(p) {
+  const all = (p && p.fixes) || [];
+  if (!all.length) return "";
+  const mine = all.filter(f => f.you), ask = all.filter(f => f.ask);
+  const line = f => `<li>${esc(f.titles && f.titles.length ? f.titles[0] : f.said)}${f.starc ? ` <span class="sub">${esc(f.starc)}</span>` : ""}</li>`;
+  const card = `<a href="${esc(COMMUNITY_SITE)}/trends#patch" target="_blank" rel="noopener">the patch card</a>`;
+  let h = mine.length
+    ? `<p><b>CIG's ${esc(all[0].patch)} notes list potential fixes for ${mine.length === 1 ? "a problem" : mine.length + " problems"} you hit in the last fortnight:</b></p><ul>${mine.map(line).join("")}</ul><p class="sub">If any of them turns up again, the check says so and its Issue Council draft mentions the listed fix. ${card} shows whether other players still hit them.</p>`
+    : all.some(f => f.you === null) ? `<p class="sub">Checking your recent logs against CIG's ${esc(all[0].patch)} patch notes…</p>` : `<p class="sub">CIG's ${esc(all[0].patch)} notes list ${all.length} fixes Verse Shards can check. ${card} shows whether players still hit them.</p>`;
+  if (ask.length) h += `<p class="sub">CIG asked players to report where these still happen: ${ask.map(f => esc(f.said)).join("; ")}. Mark the moment when you see one.</p>`;
+  return h;
+}
+
+// What CIG's patch notes say about this problem (library cig_fixes): a fix on the way, or one listed that hasn't held
+function fixNote(c) {
+  if (!c) return "";
+  const what = c.how === "same" ? "this" : "something related";
+  const ref = c.starc ? ` (${esc(c.starc)})` : "";
+  if (c.state === "coming") return `<p class="sub cfix"><b>Fix on the way.</b> CIG's ${esc(c.patch)} patch notes list a potential fix for ${what}: ${esc(c.said)}${ref}.</p>`;
+  return `<p class="sub cfix warn"><b>Still happening after a listed fix.</b> CIG's ${esc(c.patch)} patch notes listed a potential fix for ${what}${ref}, and it turned up again. An Issue Council report saying so helps; the draft mentions it.</p>`;
+}
+
 function findCard(f, i, group) {
   const when = f.first_ts ? (f.first_ts === f.last_ts || !f.last_ts ? tm(f.first_ts) : `${tm(f.first_ts)} to ${tm(f.last_ts)}`) : "";
   return `<article class="find frame ${group === "unknown" ? "" : esc(f.severity)}${f.near_mark ? " near" : ""}">
@@ -1608,6 +1634,7 @@ function findCard(f, i, group) {
       ${f.near_mark ? `<span class="chip area">near your mark</span>` : ""}<span class="sub">${f.count > 1 ? f.count + " times, " : ""}${when}</span></div>
     ${group === "unknown" ? `<p class="sub">Not in the known-issues library yet. It may well be harmless; the game logs plenty of errors in a normal session.</p>` : `<p>${esc(f.explain)}</p>`}
     ${f.fixes && f.fixes.length ? `<ul>${f.fixes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${fixNote(f.cig_fix)}
     ${f.links && f.links.length ? `<p class="sub">${f.links.map(l => `<a href="${esc(l.url || l)}" target="_blank" rel="noopener">${esc(l.title || l.url || l)}</a>`).join(" · ")}</p>` : ""}
     ${f.examples && f.examples.length ? `<details class="ex"><summary>Log lines (${f.examples.length})</summary><pre class="lines">${esc(f.examples.join("\n"))}</pre></details>` : ""}
     <div class="fa">
@@ -2238,7 +2265,7 @@ async function renderSetup() {
     <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
     <ul class="rules">
       <li><b>Show other shards</b> fetches the board every 2 minutes and puts your region on the Now tab. It sends nothing about you.</li>
-      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session it also sends that session's build, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only), for the patch report card. A copy reading a PTU or other test server shares nothing. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
+      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session it also sends that session's build and patch number, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only), for the patch report card. A copy reading a PTU or other test server shares nothing. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
     </ul>
     <div class="swlist" id="commToggles"></div>
     <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
@@ -2462,7 +2489,7 @@ async function openWizard(all) {
       `Fetches the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> every 2 minutes and shows your region on the Now tab, with the best shard to hop to. This sends nothing about you.`,
       yn("board") + now(st.board)],
     ["share", "Community board", "Share your readings with the community board?",
-      `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session: its build, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
+      `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session: its build and patch number, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
       yn("share", "Yes, share", "No, don't share") + now(st.share)],
     ["updates", "This app", "Tell you when there's a new version?",
       `A minute after it starts and every 6 hours after that, the app asks GitHub whether there's a newer version, and shows a button on the dashboard when there is. The About tab also asks GitHub for the app's star count. Nothing is sent about you, nothing is asked until you answer this, and nothing installs until you click it. ${st.update && st.update.installed_app ? "The installed app then updates itself and starts again." : "This copy was unzipped by hand, so it points you to the installer."}`,

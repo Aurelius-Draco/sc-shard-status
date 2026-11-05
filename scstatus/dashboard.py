@@ -119,7 +119,10 @@ def start_server(app, open_browser=False):
                     return self._send(200, {"profile": app.profiles.get()})
                 if path == "/api/moment":
                     if qs.get("part") == "shots":
-                        return self._send(200, {"shots": app.moment_shots(qs.get("ts"))})
+                        from .issues import asks_for
+                        asks = asks_for(getattr(app.library, "cig_fixes", []), getattr(app.session, "branch", None))
+                        return self._send(200, {"shots": app.moment_shots(qs.get("ts")),
+                                                "asks": [{"chip": a["chip"], "patch": a["patch"]} for a in asks]})
                     return self._send(200, app.moment(qs.get("ts")))
                 if path == "/api/places":
                     return self._send(200, {"places": app.groups.places(qs.get("q", "")[:40])})

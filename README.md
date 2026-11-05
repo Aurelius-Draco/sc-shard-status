@@ -160,7 +160,7 @@ https://verseshards.com · Discord: https://discord.gg/8kH5pfHYbe
 - **Copy for global chat** lines on the board and Where to sell.
 - **RSI status:** when RSI's own status page reports a problem, the board and the app say so.
 - Scores from one player are marked as a first look; more players reporting means a score you can trust.
-- Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**. Sharing sends a summary every 5 minutes (shard, server node, the area your server runs but never the exact place, server fps, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), random install id, screen size and counts of how cleanly the overlay was read) and, after each session, its build, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names or anything that identifies you.
+- Two switches in the app, both asked on first start: **Show other shards** (sends nothing about you) and **Share my readings**. Sharing sends a summary every 5 minutes (shard, server node, the area your server runs but never the exact place, server fps, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), random install id, screen size and counts of how cleanly the overlay was read) and, after each session, its build and patch number, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names or anything that identifies you.
 
 ## For developers
 
