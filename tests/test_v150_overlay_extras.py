@@ -29,6 +29,12 @@ def test_the_new_lines_parse_without_ids_or_positions():
     assert "874827156047" not in text and "650f564d" not in text and "25149401" not in text
     assert parse_lines(["Zone: rs_int_layout_keeger 03 Pos: -16.35m"])["zone"] == "rs_int_layout_keeger_03"
     assert parse_lines(["Planet:Hurston OC (x)"])["planet"] == "Hurston"
+    # 4.10.3 PTU, Area18: the object container id, OOC often read as 00C, underscores as spaces
+    assert parse_lines(["Planet:OOC_Stanton_3_ArcCorp  (Load Complete)"])["planet"] == "ArcCorp"
+    assert parse_lines(["Planet:00C Stanton 3 ArcCorp (Load Complete)"])["planet"] == "ArcCorp"
+    assert parse_lines(["Planet:OOC_Stanton_2b_Daymar (Load Complete)"])["planet"] == "Daymar"
+    # a ship zone keeps no entity id
+    assert parse_lines(["Zone: DRAK_Corsair_874827277606 Pos: 2.25m 9.65m 0.27m"])["zone"] == "DRAK_Corsair"
 
 
 def test_ship_mission_and_pc():
@@ -76,3 +82,26 @@ def test_the_session_qr_gives_the_shard_and_nothing_else():
     frame[40:40 + q.shape[0], 3840 - 60 - q.shape[1]:3840 - 60] = cv2.cvtColor(q, cv2.COLOR_GRAY2BGR)
     assert qr_shard(frame) == "ptu_use1b_13132336_010"
     assert qr_shard(np.zeros((2160, 3840, 3), np.uint8)) is None
+
+
+def test_a_missed_block_is_tried_once_more_at_the_other_text_size():
+    # LAB, 4.10.3 PTU: the two detector scales miss different frames, so a miss gets one more try at the other
+    import numpy as np
+    from scstatus import overlay
+    r = overlay.OverlayReader()
+    calls = []
+
+    def fake_search(img, wide=False, game_h=None, alt=False):
+        calls.append(alt)
+        return {"rows": [], "shape": img.shape[:2]} if alt else None
+
+    r._search = fake_search
+    r._read_rows = lambda img, blk, rows: ({**dict.fromkeys(overlay.FIELDS), "ok": True, "server_fps": 30.0}, True)
+    r._merge_extras = lambda img, snap: None
+    snap = r.read(np.zeros((1440, 2560, 3), np.uint8))
+    assert snap["ok"] and calls[-1] is True and False in calls
+    # with the overlay gone for a while, the second try waits for the wide-search interval
+    r._cache, r._fails, r._last_altscale = None, overlay.ALT_RECENT_FAILS, __import__("time").monotonic()
+    r._search = lambda img, wide=False, game_h=None, alt=False: calls.append(("late", alt)) or None
+    r.read(np.zeros((1440, 2560, 3), np.uint8))
+    assert ("late", True) not in calls

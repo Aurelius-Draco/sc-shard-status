@@ -402,7 +402,7 @@ def _name(rest):
         parts.append(tok)
         if len(parts) >= 8:
             break
-    name = "_".join(parts).strip("_-")
+    name = re.sub(r"_\d{5,}$", "", "_".join(parts)).strip("_-")      # DRAK_Corsair_874827277606: no entity id
     return name if _NAME_TOKEN.fullmatch(name or "") else None
 
 
@@ -418,9 +418,16 @@ def _p_mission(out, rest):
 
 
 def _p_planet(out, rest):
-    # "Planet:<name> <type> (<zone>)": the first word is the planet's name
-    first = (_clean(rest).strip(" :;,.").split() or [""])[0]
-    out["planet"] = out.get("planet") or _name(first)
+    # "Planet:<name> <type> (<zone>)": the first word is the planet's name. On 4.10.3 it's the object container's
+    # id ("Planet:OOC_Stanton_3_ArcCorp  (Load Complete)", OOC often read as 00C): the planet is its last part
+    text = re.split(r"[\[({<]", _clean(rest), maxsplit=1)[0].strip(" :;,.")
+    m = re.match(r"[O0o][O0o]C[\s_]+(.+)$", text)
+    if m:
+        name = _name(m.group(1))
+        name = name.split("_")[-1] if name else None
+    else:
+        name = _name((text.split() or [""])[0])
+    out["planet"] = out.get("planet") or name
 
 
 def _p_no_planet(out, rest):
@@ -520,6 +527,11 @@ DET_SCALE = 0.6         # detector runs at this scale of a 4K frame (text ~10 px
 DET_SCALE_4K = 0.75
 
 
+ALT_COARSER = 0.75      # when the block isn't found, one more try with the detector at this share of the scale...
+ALT_FINER = 1.25        # ...or finer, whichever the first try wasn't (LAB, 4.10.3 PTU: 79% to 98% of readable frames)
+ALT_RECENT_FAILS = 3    # the second try runs while the overlay was there a few readings ago, and now and then
+
+
 def det_scale(game_h):
     """The detector scale for a game drawn at this height."""
     return DET_SCALE_4K if (game_h or 0) >= 1900 else DET_SCALE
@@ -604,6 +616,7 @@ class OverlayReader:
         self._extras = ({}, 0.0)     # the 1.5.0 extra lines (fields, when read)
         self._extra_n = 0
         self._last_alt = time.monotonic()     # smaller game sizes are first tried a little after start
+        self._last_altscale = 0.0
         self.last_ms = None
 
     # ---- OCR engine -------------------------------------------------------
@@ -672,7 +685,7 @@ class OverlayReader:
 
     # ---- search -----------------------------------------------------------
 
-    def _search(self, img, wide=False, game_h=None):
+    def _search(self, img, wide=False, game_h=None, alt=False):
         """Find the block: detect text in the top right, read the first few
         characters of each line and look for the overlay's line labels.
 
@@ -688,6 +701,9 @@ class OverlayReader:
             rw, rh = int(min(W, 1500 * s_screen)), int(min(H, 800 * s_screen))
         ox = W - rw
         ds = float(np.clip(det_scale(game_h or H) / s, 0.25, 2.0))
+        if alt:
+            # the other text size: smaller frames whose text stays large read better coarser, and the reverse
+            ds = float(np.clip(ds * (ALT_COARSER if ds > 0.7 else ALT_FINER), 0.25, 2.0))
         rects = self._det(img[0:rh, ox:W], ds, ox, 0)
         if len(rects) < 3:
             return None
@@ -835,12 +851,12 @@ class OverlayReader:
         x0, y0, x1, y1 = blk["rect"]
         H, W = img.shape[:2]
         ey0, ey1 = max(0, int(y0 - 8 * p)), min(H, int(np.ceil(y1 + 6 * p)))
-        ex0 = max(0, int(min(x0, right - 40 * p)))
+        ex0 = max(0, int(min(x0, right - 60 * p)))           # a Tracked mission line can be 55 pitches long
         crop = img[ey0:ey1, ex0:int(np.ceil(min(W, x1)))]
         segs = _segments(self._det(crop, blk["ds"], ex0, ey0), p)
         core = [cy for _, _, cy in blk["rows"]]
         todo = [g for g in segs if abs(g[2] - right) < 2.0 * p and g[2] - g[0] > 2.5 * p
-                and all(abs((g[1] + g[3]) / 2 - cy) > 0.45 * p for cy in core)][:16]
+                and all(abs((g[1] + g[3]) / 2 - cy) > 0.45 * p for cy in core)][:26]      # the lines below the block come last
         if not todo:
             return []
         heads = self._rec([self._line_crop(img, g[0], (g[1] + g[3]) / 2, min(g[2], g[0] + 11 * p), p) for g in todo])
@@ -921,8 +937,12 @@ class OverlayReader:
                             if self._fails < 2 or time.monotonic() - self._last_wide < self.wide_search_every:
                                 break
                             self._last_wide = time.monotonic()
-                        for gh in heights:
-                            blk = self._search(img_bgr, wide=wide, game_h=None if gh == H else gh)
+                        tries = [(gh, False) for gh in heights]
+                        if not wide and (self._fails < ALT_RECENT_FAILS or time.monotonic() - self._last_altscale >= self.wide_search_every):
+                            self._last_altscale = time.monotonic()
+                            tries += [(heights[0], True)] if heights else []
+                        for gh, alt in tries:
+                            blk = self._search(img_bgr, wide=wide, game_h=None if gh == H else gh, alt=alt)
                             if blk:
                                 snap, _ = self._read_rows(img_bgr, blk, blk["rows"])
                                 if snap["ok"]:
