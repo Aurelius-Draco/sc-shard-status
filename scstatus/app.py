@@ -458,6 +458,36 @@ class App:
             return "OK."
         raise ValueError("Unknown notice.")
 
+    def _live_session(self):
+        """The session the live tail has already read, so a check doesn't parse the whole Game.log again (a long
+        session took seconds). Only when the tail is on Game.log and caught up; otherwise None (diagnose parses)."""
+        t = getattr(self, "tail", None)
+        s = getattr(t, "session", None)
+        try:
+            if s is None or Path(t.path) != Path(self.game_dir / "Game.log"):
+                return None
+            return s if Path(t.path).stat().st_size - (t.pos or 0) < 512 * 1024 else None
+        except (OSError, TypeError, AttributeError):
+            return None
+
+    RED_TTL_S = 120
+
+    def _redactor(self):
+        """The redactor for this Game.log (every handle in it), made once and reused for two minutes, or until the
+        game starts a new log: building it reads the whole file."""
+        path = self.game_dir / "Game.log"
+        try:
+            st = path.stat()
+            key = (str(path), st.st_ino, st.st_size // (4 * 1024 * 1024))
+        except OSError:
+            key = (str(path), None, None)
+        c = getattr(self, "_red_cache", None)
+        if c and c[0] == key and time.time() - c[1] < self.RED_TTL_S:
+            return c[2]
+        red = community.make_redactor(path)
+        self._red_cache = (key, time.time(), red)
+        return red
+
     def run_diagnosis(self, minutes=None, mark_ts=None):
         minutes = int(minutes or self.cfg.get("lookback_minutes", 30))
         mark = next((m for m in self.marks(24 * 3600) if mark_ts and abs(m["ts"] - float(mark_ts)) < 1), None)
@@ -468,7 +498,7 @@ class App:
         with self.lock:
             snaps = list(self.snaps)
         res = diagnose(self.game_dir / "Game.log", self.library, self.names, snaps, lookback_min=minutes,
-                       backups_dir=self.game_dir / "logbackups")
+                       backups_dir=self.game_dir / "logbackups", session=self._live_session())
         res["checked_at"] = time.time()
         res["mark"] = mark
         # What CIG's patch notes say about each problem: a fix coming in a later patch, or one listed that hasn't held
@@ -672,13 +702,15 @@ class App:
         log.append({"ts": t, "text": "You marked this moment", "kind": "mark"})
         log.sort(key=lambda x: x["ts"])
         detail = self._moment_detail(t, res, snap, findings, earlier)
-        return {"ts": t, "shard_id": shard, "shard_name": community.shard_name(shard) if shard else None,
+        out = {"ts": t, "shard_id": shard, "shard_name": community.shard_name(shard) if shard else None,
                 "server": server, "place": place,
                 "readings": {"server_fps": snap.get("server_fps"), "pop_srv": snap.get("pop_srv"), "ping_ms": snap.get("ping_ms")},
                 "log": log[-40:], "findings": findings[:6], "earlier": earlier[:6], "shots": self.moment_shots(t),
                 "board": bool(self.cfg.get("community_board")),
                 "send": {"issues": [f["rule_id"] for f in findings if f.get("rule_id")][:10], "detail": detail,
                          "lines": self._moment_send_lines(detail)}}
+        self._moment_last = (t, time.time(), out)
+        return out
 
     # A moment noticed late: known problems this long before the mark go with it as "earlier"
     EARLIER_S = 30 * 60
@@ -699,7 +731,8 @@ class App:
         # that still holds a handle from this log is dropped, not sent
         handles, red = [], None
         try:
-            red = community.make_redactor(self.game_dir / "Game.log")
+            get = getattr(self, "_redactor", None)
+            red = get() if callable(get) else community.make_redactor(self.game_dir / "Game.log")
             handles = red.handles
         except Exception:
             pass
@@ -780,11 +813,15 @@ class App:
         known = {r["id"] for r in self.library.listing()}
         # What goes is worked out here from the moment itself, the same as the player was shown; ids from the page
         # are only kept if the app found them too
+        # The moment as the player was shown it, if they opened it in the last 10 minutes (no second read of the log)
+        last = getattr(self, "_moment_last", None)
         try:
-            mo = self.moment(m["ts"])
+            mo = last[2] if last and last[0] == m["ts"] and time.time() - last[1] < 600 else self.moment(m["ts"])
             ids, detail = mo["send"]["issues"], mo["send"]["detail"]
-        except Exception:
-            ids, detail = [], None
+        except Exception as e:
+            # Never send an empty review without saying so (audit, 4 Nov): the player is told it couldn't be worked out
+            say(f"Couldn't work out the moment at {m['ts']} for review ({e}).")
+            raise ValueError("Couldn't work this moment out just now, so nothing was sent. Try again in a minute.")
         ids = [i for i in ids if i in known]
         out = self.community.send_moment(m["ts"], self.build, m.get("shard_id"), what, ids, detail)
         titles = [x.get("title") for x in out["matched"] if x.get("title")]
@@ -849,7 +886,7 @@ class App:
     def review(self, i, save=False, send=False):
         """Prepare an unrecognised error for review (shown to the player first), keep it, and send it if asked."""
         f = self._finding("unknown", i)
-        red = community.make_redactor(self.game_dir / "Game.log")
+        red = self._redactor()
         sess = dict(self.last_result["session"])
         sess["region"] = _region(sess.get("shard_id"))
         contracts = [c["name"] for c in (self.session.contracts.values() if self.session else [])]

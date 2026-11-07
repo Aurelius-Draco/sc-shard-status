@@ -122,7 +122,8 @@ def test_a_moment_opened_late_still_looks_back_half_an_hour():
     import time as _t
     got = {}
     a = SimpleNamespace(cfg={"lookback_minutes": 30}, lock=__import__("threading").Lock(), snaps=[], library=SimpleNamespace(cig_fixes=[]),
-                        names=None, game_dir=__import__("pathlib").Path("."), session=None, build=None, EARLIER_S=appmod.App.EARLIER_S)
+                        names=None, game_dir=__import__("pathlib").Path("."), session=None, build=None, EARLIER_S=appmod.App.EARLIER_S,
+                        _live_session=lambda: None)
     mark = _t.time() - 25 * 60
     a.marks = lambda within: [{"ts": mark}]
     orig = appmod.diagnose
@@ -132,3 +133,35 @@ def test_a_moment_opened_late_still_looks_back_half_an_hour():
     finally:
         appmod.diagnose = orig
     assert got["min"] >= 25 + 30               # the mark was 25 min ago; the "earlier" window is 30 min before it
+
+
+def test_send_for_review_reuses_what_the_player_was_shown(tmp_path):
+    # Audit, 4 Nov: Send for review re-read the whole Game.log; a moment opened in the last 10 minutes is reused
+    import time as _t
+    calls = []
+    a = SimpleNamespace(_mark_at=lambda ts: {"ts": ts, "shard_id": "pub_use1b_12881860_090"}, build="13132336",
+                        library=SimpleNamespace(listing=lambda: [{"id": "inventory-request-failed"}]),
+                        moment=lambda ts: calls.append(ts) or {"send": {"issues": [], "detail": None}},
+                        community=SimpleNamespace(send_moment=lambda *x: {"matched": []}))
+    a._moment_last = (T, _t.time(), {"send": {"issues": ["inventory-request-failed", "made-up"], "detail": {"fps": 9.1}}})
+    sent = []
+    a.community.send_moment = lambda ts, build, shard, what, ids, detail: sent.append((ids, detail)) or {"matched": []}
+    appmod.App.moment_review(a, T, "Items went missing")
+    assert calls == [] and sent == [(["inventory-request-failed"], {"fps": 9.1})]
+    # Worked out fresh when the cached one is for another moment; a failure is said, not sent empty
+    a._moment_last = (T - 999, _t.time(), {})
+    a.moment = lambda ts: (_ for _ in ()).throw(RuntimeError("log gone"))
+    import pytest
+    with pytest.raises(ValueError, match="nothing was sent"):
+        appmod.App.moment_review(a, T, "x")
+    assert len(sent) == 1
+
+
+def test_the_redactor_is_made_once_per_log(tmp_path, monkeypatch):
+    made = []
+    monkeypatch.setattr(community, "make_redactor", lambda p: made.append(p) or SimpleNamespace(handles=[]))
+    (tmp_path / "Game.log").write_text("x\n", encoding="utf-8")
+    a = SimpleNamespace(game_dir=tmp_path, RED_TTL_S=120)
+    appmod.App._redactor(a)
+    appmod.App._redactor(a)
+    assert len(made) == 1
