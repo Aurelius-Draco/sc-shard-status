@@ -449,6 +449,15 @@ def parse_lines(lines):
 REF_H = 2160            # sizes below are measured on a 4K frame
 REF_PITCH = 19.3        # overlay line pitch at 4K, px
 DET_SCALE = 0.6         # detector runs at this scale of a 4K frame (text ~10 px high)
+# For a game drawing at 4K (overlay line pitch near REF_PITCH), the detector runs a quarter finer. The LAB (Nov 2026)
+# found it found the block 99% of the time on 4.10.3 against 85%, in half the time, and was never worse on 4.10.2.
+# Below 4K the evidence is thin, so smaller text keeps the old scale.
+DET_SCALE_4K = 0.75
+
+
+def det_scale(game_h):
+    """The detector scale for a game drawn at this height."""
+    return DET_SCALE_4K if (game_h or 0) >= 1900 else DET_SCALE
 WANTED = ("fps", "shard", "server_fps", "server", "net", "rl", "server_time", "vram", "location")
 ANCHORS = set(WANTED) | {"session"}
 REUSE_MAX = 10          # re-read an unchanged line at least every this many reads
@@ -604,7 +613,7 @@ class OverlayReader:
         else:
             rw, rh = int(min(W, 1500 * s_screen)), int(min(H, 800 * s_screen))
         ox = W - rw
-        ds = float(np.clip(DET_SCALE / s, 0.25, 2.0))
+        ds = float(np.clip(det_scale(game_h or H) / s, 0.25, 2.0))
         rects = self._det(img[0:rh, ox:W], ds, ox, 0)
         if len(rects) < 3:
             return None
@@ -642,7 +651,7 @@ class OverlayReader:
                 min(float(W), right + 1.5 * pitch), min(float(H), max(ys) + 1.2 * pitch))
         return {
             "shape": img.shape[:2], "rect": rect, "right": right, "pitch": pitch,
-            "ds": float(np.clip(DET_SCALE * REF_PITCH / pitch, 0.25, 2.0)),
+            "ds": float(np.clip(det_scale(REF_H * pitch / REF_PITCH) * REF_PITCH / pitch, 0.25, 2.0)),
             "rows": rows,
         }
 
@@ -749,7 +758,7 @@ class OverlayReader:
                     # The game may draw smaller than the screen (rendering at 1440p on a 4K monitor). Try the
                     # height that worked last, then the screen's own, then the common smaller ones; the extra
                     # heights cost a search each, so only while the overlay was recently there or now and then.
-                    heights = [h for h in (self._game_h, H) if h]
+                    heights = [h for h in (self._game_h, H) if h and h <= H]     # never taller than the screen
                     if time.monotonic() - self._last_alt >= self.wide_search_every:
                         self._last_alt = time.monotonic()
                         heights += [h for h in (1440, 1080) if h < 0.9 * H]

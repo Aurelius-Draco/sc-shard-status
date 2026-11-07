@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.5.0 (7 Nov 2026)
+- **The overlay reader finds the overlay more often at 4K.** Tested on the 4.10.3 PTU: it found the overlay in 99% of readings instead of 85%, and each reading takes about half the time.
 - **Your game server, not the whole shard.** Since server meshing each area of the verse has its own game server, so the Now tab now says "Your game server (178) is struggling" instead of blaming the shard. With Show other shards on, when your server is slow and another server on your shard is fine, it says which areas that one runs, so you can fly there instead of hopping.
 - **Misreads stay out.** A server number with letters in it, a shard id with a short build number, or a player count far past what a shard holds is treated as a misread and not used or shared. One misread server name no longer counts as a server change.
 - **Send for review is quicker on long sessions,** and if a moment can't be worked out it says so instead of sending an empty one.
