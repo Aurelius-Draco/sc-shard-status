@@ -188,3 +188,17 @@ def test_small_guards():
     assert appmod.App.notice_state(a) is None
     a.community.board["notice"]["ends"] = _t.time() + 3600
     assert appmod.App.notice_state(a)["id"] == "m1"
+
+
+def test_your_game_server_not_the_shard():
+    from scstatus import score
+    h = {"server_name": "pub-use1b-sc-alpha-4102-12974691-game-178", "server_fps": 6.0}
+    s = score.summarise("Bad", 6.0, 4.0, 120, 0, 0, 0, h)
+    assert s.startswith("Your game server (178) is in a bad way.")
+    view = {"mine": {"servers": [{"node": "178", "server_fps": 6.0, "areas": [{"name": "ArcCorp"}]},
+                                 {"node": "161", "server_fps": 21.0, "areas": [{"name": "Stanton open space"}]},
+                                 {"node": "?", "server_fps": 30.0, "areas": [{"name": "x"}]}]}}
+    v = appmod.server_view(h, view)
+    assert v["better"] == {"node": "161", "fps": 21.0, "areas": ["Stanton open space"]} and v["others"] == 1
+    assert appmod.server_view(dict(h, server_fps=20.0), view)["better"] is None
+    assert appmod.server_view(h, None) == {"node": "178", "better": None, "others": 0}

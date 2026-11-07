@@ -1477,6 +1477,7 @@ async function renderNow() {
         : unp ? unpLine : `<p class="hv">${esc(h.summary)}</p>`}
       ${smooth ? `<p class="goodline">Smooth flying. ${esc(cmpTxt.charAt(0).toUpperCase() + cmpTxt.slice(1))}.</p>` : ""}
       ${pts.length ? `<ul class="hwhy">${pts.slice(0, 2).map(p => `<li>${esc(p)}</li>`).join("")}</ul>${pts.length > 2 ? `<details class="why"><summary>${pts.length - 2} more</summary><ul class="hwhy">${pts.slice(2).map(p => `<li>${esc(p)}</li>`).join("")}</ul></details>` : ""}` : ""}
+      ${d.server_view && d.server_view.better ? `<div class="hhop"><b>Try another area:</b> on this shard, the game server running ${esc(d.server_view.better.areas.join(", "))} is at ${fmt(d.server_view.better.fps, 1)} fps. Each area has its own server since meshing, so flying there may help more than a hop.</div>` : ""}
       ${hop ? `<div class="hhop"><b>Hop:</b> ${esc(hop.name || hop.shard_id)} is at ${hop.score} with ${fmt(hop.server_fps, 1)} fps, from ${hop.reporters} players. A server hop could land you there, though the game picks the shard.</div>` : ""}
       ${pir || ""}
       <div class="hacts">${trouble ? `<button class="btn" data-protected="true" id="goCheck">What's gone wrong?</button>` : `<button class="btn ghost" data-protected="true" id="markNow">Mark this moment</button>`}

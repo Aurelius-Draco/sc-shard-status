@@ -119,8 +119,12 @@ def _r(v):
 def summarise(label, fps, low, ping, loss, hitches, restarts, last):
     bits = []
     pop, srv = last.get("pop_shard"), last.get("pop_srv")
-    head = {"Healthy": "Healthy shard.", "OK": "Shard is OK.", "Struggling": "Shard is struggling.",
-            "Bad": "Shard is in a bad way."}.get(label, "")
+    # Since server meshing these numbers are your game server's (one part of the shard), not the whole shard's
+    from .overlay import node_of
+    node = node_of(last.get("server_name"))
+    you = f"Your game server ({node})" if node else "Your game server"
+    head = {"Healthy": f"{you} is healthy.", "OK": f"{you} is OK.", "Struggling": f"{you} is struggling.",
+            "Bad": f"{you} is in a bad way."}.get(label, "")
     bits.append(head)
     if pop is not None:
         bits.append(f"{pop} players" + (f", {srv} on your server." if srv is not None else "."))
@@ -143,7 +147,8 @@ def tips(fps, low, ping, loss, hitches, restarts, last, restarted_before=False):
                    "watching. Nothing to do unless things start going missing.")
     if fps is not None and fps < 10:
         out.append("Server fps this low means slow elevators, frozen or laggy AI, rubber-banding and "
-                   "missions that don't update. Consider a server hop before starting anything important.")
+                   "missions that don't update. Each area of the verse runs on its own game server, so flying to "
+                   "another area can help as much as a server hop. Do one or the other before starting anything important.")
     elif fps is not None and fps < 15:
         out.append("Server fps is below normal. Expect some lag on elevators, kiosks and AI.")
     elif low is not None and fps is not None and low < fps * 0.6:

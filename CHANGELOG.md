@@ -1,6 +1,10 @@
 # Changelog
 
 ## 1.5.0 (7 Nov 2026)
+- **Your game server, not the whole shard.** Since server meshing each area of the verse has its own game server, so the Now tab now says "Your game server (178) is struggling" instead of blaming the shard. With Show other shards on, when your server is slow and another server on your shard is fine, it says which areas that one runs, so you can fly there instead of hopping.
+- **Misreads stay out.** A server number with letters in it, a shard id with a short build number, or a player count far past what a shard holds is treated as a misread and not used or shared. One misread server name no longer counts as a server change.
+- **Send for review is quicker on long sessions,** and if a moment can't be worked out it says so instead of sending an empty one.
+- Fixed: a bad end date on the message of the week could stop the Now tab loading, and picking a place the app didn't know the area of gave an error.
 - **Error codes never carry names.** A code sent for review or with a marked moment goes through the name stripper too, and anything in quotes (a chat channel or org name) is blanked. A moment's code that still has a name in it isn't sent at all.
 - A moment opened late still looks back half an hour before the moment you marked, however long after you open it.
 - **Taken a Vanduul Incursion contract?** A new group post starts on the Vanduul Incursion activity (change it if you like). The contract titles come with library updates, so new mission packs don't need a new app.

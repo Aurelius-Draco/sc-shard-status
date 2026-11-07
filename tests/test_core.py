@@ -131,7 +131,7 @@ def _snaps(fps, n=10, **kw):
 def test_score_bands():
     good = score.assess(_snaps(21.5))
     assert good["score"] >= 95 and good["label"] == "Healthy"
-    assert "Healthy shard. 400 players, 30 on your server." in good["summary"]
+    assert "is healthy. 400 players, 30 on your server." in good["summary"] and good["summary"].startswith("Your game server")
     bad = score.assess(_snaps(5))
     assert bad["label"] in ("Bad", "Struggling") and any("server hop" in t.lower() for t in bad["points"])
     rising = _snaps(21, restarts=0)

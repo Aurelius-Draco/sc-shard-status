@@ -17,6 +17,25 @@ from .names import Names
 from .store import Store
 
 
+def server_view(health, community_view):
+    """Your game server against the rest of your shard, from the board (Show other shards on): when yours is slow
+    and another server on the same shard is fine, which areas it runs, so moving area can beat a server hop.
+    Since meshing a slow server is often just one part of a shard."""
+    node = node_of(health.get("server_name"))
+    mine = (community_view or {}).get("mine") if isinstance(community_view, dict) else None
+    out = {"node": node, "better": None, "others": 0}
+    if not mine or not node:
+        return out
+    others = [s for s in mine.get("servers") or [] if s.get("node") not in (node, "?") and s.get("server_fps") is not None]
+    out["others"] = len(others)
+    fps = health.get("server_fps")
+    good = [s for s in others if s["server_fps"] >= 15 and s.get("areas")]
+    if fps is not None and fps < 12 and good:
+        b = max(good, key=lambda s: s["server_fps"])
+        out["better"] = {"node": b["node"], "fps": b["server_fps"], "areas": [x.get("name") for x in b["areas"] if x.get("name")][:3]}
+    return out
+
+
 def settled_changes(rows):
     """When the game server really changed, from readings in time order: a new server counts once it's read twice in
     a row on the same shard (or it's the newest reading), so one misread name (A, B, A) is no change at all. Returns the time of each change
@@ -350,6 +369,7 @@ class App:
             "groups": {"open": self.groups.open, "mine": self.groups.mine(), "interest": self.groups.interest_rows()[:10],
                        "offer": self.groups.pirate_offer()},
         }
+        out["server_view"] = server_view(a, out["community"])
         from .groups import chat_lines
         out["chat_lines"] = chat_lines(out, a)
         return out
