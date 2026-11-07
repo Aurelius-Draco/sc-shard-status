@@ -649,6 +649,9 @@ i.st.new { background: var(--amber); }
 .hme.on { color: var(--st-good); } .hme.on i { background: var(--st-good); animation: lampPulse 2.4s ease-in-out infinite; }
 .hr { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; gap: var(--s3); align-items: center; padding: 8px var(--s3); border: 1px solid var(--line); border-radius: var(--r-sm); }
 .hr.me.off { border: 1px dashed rgba(242,169,59,.6); background: var(--amber-bg); } .hr.me.on { border-color: rgba(76,196,176,.45); background: var(--teal-bg); }
+/* what the overlay says about you (ship, planet, mission, CPU or GPU): the same dashed gold box as your own row */
+.youline { display: block; width: fit-content; max-width: 100%; margin-top: var(--s3); padding: var(--s2) var(--s4); border: 1px dashed rgba(242,169,59,.6); border-radius: var(--r-sm); background: var(--amber-bg); color: var(--muted); font-size: .9375rem; }
+.youline b { color: var(--amber); font-weight: 600; }
 .hs { font-size: 1.0625rem; } .hs.good { color: var(--st-good); } .hs.ok { color: var(--st-ok); } .hs.poor { color: var(--st-poor); } .hs.bad { color: var(--st-bad); }
 .hn { display: grid; gap: 1px; min-width: 0; } .hn b { font-stretch: semi-condensed; letter-spacing: .03em; } .hn span { font-size: .8125rem; color: var(--muted); }
 .hpips { display: flex; gap: 3px; }
@@ -1548,13 +1551,13 @@ async function renderNow() {
 function youLine(y) {
   if (!y) return "";
   const bits = [];
-  if (y.ship) bits.push(`In your ${esc(y.ship)}`);
+  if (y.ship) bits.push(`In your <b>${esc(y.ship)}</b>`);
   else if (y.in_room) bits.push("On foot");
-  if (y.planet) bits.push(`on ${esc(y.planet)}`);
-  if (y.mission) bits.push(`tracking ${esc(y.mission)}`);
+  if (y.planet) bits.push(`on <b>${esc(y.planet)}</b>`);
+  if (y.mission) bits.push(`tracking <b>${esc(y.mission)}</b>`);
   const pc = y.pc ? `Your PC: ${y.pc.bound === "gpu" ? "graphics card is the limit" : y.pc.bound === "cpu" ? "CPU is the limit" : "CPU and graphics card even"} (CPU ${fmt(y.pc.mt, 1)} ms, GPU ${fmt(y.pc.gpu, 1)} ms a frame)` : "";
   const line = [bits.join(", "), pc].filter(Boolean).join(" · ");
-  return line ? `<span class="sub youline" style="display:block">${line}</span>` : "";
+  return line ? `<div class="youline">${line}</div>` : "";
 }
 
 function hopTo(d) {
