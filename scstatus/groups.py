@@ -134,7 +134,10 @@ class Groups:
                 if not p:
                     raise ValueError("Pick a place from the list, so the board knows where it is.")
                 names = getattr(self.community, "places", None)
-                area_name = names.area(p["area"])[1] if hasattr(names, "area") else AREAS[p["area"]][1]
+                try:
+                    area_name = names.area(p["area"])[1] if hasattr(names, "area") else AREAS[p["area"]][1]
+                except (KeyError, IndexError, TypeError):
+                    raise ValueError("The app doesn't know that place's area yet. Pick another place nearby.")
                 body.update(server=None, system=p["system"], area=p["area"], area_name=area_name, elsewhere=True)
                 ctx = dict(ctx, server=None, area=p["area"], area_name=area_name)
             elif not ctx["area"]:

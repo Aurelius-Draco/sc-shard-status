@@ -458,7 +458,11 @@ class App:
         if not isinstance(n, dict) or not n.get("id") or not n.get("text"):
             return None
         url = str(n.get("url") or "")
-        if not url.startswith("https://") or (n.get("ends") or 0) <= (now or time.time()):
+        try:
+            ends = float(n.get("ends") or 0)          # a bad value from the board hides the message, never the Now tab
+        except (TypeError, ValueError):
+            ends = 0
+        if not url.startswith("https://") or ends <= (now or time.time()):
             return None
         if self.store.meta("notice_dismissed") == str(n["id"]):
             return None

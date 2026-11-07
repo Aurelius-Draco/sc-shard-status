@@ -178,3 +178,13 @@ def test_one_misread_server_name_is_no_server_change():
     assert c.quality(snaps)["misreads"] == 1           # 5 seconds there and back: a misread
     snaps = [dict(r(i * 45, n), ok=True) for i, n in enumerate(["178", "161", "178", "178"])]
     assert c.quality(snaps)["misreads"] == 0           # 90 seconds apart: could be a real hop away and back
+
+
+def test_small_guards():
+    # Audit, 4 Nov, item 7: a string "ends" on the message of the week must hide it, not break the Now tab
+    import time as _t
+    a = SimpleNamespace(cfg={"community_board": True}, store=SimpleNamespace(meta=lambda k: None),
+                        community=SimpleNamespace(board={"notice": {"id": "m1", "text": "Hi", "url": "https://verseshards.com", "ends": "soon"}}))
+    assert appmod.App.notice_state(a) is None
+    a.community.board["notice"]["ends"] = _t.time() + 3600
+    assert appmod.App.notice_state(a)["id"] == "m1"
