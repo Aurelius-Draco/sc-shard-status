@@ -165,3 +165,16 @@ def test_the_redactor_is_made_once_per_log(tmp_path, monkeypatch):
     appmod.App._redactor(a)
     appmod.App._redactor(a)
     assert len(made) == 1
+
+
+def test_one_misread_server_name_is_no_server_change():
+    # Audit, 4 Nov: A, B, A logged two server changes in the moment detail
+    r = lambda ts, n, sh="s1": {"ts": ts, "server_name": f"pub-use1b-sc-alpha-4102-12974691-game-{n}", "shard_id": sh}
+    assert appmod.settled_changes([r(0, "178"), r(5, "169"), r(10, "178"), r(15, "178")]) == []
+    assert appmod.settled_changes([r(0, "178"), r(5, "169"), r(10, "169"), r(15, "169")]) == [5]
+    assert appmod.settled_changes([r(0, "178"), r(5, "07", "s2"), r(10, "07", "s2")]) == []      # a new shard is a join, not a change
+    from scstatus import community as c
+    snaps = [dict(r(i * 5, n), ok=True) for i, n in enumerate(["178", "161", "178", "178"])]
+    assert c.quality(snaps)["misreads"] == 1           # 5 seconds there and back: a misread
+    snaps = [dict(r(i * 45, n), ok=True) for i, n in enumerate(["178", "161", "178", "178"])]
+    assert c.quality(snaps)["misreads"] == 0           # 90 seconds apart: could be a real hop away and back

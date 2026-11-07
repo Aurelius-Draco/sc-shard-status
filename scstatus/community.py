@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.request
 
+from .overlay import node_of
 from .redact import Redactor, leaks
 
 PAYLOAD_VERSION = 1
@@ -54,7 +55,7 @@ def shard_report(snap, install_id, build, findings=(), app_version=None, where=N
         "v": PAYLOAD_VERSION, "kind": "shard", "install": install_id, "build": build, "channel": channel,
         "ts": int(snap["ts"] // 60 * 60),
         "shard_id": snap.get("shard_id"),
-        "server": (snap.get("server_name") or "").rsplit("-", 1)[-1] or None,   # e.g. "game-07" -> "07"
+        "server": node_of(snap.get("server_name")),   # e.g. "game-07" -> "07"; a misread number is left out
         "server_fps": snap.get("server_fps"), "server_fps_min": snap.get("server_fps_min"),
         "server_fps_max": snap.get("server_fps_max"), "hitches": snap.get("hitches"),
         "restarts": snap.get("restarts"), "pop_shard": snap.get("pop_shard"), "pop_srv": snap.get("pop_srv"),
@@ -82,9 +83,12 @@ def quality(snaps, tries=0, failed=0, screen=None):
     mis = 0
     for k in ("restarts", "server_name", "shard_id", "pop_shard", "pop_srv", "hitches", "loss_pct"):
         vals = [s.get(k) for s in ok]
-        for a, b, c in zip(vals, vals[1:], vals[2:]):
+        for i, (a, b, c) in enumerate(zip(vals, vals[1:], vals[2:])):
             if a is None or b is None or c is None or a != c or b == a:
                 continue
+            if k == "server_name" and node_of(b) and node_of(a) \
+                    and (ok[i + 2].get("ts") or 0) - (ok[i].get("ts") or 0) > 60:
+                continue       # readings over a minute apart: a real hop away and back (meshing) is possible
             if k in ("pop_shard", "pop_srv", "hitches", "loss_pct"):
                 try:
                     if abs(float(b) - float(a)) <= 0.2 * max(abs(float(a)), 5.0):

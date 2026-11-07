@@ -8,6 +8,7 @@ if you choose, your handle. Posts end after 2 hours (pirate reports after 45 min
 import json
 import time
 
+from .overlay import node_of
 from .community import shard_name
 
 POLL_EVERY_S = 60
@@ -76,7 +77,7 @@ class Groups:
         snap = self.app.latest_snap() or {}
         s = self.app.session
         shard = snap.get("shard_id") or (s.shard_id if s else None)
-        server = (snap.get("server_name") or "").rsplit("-", 1)[-1] or None
+        server = node_of(snap.get("server_name"))
         code = snap.get("location") or _last_location(s)
         w = self.community.places.where(code) if code else None
         from .issues import activity_for

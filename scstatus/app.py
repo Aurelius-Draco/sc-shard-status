@@ -7,6 +7,7 @@ import threading
 import time
 from pathlib import Path
 
+from .overlay import node_of
 from . import community, report, score
 from .config import DATA, say
 from .diagnose import diagnose
@@ -14,6 +15,31 @@ from .issues import Library
 from .logparse import LogTail, parse_file, region_name
 from .names import Names
 from .store import Store
+
+
+def settled_changes(rows):
+    """When the game server really changed, from readings in time order: a new server counts once it's read twice in
+    a row on the same shard (or it's the newest reading), so one misread name (A, B, A) is no change at all. Returns the time of each change
+    (the first reading on the new server)."""
+    out, cur, cand = [], None, None
+    for r in rows:
+        name, shard = r.get("server_name"), r.get("shard_id")
+        if not name:
+            continue
+        if cur is None:
+            cur = (shard, name)
+        elif (shard, name) == cur:
+            cand = None
+        elif cand and cand[0] == (shard, name):
+            if shard == cur[0]:
+                out.append(cand[1])
+            cur, cand = (shard, name), None
+        else:
+            cand = ((shard, name), r["ts"])
+    # The newest reading on a new server counts too: nothing after it says it was a misread (a change just before a mark)
+    if cand and cur and cand[0][0] == cur[0]:
+        out.append(cand[1])
+    return out
 
 
 def moment_findings(found, t, earlier_s=1800):
@@ -336,7 +362,7 @@ class App:
             return None
         p = self.community.places
         w = p.where(last["location"]) or {}
-        node = (last.get("server_name") or "").rsplit("-", 1)[-1] or None
+        node = node_of(last.get("server_name"))
         return {"place": p.place(last["location"]), "area_name": w.get("area_name"), "server": node,
                 "pop_srv": last.get("pop_srv")}
 
@@ -684,7 +710,7 @@ class App:
             snap = min(rows, key=lambda x: abs(x["ts"] - t)) if rows else None
         snap = snap or {}
         shard = m.get("shard_id") or snap.get("shard_id")
-        server = (m.get("server") or snap.get("server_name") or "").rsplit("-", 1)[-1] or None
+        server = node_of(m.get("server") or snap.get("server_name"))
         place = self.places.place(m.get("location") or snap.get("location")) or None
         res = self.run_diagnosis(None, t)
         findings, earlier = moment_findings(res.get("findings", []), t, self.EARLIER_S)
@@ -764,15 +790,14 @@ class App:
         except Exception:
             rows = []
         rows.sort(key=lambda x: x["ts"])
-        for a, b in zip(rows, rows[1:]):
-            if a["server_name"] != b["server_name"] and a.get("shard_id") == b.get("shard_id"):
-                ev.append({"k": "server_change", "s": int(max(0, t - b["ts"]))})
+        for ts in settled_changes(rows):
+            ev.append({"k": "server_change", "s": int(max(0, t - ts))})
         ev.sort(key=lambda e: -e["s"])
         d["events"] = ev[-12:]
         w = self.community.places.where(snap.get("location")) if snap.get("location") else None
         if w and w.get("area_name"):
             d["area"] = {"system": w.get("system"), "area_name": w.get("area_name")}
-        node = (snap.get("server_name") or "").rsplit("-", 1)[-1] or None
+        node = node_of(snap.get("server_name"))
         if node:
             d["server"] = node
         if snap.get("server_fps") is not None:

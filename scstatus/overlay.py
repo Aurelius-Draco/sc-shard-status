@@ -39,7 +39,8 @@ LIMITS = {
     "server_fps": (0.1, 1000), "server_fps_min": (0, 1000), "server_fps_max": (0, 1000),
     "server_ms": (0.1, 60000), "server_ms_min": (0, 60000), "server_ms_max": (0, 60000),
     "hitches": (0, 10_000_000), "restarts": (0, 100_000),
-    "pop_shard": (0, 20_000), "pop_srv": (0, 5_000),
+    # a shard holds hundreds, a game server well under 600: past that it's a misread (4,517 for 451)
+    "pop_shard": (0, 1_500), "pop_srv": (0, 600),
     "ping_ms": (0, 60000), "loss_pct": (0, 100),
     "bw_in_kbps": (0, 10_000_000), "bw_out_kbps": (0, 10_000_000),
     "rl_entities": (0, 100_000_000), "rl_tick_ms": (0, 100_000), "rl_mtsync_ms": (0, 100_000),
@@ -268,14 +269,25 @@ def norm_server_name(s):
                     seg = w
                     break
         segs.append(seg)
+    # The last part is the game server's number: "game190" is "game-190"; letters there ("13y", "alerver") mean a misread
+    if segs and re.fullmatch(r"game\d{1,4}", segs[-1]):
+        segs[-1:] = ["game", segs[-1][4:]]
     s = "-".join(segs)
-    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+){3,}", s):
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+){3,}", s) or not re.fullmatch(r"\d{1,4}", segs[-1]):
         return None
     return s
 
 
+def node_of(server_name):
+    """The game server's number from its name ("pub-apse2a-...-game-07" -> "07"), or None when it isn't digits."""
+    last = str(server_name or "").rsplit("-", 1)[-1].strip()
+    m = re.fullmatch(r"(?:game)?(\d{1,4})", last)
+    return m.group(1) if m else None
+
+
 _ENVS = r"(?:pub|ptu|eptu|tech\w*|evo\w*|[a-z]{2,6})"
-_SHARD_RE = re.compile(r"(" + _ENVS + r")_?([a-z]{2,8}\d{1,2}[a-z]?)_?(\d{5,})_?(\d{3})")
+# The build part is 7 or 8 digits: pub_apse2a_12881_860 is a misread, not a shard
+_SHARD_RE = re.compile(r"(" + _ENVS + r")_?([a-z]{2,8}\d{1,2}[a-z]?)_?(\d{7,8})_?(\d{3})")
 
 
 def norm_shard_id(s):
