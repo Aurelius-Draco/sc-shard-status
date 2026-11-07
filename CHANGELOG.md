@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1 (7 Nov 2026)
+- **Verse Shards for PC on the Microsoft Store.** Windows 11's Smart App Control blocks apps it doesn't know, and it can switch itself on without asking. The Store version is signed by Microsoft, so Smart App Control lets it run, and the Store keeps it up to date. It's the same app: it uses the same folder for your settings and history, so moving from the GitHub copy keeps everything. The GitHub installer carries on as before for anyone who'd rather use it.
+
 ## 1.5.0 (7 Nov 2026)
 - **More from the overlay, on the Now tab.** With r_displayinfo 3 the game also shows the ship you're in, the planet, the mission you're tracking and how long your CPU and graphics card take per frame. The Now tab now shows them: "In your RSI Constellation Mk5 Centaurus, tracking InterSec Bounty Nyx Intro · Your PC: graphics card is the limit (CPU 12.7 ms, GPU 15.4 ms a frame)". When your own frame rate is low, the advice says whether lower graphics settings will help or it's your CPU. A group post starts on the activity your tracked mission points to (a bounty, hauling, a Vanduul Incursion mission). None of this is shared.
 - **The shard from the session QR code.** When the game's QR code is on screen, the app reads the shard id from it whenever the ShardId line is hard to read. Only the shard id is used, never the session id.

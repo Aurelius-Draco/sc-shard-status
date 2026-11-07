@@ -107,6 +107,14 @@ jobs:
           foreach ($i in 1..30) { if (-not (Test-Path "$dir\SC Shard Status.exe")) { break }; Start-Sleep 1 }
           if (Test-Path "$dir\SC Shard Status.exe") { throw "uninstall left the app behind" }
           Write-Host "Uninstalled cleanly."
+      - name: Build the Microsoft Store package, install a test-signed copy and run it
+        run: installer\msix\build.ps1 -Ver $env:VER
+      - uses: actions/upload-artifact@v5
+        with:
+          # Unsigned on purpose: this is the file for Partner Center, and the Store signs it
+          name: VerseShards-${{ env.VER }}-msix
+          path: dist/VerseShards-*.msix
+          retention-days: 30
       - uses: actions/upload-artifact@v5
         with:
           name: SC-Shard-Status-Setup-${{ env.VER }}

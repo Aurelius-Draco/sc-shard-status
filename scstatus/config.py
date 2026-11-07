@@ -8,7 +8,7 @@ import string
 import sys
 from pathlib import Path
 
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 # The public community board (Cloudflare Worker in the admin repo)
 COMMUNITY_URL = "https://verseshards.com"
 APP_NAME = "SC Shard Status"          # install name: folders, shortcuts, data. Never changes.
@@ -18,6 +18,29 @@ REPO = "https://github.com/Aurelius-Draco/sc-shard-status"
 
 # Running from the Windows installer's build (PyInstaller) rather than from the source folder
 FROZEN = bool(getattr(sys, "frozen", False))
+
+
+def _packaged():
+    """Whether this copy runs from an MSIX package (the Microsoft Store version). Windows answers through
+    GetCurrentPackageFullName: APPMODEL_ERROR_NO_PACKAGE (15700) means an ordinary install."""
+    if os.environ.get("SCSTATUS_STORE") is not None:          # tests
+        return os.environ["SCSTATUS_STORE"] == "1"
+    if os.name != "nt":
+        return False
+    try:
+        import ctypes
+        n = ctypes.c_uint32(0)
+        return ctypes.windll.kernel32.GetCurrentPackageFullName(ctypes.byref(n), None) != 15700
+    except Exception:
+        return False
+
+
+# The Microsoft Store version: the same app, installed and kept up to date by the Store (so its own updater is off)
+STORE = _packaged()
+STORE_URL = "https://apps.microsoft.com/detail/9PNJ4LD1LFZG"
+# Where the GitHub installer puts the app, to notice when both copies are installed
+GITHUB_COPY = Path(os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")) / "Programs" / "SC Shard Status" / "SC Shard Status.exe"
+
 # The tool's own folder (where status.py or SC Shard Status.exe lives)
 HERE = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent.parent
 

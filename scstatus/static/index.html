@@ -2365,6 +2365,13 @@ async function renderSetup() {
     $("updToggles").innerHTML = swRow("updates", "Check for new versions", st.updates,
       st.updates ? (u.checked_at ? `On. Last checked ${ago(u.checked_at)}.` : "On. First check a minute after the app starts.") : "Off. You'll need to look on the site for new versions.");
     bindRows($("updToggles"), drawUpd);
+    if (u.store) {
+      // The Microsoft Store version: the Store installs new versions, so there's nothing to switch or check here
+      $("updToggles").innerHTML = "";
+      $("updState").innerHTML = `<p>You have version <b>${esc(u.current)}</b> from the <a href="${esc(u.store_url)}" target="_blank" rel="noopener">Microsoft Store</a>, which installs new versions by itself.</p>` +
+        (u.github_copy ? `<p class="sub">The copy from GitHub is installed too. You only need one: to remove it, go to Windows Settings, Apps, Installed apps, and uninstall <b>SC Shard Status</b>. Your settings and history stay.</p>` : "");
+      return;
+    }
     $("updState").innerHTML = `<div class="fa"><span>You have version <b>${esc(u.current)}</b>${u.installed_app ? "" : " (unzipped copy)"}${u.available ? `. Version <b>${esc(u.latest)}</b> is out.` : u.latest ? ", the latest." : "."}</span>
       <button class="btn sm ghost" data-protected="true" data-upd="check">Check now</button></div>${u.error && u.state !== "failed" ? `<p class="sub">${esc(u.error)}</p>` : ""}${updNotice(u)}`;
   };

@@ -1097,6 +1097,7 @@ class App:
         done = int(self.cfg.get("setup_version") or 0)
         # The sharing question changed in 1.2; only people already sharing need to see it again
         return [k for k, since in self.QUESTIONS.items() if since > done
+                and not (k == "updates" and getattr(self.updater, "store", False))      # the Store updates it
                 and not (k == "share" and done and (not self.cfg.get("share_readings")
                                                     or int(self.cfg.get("share_text_seen") or 0) >= since))]
 

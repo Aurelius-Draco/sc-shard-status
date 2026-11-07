@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Microsoft Store version (MSIX). Built from the same app folder as the GitHub installer by
+     installer/msix/build.ps1; VERSION is filled in from scstatus/config.py (the Store wants the last part 0).
+     The identity values come from Partner Center (Product identity) and are public. -->
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+         IgnorableNamespaces="uap rescap desktop6">
+  <Identity Name="VerseShards.VerseShardsforPC"
+            Publisher="CN=90A3E298-5D64-4C60-89DD-6B03983E5FEC"
+            Version="{VERSION}.0"
+            ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>Verse Shards for PC</DisplayName>
+    <PublisherDisplayName>Verse Shards</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <!-- Settings, history and reports stay in %LOCALAPPDATA%\SC Shard Status, the same folder the GitHub copy
+         uses, so moving between the two keeps everything (and uninstalling the Store copy doesn't delete them) -->
+    <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+    <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Applications>
+    <Application Id="VerseShards" Executable="SC Shard Status.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Verse Shards for PC"
+                          Description="Shard health and what's gone wrong, while you play"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png"
+                          Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+</Package>

@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-from .config import APP_NAME, DATA, FROZEN, VERSION, load_config, say
+from .config import APP_NAME, DATA, FROZEN, VERSION, load_config, say, STORE
 
 HELP = """
 Examples:
@@ -102,7 +102,7 @@ def selftest(image):
     frame[0:crop.shape[0], 3840 - crop.shape[1]:3840] = crop
     snap = OverlayReader().read(frame)
     lib = Library()
-    out = {"version": VERSION, "frozen": FROZEN, "data": str(DATA), "shard_id": snap.get("shard_id"),
+    out = {"version": VERSION, "frozen": FROZEN, "store": STORE, "data": str(DATA), "shard_id": snap.get("shard_id"),
            "server_fps": snap.get("server_fps"), "library": lib.version, "rules": len(lib.listing()),
            "dashboard": (STATIC / "index.html").is_file()}
     print(json.dumps(out, indent=2))
@@ -127,7 +127,7 @@ def live(cfg, overlay=True, browser=True, after_update=False):
         webbrowser.open(url)
         return 0
     from . import score
-    say(f"{APP_NAME} {VERSION}. Game folder: {cfg.get('game_dir') or 'not found'}")
+    say(f"{APP_NAME} {VERSION}{' (Microsoft Store)' if STORE else ''}. Game folder: {cfg.get('game_dir') or 'not found'}")
     app = App(cfg)
     app.start(overlay=overlay)
     server, url = start_server(app, open_browser=browser)

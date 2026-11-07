@@ -17,7 +17,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-from .config import APP_NAME, FROZEN, REPO, VERSION, say
+from .config import APP_NAME, FROZEN, GITHUB_COPY, REPO, STORE, STORE_URL, VERSION, say
 
 API = "https://api.github.com/repos/Aurelius-Draco/sc-shard-status/releases/latest"
 DOWNLOAD_PAGE = "https://verseshards.com/app"
@@ -60,9 +60,17 @@ def _get(url, timeout=20):
     return urllib.request.urlopen(req, timeout=timeout)
 
 
+def _exists(p):
+    try:
+        return Path(p).exists()
+    except OSError:
+        return False
+
+
 class Updater:
-    def __init__(self, app, version=VERSION, frozen=FROZEN):
+    def __init__(self, app, version=VERSION, frozen=FROZEN, store=STORE):
         self.app = app
+        self.store = store           # the Microsoft Store version: the Store installs updates, so this never checks
         self.version = version
         self.frozen = frozen
         self.latest = None
@@ -82,7 +90,7 @@ class Updater:
     def enabled(self):
         """On only once the update question is answered, and answered yes. This also covers the About tab's star
         count, which asks GitHub too."""
-        return self.asked and bool(self.app.cfg.get("check_updates", True))
+        return not self.store and self.asked and bool(self.app.cfg.get("check_updates", True))
 
     def run(self, stop):
         if stop.wait(FIRST_CHECK_S):
@@ -94,6 +102,8 @@ class Updater:
                 return
 
     def check(self):
+        if self.store:
+            return self.info()
         with self.lock:
             if self.state in ("downloading", "verifying", "starting installer"):
                 return self.info()
@@ -122,7 +132,9 @@ class Updater:
         return {"current": self.version, "enabled": self.enabled, "checked_at": self.checked_at, "error": self.error,
                 "available": self.available, "latest": L.get("version"), "url": L.get("url"),
                 "notes": L.get("notes") if self.available else None, "published": L.get("published"),
-                "can_install": bool(self.frozen and self.available and L.get("setup_url") and L.get("sha_url")),
+                "can_install": bool(self.frozen and not self.store and self.available and L.get("setup_url") and L.get("sha_url")),
+                "store": self.store, "store_url": STORE_URL,
+                "github_copy": bool(self.store and _exists(GITHUB_COPY)),
                 "installed_app": self.frozen, "download_page": DOWNLOAD_PAGE,
                 "state": self.state, "progress": round(self.progress, 3)}
 

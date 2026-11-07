@@ -158,7 +158,7 @@ def test_kicked_for_being_idle_is_a_normal_disconnect():
 
 
 def test_version_is_1_5_0():
-    assert config.VERSION == "1.5.0"
+    assert config.VERSION == "1.5.1"
 
 
 # ---------------------------------------------------------------- the page
