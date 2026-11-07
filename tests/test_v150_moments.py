@@ -84,7 +84,7 @@ def test_the_detail_for_the_atc_moment(tmp_path, monkeypatch):
         community=SimpleNamespace(places=_Places()),
         store=SimpleNamespace(snapshots=lambda since=0, limit=400: [s for s in snaps if s["ts"] >= since]),
         EVENT_KINDS=appmod.App.EVENT_KINDS)
-    monkeypatch.setattr(community, "make_redactor", lambda path: SimpleNamespace(handles=["Some_Pilot"]))
+    monkeypatch.setattr(community, "make_redactor", lambda path: __import__("scstatus.redact", fromlist=["Redactor"]).Redactor(["Some_Pilot"]))
     res = {"unknown": [
         {"title": "Unrecognised error: ATC", "count": 2, "first_ts": t - 40, "last_ts": t - 5,
          "fields": {"sig": "CSCATC::OnRequest| Landing request for '<name>'[N] got no response"}},
@@ -101,3 +101,34 @@ def test_the_detail_for_the_atc_moment(tmp_path, monkeypatch):
     lines = appmod.App._moment_send_lines(SimpleNamespace(EVENT_WORDS=appmod.App.EVENT_WORDS), d)
     assert "The area: Crusader (never the exact place)" in lines
     assert any("changed game server" in x for x in lines) and any("1 error code the app doesn't know yet" in x for x in lines)
+
+
+def test_codes_never_carry_names():
+    # Audit, 4 Nov: a handle inside an error code went out marked clean, and quoted names weren't touched
+    from scstatus.redact import Redactor, scrub_code, leaks
+    red = Redactor(["Some_Pilot", "Other_Guy"])
+    f = {"fields": {"sig": "ATC| Landing request <hex> for Some_Pilot timed out after Ns"}, "title": "x", "area": "ATC",
+         "count": 2, "examples": ["<2026-11-03T08:50:00.000Z> [Error] <ATC> Landing request 0x1F for Some_Pilot timed out after 30s"]}
+    rid, p = community.review_request(f, {"build": "12913470"}, red, "a" * 16, contracts=["Help Other_Guy out"])
+    assert "Some_Pilot" not in json.dumps(p) and "Other_Guy" not in json.dumps(p)
+    assert p["sig"] == "ATC| Landing request <hex> for <YOU> timed out after Ns" and p["checked_clean"] is True
+    assert scrub_code("Chat| Joined channel 'Night Owls Ops' as member") == "Chat| Joined channel '<TEXT>' as member"
+    assert scrub_code('Org| "Ashen Tide" invite failed', red) == "Org| '<TEXT>' invite failed"
+    assert not leaks(scrub_code("x for Some_Pilot", red), red.handles)
+
+
+def test_a_moment_opened_late_still_looks_back_half_an_hour():
+    # Audit, 4 Nov: opened 25 minutes after marking, the check only reached 10 minutes before the mark
+    import time as _t
+    got = {}
+    a = SimpleNamespace(cfg={"lookback_minutes": 30}, lock=__import__("threading").Lock(), snaps=[], library=SimpleNamespace(cig_fixes=[]),
+                        names=None, game_dir=__import__("pathlib").Path("."), session=None, build=None, EARLIER_S=appmod.App.EARLIER_S)
+    mark = _t.time() - 25 * 60
+    a.marks = lambda within: [{"ts": mark}]
+    orig = appmod.diagnose
+    appmod.diagnose = lambda *x, lookback_min, **k: got.setdefault("min", lookback_min) and {"findings": [], "unknown": []}
+    try:
+        appmod.App.run_diagnosis(a, None, mark)
+    finally:
+        appmod.diagnose = orig
+    assert got["min"] >= 25 + 30               # the mark was 25 min ago; the "earlier" window is 30 min before it

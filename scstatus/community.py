@@ -468,6 +468,10 @@ def review_request(finding, session, redactor, install_id, contracts=()):
     """An unknown error, stripped of identifiers, for the admin review queue."""
     sig = finding.get("fields", {}).get("sig") or finding.get("rule_id") or finding["title"]
     rid = hashlib.sha1(f"{install_id}|{sig}".encode()).hexdigest()[:10]
+    # The signature is normalised, but a handle inside it would survive that: it goes through the redactor too
+    from .redact import scrub_code
+    sig = scrub_code(sig, redactor)
+    contracts = [redactor.line(c) for c in contracts]
     examples = redactor.lines([x[:600] for x in finding.get("examples", [])])
     payload = {
         "v": PAYLOAD_VERSION, "kind": "review", "ticket": rid, "install": install_id,
@@ -479,7 +483,7 @@ def review_request(finding, session, redactor, install_id, contracts=()):
     # The signature itself is already normalised; anything left is stripped again rather than sent
     if problems:
         payload["examples"] = [redactor.line(x) for x in payload["examples"]]
-    payload["checked_clean"] = not leaks(repr(payload["examples"]), redactor.handles)
+    payload["checked_clean"] = not leaks(repr({k: payload[k] for k in ("sig", "examples", "contracts")}), redactor.handles)
     return rid, payload
 
 

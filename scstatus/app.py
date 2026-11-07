@@ -463,7 +463,8 @@ class App:
         mark = next((m for m in self.marks(24 * 3600) if mark_ts and abs(m["ts"] - float(mark_ts)) < 1), None)
         if mark:
             import math
-            minutes = min(24 * 60, max(minutes, math.ceil((time.time() - mark["ts"]) / 60) + 10))
+            # Back to half an hour before the mark however late it's opened, for the "earlier" problems (EARLIER_S)
+            minutes = min(24 * 60, max(minutes, math.ceil((time.time() - mark["ts"]) / 60) + self.EARLIER_S // 60 + 1))
         with self.lock:
             snaps = list(self.snaps)
         res = diagnose(self.game_dir / "Game.log", self.library, self.names, snaps, lookback_min=minutes,
@@ -696,9 +697,10 @@ class App:
         d = {"earlier": [{"id": f["rule_id"], "min": f["min_before"]} for f in earlier[:6]]}
         # Errors the library doesn't know, within 10 minutes of the mark. Signatures are already normalised; one
         # that still holds a handle from this log is dropped, not sent
-        handles = []
+        handles, red = [], None
         try:
-            handles = community.make_redactor(self.game_dir / "Game.log").handles
+            red = community.make_redactor(self.game_dir / "Game.log")
+            handles = red.handles
         except Exception:
             pass
         from .redact import leaks
@@ -706,7 +708,13 @@ class App:
         for f in res.get("unknown", []):
             a, b = f.get("first_ts") or 0, f.get("last_ts") or f.get("first_ts") or 0
             sig = (f.get("fields") or {}).get("sig")
-            if not sig or not (a - 600 <= t <= b + 600) or leaks(sig, handles):
+            if not sig or not (a - 600 <= t <= b + 600):
+                continue
+            from .redact import scrub_code
+            if red is not None and red.line(sig) != sig:
+                continue                       # a name or number the redactor would strip: not sent at all
+            sig = scrub_code(sig)              # quoted text (a channel or org name) becomes '<TEXT>'
+            if leaks(sig, handles):
                 continue
             level = "error" if "error" in (f.get("title") or "").lower() else "warning"
             unk.append({"sig": sig[:200], "n": int(f.get("count") or 1), "level": level})

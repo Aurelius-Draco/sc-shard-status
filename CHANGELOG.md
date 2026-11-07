@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 (7 Nov 2026)
+- **Error codes never carry names.** A code sent for review or with a marked moment goes through the name stripper too, and anything in quotes (a chat channel or org name) is blanked. A moment's code that still has a name in it isn't sent at all.
+- A moment opened late still looks back half an hour before the moment you marked, however long after you open it.
 - **Taken a Vanduul Incursion contract?** A new group post starts on the Vanduul Incursion activity (change it if you like). The contract titles come with library updates, so new mission packs don't need a new app.
 - **What CIG's patch notes say about your problems.** When a check finds something CIG's notes list a potential fix for, the card says so: a fix on the way in a later patch, or, if it turns up on the patch that listed the fix, that it's still happening (and the Issue Council draft says so too). The list comes with library updates, so it's ready on patch day without a new app.
 - **Patch day names fixes for problems you hit.** The new-build notice lists the fixes in CIG's notes for problems your own logs showed in the fortnight before, and links the patch report card, which shows whether other players still hit them.

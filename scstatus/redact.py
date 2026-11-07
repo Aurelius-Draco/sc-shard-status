@@ -152,6 +152,19 @@ class Redactor:
         return [self.line(x) for x in lines]
 
 
+QUOTED = re.compile(r"'[^'\n]{1,120}'|\"[^\"\n]{1,120}\"")
+
+
+def scrub_code(sig, redactor=None):
+    """An error code (normalised signature) made safe to send: handles the redactor knows become <YOU>/<PLAYER>,
+    and anything in quotes (a chat channel, an org or ship name someone typed) becomes '<TEXT>'."""
+    if not sig:
+        return sig
+    s = redactor.line(sig) if redactor is not None else sig
+    # a placeholder the normaliser already put there ('<name>') stays as it is
+    return QUOTED.sub(lambda m: m.group(0) if re.fullmatch(r"['\"]<[A-Za-z]+>['\"]", m.group(0)) else "'<TEXT>'", s)
+
+
 def leaks(text, handles):
     """Anything identifying left in text (used by tests and as a last check before sharing)."""
     out = []
