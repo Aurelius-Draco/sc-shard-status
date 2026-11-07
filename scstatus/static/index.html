@@ -1484,6 +1484,7 @@ async function renderNow() {
         ${lines.length ? `<button class="btn ghost" type="button" data-protected="true" data-chat="${esc(lines[0])}">Copy for chat</button>` : ""}
         <button class="btn pirbtn" type="button" data-protected="true" id="pirNow" ${areaName ? "" : "disabled"}>Pirates near ${esc(areaName || "here")}</button>${pirMore}</div>
       <span class="sub">${esc([d.where ? `At ${d.where.place}` : "", h.ts ? `last reading ${ago(h.ts)}` : "", cmpTxt && !smooth ? cmpTxt : ""].filter(Boolean).join(" · "))}</span>
+      ${youLine(d.you)}
     </div>
     <div class="frame hreg">
       ${c0 ? `<div class="hrh"><span class="hl">${esc(c0.region || "Your region")} on the board</span><span class="hme ${shareOn ? "on" : ""}"><i></i>${shareOn ? "You: on the board" : "You: not on the board"}</span></div>
@@ -1542,6 +1543,20 @@ async function renderNow() {
 }
 
 // A better shard in your region, worth a hop. A score from one player is a first look; don't suggest hopping on it.
+// What else the overlay says about you (app.you_state): your ship, the planet, the mission you're tracking, and
+// whether your PC's frame time goes on the CPU or the GPU. Only on this PC; none of it is shared.
+function youLine(y) {
+  if (!y) return "";
+  const bits = [];
+  if (y.ship) bits.push(`In your ${esc(y.ship)}`);
+  else if (y.in_room) bits.push("On foot");
+  if (y.planet) bits.push(`on ${esc(y.planet)}`);
+  if (y.mission) bits.push(`tracking ${esc(y.mission)}`);
+  const pc = y.pc ? `Your PC: ${y.pc.bound === "gpu" ? "graphics card is the limit" : y.pc.bound === "cpu" ? "CPU is the limit" : "CPU and graphics card even"} (CPU ${fmt(y.pc.mt, 1)} ms, GPU ${fmt(y.pc.gpu, 1)} ms a frame)` : "";
+  const line = [bits.join(", "), pc].filter(Boolean).join(" · ");
+  return line ? `<span class="sub youline" style="display:block">${line}</span>` : "";
+}
+
 function hopTo(d) {
   const c = d.community, best = c && c.best, mine = c && c.mine;
   return best && mine && best.shard_id !== mine.shard_id && best.score - mine.score >= 20 && best.reporters >= 2 ? best : null;

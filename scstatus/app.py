@@ -17,6 +17,37 @@ from .names import Names
 from .store import Store
 
 
+SHIP_MAKERS = ("AEGS", "ANVL", "ARGO", "BANU", "CNOU", "CRUS", "DRAK", "ESPR", "GAMA", "GLSN", "GRIN", "KRIG", "MISC",
+               "MRAI", "ORIG", "RSI", "TMBL", "VNCL", "XIAN", "XNAA")
+
+
+def ship_of_zone(zone):
+    """The overlay's Zone line names the ship you're in by its class ("RSI_Constellation_Mk5_Centaurus"); anything
+    else is a room or a place. Returns a readable ship name, or None."""
+    z = str(zone or "")
+    if z.split("_", 1)[0].upper() in SHIP_MAKERS and "_" in z:
+        from .timeline import ship_name
+        return ship_name(z)
+    return None
+
+
+def mission_words(mission):
+    """InterSec_Bounty_Nyx_Intro -> "InterSec Bounty Nyx Intro" (the overlay's internal name, made readable)."""
+    if not mission:
+        return None
+    return " ".join(p for p in str(mission).split("_") if p)[:80] or None
+
+
+def pc_bound(mt, rt, gpu):
+    """Where your PC's frame time goes, from the overlay's Render line (main thread, render thread and GPU, ms per
+    frame): {"mt", "rt", "gpu", "bound": "gpu" | "cpu" | "even"}."""
+    if mt is None or gpu is None:
+        return None
+    cpu = max(mt, rt or 0)
+    bound = "gpu" if gpu > cpu * 1.15 else "cpu" if cpu > gpu * 1.15 else "even"
+    return {"mt": mt, "rt": rt, "gpu": gpu, "bound": bound}
+
+
 def server_view(health, community_view):
     """Your game server against the rest of your shard, from the board (Show other shards on): when yours is slow
     and another server on the same shard is fine, which areas it runs, so moving area can beat a server hop.
@@ -370,9 +401,32 @@ class App:
                        "offer": self.groups.pirate_offer()},
         }
         out["server_view"] = server_view(a, out["community"])
+        out["you"] = self.you_state()
         from .groups import chat_lines
         out["chat_lines"] = chat_lines(out, a)
         return out
+
+    def you_state(self, now=None):
+        """What else the overlay says about you (r_displayinfo 3, read now and then): the ship you're in or that
+        you're in a room, the planet, the mission you're tracking, and whether your PC's frame time goes on the
+        CPU or the GPU. Shown on the Now tab only; none of it is shared."""
+        now = now or time.time()
+        with self.lock:
+            snaps = [x for x in self.snaps if x.get("ok") and now - x.get("ts", 0) <= 120]
+        last = {}
+        for x in snaps:
+            for k in ("zone", "planet", "mission", "render_mt_ms", "render_rt_ms", "render_gpu_ms"):
+                if x.get(k) is not None:
+                    last[k] = x[k]
+        if not last:
+            return None
+        from .issues import activity_for_mission
+        out = {"ship": ship_of_zone(last.get("zone")), "in_room": bool(last.get("zone")) and not ship_of_zone(last.get("zone")),
+               "planet": (self.places.place(last["planet"]) or last["planet"]) if last.get("planet") else None,
+               "mission": mission_words(last.get("mission")),
+               "activity": activity_for_mission(getattr(self.library, "activity_hints", []), last.get("mission")),
+               "pc": pc_bound(last.get("render_mt_ms"), last.get("render_rt_ms"), last.get("render_gpu_ms"))}
+        return out if any(v for v in out.values()) else None
 
     def _where(self, health):
         """Where you are from the latest overlay reading: the place, its area and your game server's number."""

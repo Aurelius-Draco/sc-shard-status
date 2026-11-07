@@ -93,7 +93,8 @@ def clean_hints(items):
     for h in items if isinstance(items, list) else []:
         if isinstance(h, dict) and isinstance(h.get("activity"), str) and isinstance(h.get("titles"), list):
             out.append({"activity": h["activity"][:40],
-                        "titles": [t.lower().strip()[:80] for t in h["titles"] if isinstance(t, str) and t.strip()][:60]})
+                        "titles": [t.lower().strip()[:80] for t in h["titles"] if isinstance(t, str) and t.strip()][:60],
+                        "missions": [m.lower()[:40] for m in h.get("missions") or [] if isinstance(m, str) and m.replace("_", "").isalnum()][:20]})
     return out
 
 
@@ -105,6 +106,19 @@ def activity_for(hints, contracts):
         name = c["name"].lower().strip()
         for h in hints:
             if any(t == name or t in name for t in h["titles"]):
+                return h["activity"]
+    return None
+
+
+def activity_for_mission(hints, mission):
+    """The activity the overlay's tracked mission points to ("InterSec_Bounty_Nyx_Intro" -> Bounty hunting), or None.
+    Patterns match from the start of any part of the name."""
+    if not mission:
+        return None
+    words = [w.lower() for w in re.split(r"[_\s]+", str(mission)) if w]
+    for h in hints:
+        for m in h.get("missions") or []:
+            if any(w.startswith(m) for w in words) or m in str(mission).lower().replace("_", ""):
                 return h["activity"]
     return None
 

@@ -161,8 +161,18 @@ def tips(fps, low, ping, loss, hitches, restarts, last, restarted_before=False):
                        "connection (Wi-Fi, other downloads) before blaming the server.")
     cfps = last.get("client_fps")
     if cfps is not None and cfps < 30 and (fps is None or fps >= 15):
-        out.append(f"Your own frame rate is {cfps:.0f} fps while the server is fine, so the slowdown is on "
-                   "your PC (settings, background apps, or a busy area).")
+        mt, gpu = last.get("render_mt_ms"), last.get("render_gpu_ms")
+        if mt is not None and gpu is not None and gpu > mt * 1.15:
+            out.append(f"Your own frame rate is {cfps:.0f} fps while the server is fine, and your graphics card is "
+                       f"the limit (GPU {gpu:.1f} ms a frame, CPU {mt:.1f} ms): lower resolution, upscaling quality or "
+                       "shadows to help.")
+        elif mt is not None and gpu is not None and mt > gpu * 1.15:
+            out.append(f"Your own frame rate is {cfps:.0f} fps while the server is fine, and your CPU is the limit "
+                       f"(main thread {mt:.1f} ms a frame, GPU {gpu:.1f} ms): graphics settings won't help much; busy "
+                       "areas and background apps cost CPU time.")
+        else:
+            out.append(f"Your own frame rate is {cfps:.0f} fps while the server is fine, so the slowdown is on "
+                       "your PC (settings, background apps, or a busy area).")
     return out
 
 

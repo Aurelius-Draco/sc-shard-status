@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.5.0 (7 Nov 2026)
+- **More from the overlay, on the Now tab.** With r_displayinfo 3 the game also shows the ship you're in, the planet, the mission you're tracking and how long your CPU and graphics card take per frame. The Now tab now shows them: "In your RSI Constellation Mk5 Centaurus, tracking InterSec Bounty Nyx Intro · Your PC: graphics card is the limit (CPU 12.7 ms, GPU 15.4 ms a frame)". When your own frame rate is low, the advice says whether lower graphics settings will help or it's your CPU. A group post starts on the activity your tracked mission points to (a bounty, hauling, a Vanduul Incursion mission). None of this is shared.
+- **The shard from the session QR code.** When the game's QR code is on screen, the app reads the shard id from it whenever the ShardId line is hard to read. Only the shard id is used, never the session id.
 - **The overlay reader finds the overlay more often at 4K.** Tested on the 4.10.3 PTU: it found the overlay in 99% of readings instead of 85%, and each reading takes about half the time.
 - **Your game server, not the whole shard.** Since server meshing each area of the verse has its own game server, so the Now tab now says "Your game server (178) is struggling" instead of blaming the shard. With Show other shards on, when your server is slow and another server on your shard is fine, it says which areas that one runs, so you can fly there instead of hopping.
 - **Misreads stay out.** A server number with letters in it, a shard id with a short build number, or a player count far past what a shard holds is treated as a misread and not used or shared. One misread server name no longer counts as a server change.

@@ -80,9 +80,13 @@ class Groups:
         server = node_of(snap.get("server_name"))
         code = snap.get("location") or _last_location(s)
         w = self.community.places.where(code) if code else None
-        from .issues import activity_for
+        from .issues import activity_for, activity_for_mission
         hints = getattr(getattr(self.app, "library", None), "activity_hints", [])
-        suggest = activity_for(hints, list(s.contracts.values())) if s is not None and hints else None
+        # The mission you're tracking (overlay) says it best; then a contract you've taken (Game.log)
+        you = self.app.you_state() if hasattr(self.app, "you_state") else None
+        suggest = (you or {}).get("activity") if isinstance(you, dict) else None
+        if not suggest:
+            suggest = activity_for(hints, list(s.contracts.values())) if s is not None and hints else None
         return {"shard_id": shard, "shard": shard_name(shard) if shard else None, "server": server,
                 "system": (w or {}).get("system"), "area": (w or {}).get("area"), "area_name": (w or {}).get("area_name"),
                 "suggest_activity": suggest}

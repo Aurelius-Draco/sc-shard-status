@@ -2095,6 +2095,12 @@
  "activity_hints": [
   {
    "activity": "Vanduul Incursion",
+   "missions": [
+    "ShipWaveAttack",
+    "3Way",
+    "Vanduul",
+    "BlueCryo"
+   ],
    "titles": [
     "Engage Shattered Blade and Vanduul",
     "Stop Vanduul and Shattered Blade Hostilities",
@@ -2107,6 +2113,59 @@
     "Intercept Vanduul Fleet",
     "Counterstrike Against Vanduul Raiders"
    ]
+  },
+  {
+   "activity": "Bounty hunting",
+   "missions": [
+    "Bounty"
+   ],
+   "titles": []
+  },
+  {
+   "activity": "Cargo hauling",
+   "missions": [
+    "Haul",
+    "Delivery",
+    "Courier",
+    "Cargo"
+   ],
+   "titles": []
+  },
+  {
+   "activity": "Mining",
+   "missions": [
+    "Mining",
+    "Mine"
+   ],
+   "titles": []
+  },
+  {
+   "activity": "Salvage",
+   "missions": [
+    "Salvage"
+   ],
+   "titles": []
+  },
+  {
+   "activity": "Medical / rescue",
+   "missions": [
+    "Rescue",
+    "Medical",
+    "MissingPerson"
+   ],
+   "titles": []
+  },
+  {
+   "activity": "Mercenary",
+   "missions": [
+    "Mercenary",
+    "Defend",
+    "Escort",
+    "Ambush",
+    "BoardShip",
+    "Eliminate"
+   ],
+   "titles": []
   }
  ]
 }

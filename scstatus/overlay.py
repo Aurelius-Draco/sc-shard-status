@@ -29,6 +29,10 @@ FIELDS = (
     "client_fps", "client_fps_min", "client_fps_max", "client_ms",
     "vram_used_mb", "vram_total_mb",
     "location", "server_time",
+    # 1.5.0: what else the overlay shows. The zone you're in (a ship's class, or a room), the planet, the tracked
+    # mission's internal name, and how long the CPU and GPU take per frame. Never positions, entity numbers or the
+    # mission's id: the parsers keep the name only.
+    "zone", "planet", "mission", "render_mt_ms", "render_rt_ms", "render_gpu_ms",
 )
 
 INT_FIELDS = {"hitches", "restarts", "pop_shard", "pop_srv", "rl_entities",
@@ -47,7 +51,9 @@ LIMITS = {
     "client_fps": (0.1, 5000), "client_fps_min": (0, 5000), "client_fps_max": (0, 5000),
     "client_ms": (0.01, 60000),
     "vram_used_mb": (0, 1_000_000), "vram_total_mb": (1, 1_000_000),
+    "render_mt_ms": (0, 5000), "render_rt_ms": (0, 5000), "render_gpu_ms": (0, 5000),
 }
+TEXT_FIELDS = {"zone", "planet", "mission"}
 
 # --------------------------------------------------------------------------
 # Line labels. Matched at the start of a line, case-insensitive, tolerant of
@@ -70,6 +76,13 @@ LABELS = [
                  r"|p\s?[l1i|]\s?a\s?y\s?[e3c]\s?r\s*[l1i|]\s?[o0]\s?c\s?a\s?t\s?[i1l|]\s?[o0]\s?n)"
                  r"\s*[:;.,]?"),
     ("fps", r"f\s?p\s?[s5](?=\s*[\dOo])"),
+    # 1.5.0 lines: "Render: MT: 12.7ms RT: 3.9ms GPU: 15.4ms", "Tracked mission : InterSec_Bounty_Nyx_Intro [<id>]",
+    # "Zone: RSI_Constellation_Mk5_Centaurus 8748... Pos: ...", "No Current Planet" or "Planet:<name> ..."
+    ("render", r"r\s?[e3c]\s?n\s?d\s?[e3c]\s?r\s*[:;.,]"),
+    ("mission", r"t\s?r\s?a\s?c\s?k\s?[e3c]\s?d\s*m\s?[i1l|]\s?[s5]\s?[s5]\s?[i1l|]\s?[o0]\s?n\s*[:;.,]?"),
+    ("zone", r"z\s?[o0]\s?n\s?[e3c]\s*[:;.,]"),
+    ("no_planet", r"n\s?[o0]\s*c\s?u\s?r\s?r\s?[e3c]\s?n\s?t\s*p\s?[l1i|]\s?a\s?n\s?[e3c]\s?t"),
+    ("planet", r"p\s?[l1i|]\s?a\s?n\s?[e3c]\s?t\s*[:;.,]"),
 ]
 LABELS = [(k, re.compile(r"^[^A-Za-z0-9]{0,3}" + p, re.I)) for k, p in LABELS]
 
@@ -368,10 +381,62 @@ def _p_server_time(out, rest):
     out["server_time"] = out.get("server_time") or norm_server_time(rest)
 
 
+_NAME_TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9_\-]{2,80}")
+
+
+def _name(rest):
+    """The name at the start of a line (letters, digits, underscores), stopping at an id (5 or more digits), a
+    bracket or "Pos": never an id or a position. OCR often reads underscores as spaces, so parts are joined back."""
+    parts = []
+    text = re.split(r"[\[({<]", _clean(rest), maxsplit=1)[0]          # nothing from a bracket on (ids)
+    for tok in text.replace(" _", "_").replace("_ ", "_").split():
+        tok = tok.strip(":;,.")
+        if not tok:
+            if parts:
+                break
+            continue
+        if re.fullmatch(r"\d{5,}", tok) or re.match(r"p[o0]s\b", tok, re.I):
+            break
+        if not re.fullmatch(r"[A-Za-z0-9_\-]+", tok):
+            break
+        parts.append(tok)
+        if len(parts) >= 8:
+            break
+    name = "_".join(parts).strip("_-")
+    return name if _NAME_TOKEN.fullmatch(name or "") else None
+
+
+def _p_zone(out, rest):
+    # The first Zone line is where you are (a ship's class or a room); the SolarSystem and Root ones are positions
+    if out.get("zone") is not None or re.match(r"\W*(?:s\s?[o0]\s?[l1i|]\s?a\s?r|r\s?[o0]\s?[o0]\s?t)", rest, re.I):
+        return
+    out["zone"] = _name(rest)
+
+
+def _p_mission(out, rest):
+    out["mission"] = out.get("mission") or _name(GUID_RE.sub("", rest))
+
+
+def _p_planet(out, rest):
+    # "Planet:<name> <type> (<zone>)": the first word is the planet's name
+    first = (_clean(rest).strip(" :;,.").split() or [""])[0]
+    out["planet"] = out.get("planet") or _name(first)
+
+
+def _p_no_planet(out, rest):
+    if out.get("planet") is None:
+        out["planet"] = ""          # read, and not on a planet
+
+
+def _p_render(out, rest):
+    _assign(out, rest, [("render_mt_ms", 1, r"m\s?t"), ("render_rt_ms", 1, r"r\s?t"), ("render_gpu_ms", 1, r"g\s?p\s?u")])
+
+
 PARSERS = {
     "fps": _p_fps, "shard": _p_shard, "server_fps": _p_server_fps,
     "server": _p_server, "net": _p_net, "rl": _p_rl, "server_time": _p_server_time,
     "vram": _p_vram, "location": _p_location,
+    "zone": _p_zone, "mission": _p_mission, "planet": _p_planet, "no_planet": _p_no_planet, "render": _p_render,
 }
 
 
@@ -459,6 +524,13 @@ def det_scale(game_h):
     """The detector scale for a game drawn at this height."""
     return DET_SCALE_4K if (game_h or 0) >= 1900 else DET_SCALE
 WANTED = ("fps", "shard", "server_fps", "server", "net", "rl", "server_time", "vram", "location")
+# 1.5.0 extras: read now and then from around the block, best effort. They never decide where the block is or
+# whether a reading worked (a mission line comes and goes, the planet line changes), so the core reading is untouched.
+EXTRA_KEYS = ("zone", "render", "mission", "planet", "no_planet")
+EXTRA_FIELDS = ("zone", "planet", "mission", "render_mt_ms", "render_rt_ms", "render_gpu_ms")
+EXTRA_EVERY = 6          # read the extras every this many good readings
+EXTRA_KEEP_S = 90        # and keep the last ones this long
+EXTRA_RESCAN = 10        # look for where the extra lines are every this many extra reads
 ANCHORS = set(WANTED) | {"session"}
 REUSE_MAX = 10          # re-read an unchanged line at least every this many reads
 LINE_SQUEEZE = 0.85      # horizontal squeeze of line crops before OCR
@@ -529,6 +601,8 @@ class OverlayReader:
         self.wide_search_every = wide_search_every
         self.last_path = None        # "fast", "search", "wide" or None (diagnostics)
         self._game_h = None          # the height the game draws at, once found (None: the screen's)
+        self._extras = ({}, 0.0)     # the 1.5.0 extra lines (fields, when read)
+        self._extra_n = 0
         self._last_alt = time.monotonic()     # smaller game sizes are first tried a little after start
         self.last_ms = None
 
@@ -700,6 +774,84 @@ class OverlayReader:
                 self._seen.pop(key, None)
         return snap, labels_ok
 
+    def _merge_extras(self, img, snap):
+        """Add the 1.5.0 extra lines (zone, render split, tracked mission, planet) to a good reading. Read every
+        EXTRA_EVERY readings from just around the block; anything that goes wrong just leaves them out."""
+        blk = self._cache
+        self._extra_n += 1
+        if blk and (self._extra_n % EXTRA_EVERY == 1 or not self._extras[0]):
+            try:
+                self._extras = (self._read_extras(img, blk), time.monotonic())
+            except Exception:
+                self._extras = ({}, time.monotonic())
+        # The session QR code (when it's on screen) carries the shard id: use it when the ShardId line wasn't read
+        if snap.get("shard_id") is None:
+            qs, qat = getattr(self, "_qr_shard", (None, 0.0))
+            if (self._extra_n % EXTRA_EVERY == 1 or qs is None) and time.monotonic() - getattr(self, "_qr_tried", 0.0) > 4:
+                self._qr_tried = time.monotonic()
+                got = qr_shard(img)
+                if got:
+                    qs, qat = got, time.monotonic()
+                    self._qr_shard = (qs, qat)
+            if qs and time.monotonic() - qat <= EXTRA_KEEP_S:
+                snap["shard_id"] = qs
+                snap["shard_from_qr"] = True
+        fields, at = self._extras
+        if time.monotonic() - at <= EXTRA_KEEP_S:
+            for k in EXTRA_FIELDS:
+                if snap.get(k) is None and fields.get(k) is not None:
+                    snap[k] = fields[k]
+
+    def _read_extras(self, img, blk):
+        """The extra lines. Where they sit is found once (a detector pass around the block, then the start of each
+        line); after that only those lines are read, and the full look happens again every EXTRA_RESCAN reads or
+        when one of them isn't what it was (a mission line came or went)."""
+        p, right = blk["pitch"], blk["right"]
+        rows = self._extra_rows if getattr(self, "_extra_blk", None) is blk else None
+        self._extra_scans = getattr(self, "_extra_scans", 0) + 1
+        if not rows or self._extra_scans % EXTRA_RESCAN == 0:
+            rows = self._find_extras(img, blk)
+            self._extra_rows, self._extra_blk = rows, blk
+        if not rows:
+            return {}
+        texts = self._rec([self._line_crop(img, x0, cy, right + 0.6 * p, p) for _, x0, cy in rows])
+        out = dict.fromkeys(EXTRA_FIELDS)
+        for (want, _, _), t in zip(rows, texts):
+            key, rest = classify(t)
+            if key not in EXTRA_KEYS:
+                self._extra_rows = None          # the lines moved: look again next time
+                continue
+            if key != want and {key, want} != {"planet", "no_planet"}:
+                self._extra_rows = None
+            try:
+                PARSERS[key](out, rest)
+            except Exception:
+                pass
+        _sanity(out)
+        return {k: out[k] for k in EXTRA_FIELDS if out.get(k) is not None}
+
+    def _find_extras(self, img, blk):
+        p, right = blk["pitch"], blk["right"]
+        x0, y0, x1, y1 = blk["rect"]
+        H, W = img.shape[:2]
+        ey0, ey1 = max(0, int(y0 - 8 * p)), min(H, int(np.ceil(y1 + 6 * p)))
+        ex0 = max(0, int(min(x0, right - 40 * p)))
+        crop = img[ey0:ey1, ex0:int(np.ceil(min(W, x1)))]
+        segs = _segments(self._det(crop, blk["ds"], ex0, ey0), p)
+        core = [cy for _, _, cy in blk["rows"]]
+        todo = [g for g in segs if abs(g[2] - right) < 2.0 * p and g[2] - g[0] > 2.5 * p
+                and all(abs((g[1] + g[3]) / 2 - cy) > 0.45 * p for cy in core)][:16]
+        if not todo:
+            return []
+        heads = self._rec([self._line_crop(img, g[0], (g[1] + g[3]) / 2, min(g[2], g[0] + 11 * p), p) for g in todo])
+        rows, keys = [], set()
+        for g, t in zip(todo, heads):
+            k = classify(t)[0]
+            if k in EXTRA_KEYS and k not in keys:
+                rows.append((k, g[0], (g[1] + g[3]) / 2))
+                keys.add(k)
+        return rows[:6]
+
     def _fast(self, img, blk):
         p = blk["pitch"]
         x0, y0, x1, y1 = blk["rect"]
@@ -788,10 +940,28 @@ class OverlayReader:
                 snap["ok"] = False
             else:
                 self._fails = 0
+                self._merge_extras(img_bgr, snap)
             self.last_path = path
             self.last_ms = (time.perf_counter() - t0) * 1000
         snap["ts"] = time.time() if ts is None else ts
         return snap
+
+
+def qr_shard(img):
+    """The shard id from the game's session QR code in the top right, when it's showing (r_DisplaySessionInfo, and
+    always on the PTU). The code holds "<session id> <shard id> <unix time> <build>"; only the shard id is kept,
+    never the session id. None when there's no code or it doesn't read."""
+    try:
+        H, W = img.shape[:2]
+        crop = img[0:int(H * 0.25), int(W * 0.8):W]
+        text, _, _ = cv2.QRCodeDetector().detectAndDecode(crop)
+    except Exception:
+        return None
+    for tok in (text or "").split():
+        sid = norm_shard_id(tok)
+        if sid:
+            return sid
+    return None
 
 
 _default = None
