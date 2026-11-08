@@ -367,3 +367,65 @@ def test_ptu_long_server_line_at_1440p():
     assert s["server_fps"] == 30.0 and s["shard_id"] == "ptu_use1b_13132336_010"
     s = r.read(f)                       # and again from the remembered position
     assert r.last_path == "fast" and s["server_name"] == "ptu-use1b-sc-alpha-4100-13132336-game-09"
+
+
+@pytest.mark.parametrize("raw,want", [
+    ("ptu-uselb-sc-alpha-4100-13132336-game-09", "ptu-use1b-sc-alpha-4100-13132336-game-09"),
+    ("pub-apse2a-sc-alphal4102-12974691-game-11", "pub-apse2a-sc-alpha-4102-12974691-game-11"),
+    ("pub-apse2a-scalpha4102-12974691-game-11", "pub-apse2a-sc-alpha-4102-12974691-game-11"),
+    ("pub-apse2a-sg-alpha-4102-129746911game-11", "pub-apse2a-sc-alpha-4102-12974691-game-11"),
+    ("ptu-use1b-sc-alpha-4100-13132336game-09", "ptu-use1b-sc-alpha-4100-13132336-game-09"),
+    ("pub-apse2a-sc-alpha-4102-12974691-gamme-55", "pub-apse2a-sc-alpha-4102-12974691-game-55"),
+    ("pubeapse2a-sc-alpha-4102-12974691-game-33", None),          # env and region run together: no guess
+])
+def test_server_name_misreads_put_back_in_shape(raw, want):
+    """Real misreads from Ray's readings (LAB and LIVE, Oct to Nov 2026): 219 readings had a server name with a
+    dash dropped or a letter for a digit, each counted as another server."""
+    from scstatus.overlay import norm_server_name
+    assert norm_server_name(raw) == want
+
+
+def test_a_guessed_region_needs_the_shard_to_agree():
+    from scstatus.overlay import parse_lines
+    line = "Server: ptu-uselpsc-alpha-4100-13132336-game-09, restarts 0, pop. [shard 113, srv 25]"
+    assert parse_lines([line])["server_name"] is None
+    s = parse_lines(["ShardId: ptu use1b 13132336 010", "Server: ptu-uselbralpha-4100-13132336-game-09, restarts 0, pop. [shard 113, srv 25]"])
+    assert s["server_name"] == "ptu-use1b-sc-alpha-4100-13132336-game-09" and s["pop_srv"] == 25
+    assert "_server_unsure" not in s
+
+
+def test_ink_mask_keeps_the_overlays_own_text_and_drops_tinted_banners():
+    """The overlay draws white, yellow, orange and red text with a black drop shadow down and to the right; the
+    ship banner and pop-ups are tinted (cyan, blue, green) and have no such shadow."""
+    from scstatus.overlay import ink_mask
+    img = np.full((40, 120, 3), 40, np.uint8)
+    img[10:14, 10:30] = (235, 235, 235)          # white overlay stroke...
+    img[14:17, 13:33] = 0                         # ...with its shadow below and right
+    img[10:14, 50:70] = (0, 165, 255)             # orange (BGR)
+    img[14:17, 53:73] = 0
+    img[10:14, 90:110] = (235, 220, 90)           # cyan banner stroke, shadowed or not, is dropped
+    img[14:17, 93:113] = 0
+    m = ink_mask(img)
+    assert m[10:14, 10:30].any() and m[10:14, 50:70].any()
+    assert not m[:, 85:].any()
+
+
+def test_second_look_only_fills_gaps_and_checks_them():
+    """A second look through the banner never replaces a value already read, never takes hitches, the location or
+    the shard id, and keeps server fps only when it agrees with its own frame time."""
+    from scstatus.overlay import INK_FIELDS, OverlayReader
+    assert "shard" not in INK_FIELDS and "location" not in INK_FIELDS
+    assert all("hitches" not in v for v in INK_FIELDS.values())
+    r = OverlayReader()
+    img = np.zeros((400, 800, 3), np.uint8)
+    blk = {"pitch": 19.3, "right": 780.0, "rect": (100.0, 0.0, 790.0, 300.0)}
+    rows = [("server_fps", 300.0, 100.0), ("net", 300.0, 140.0)]
+    answers = iter([["Server FPS 50.0 [49.0..51.0] - 33.3ms [32.0..34.0], Hitches: 9",
+                     "Net: ping 31.0ms, loss 0.0% BwIn 1.0kbps, BwOut 1.0kbps"], ["Server FPS 50.0 - 33.3ms"]])
+    r._rec = lambda crops: next(answers)
+    snap = {"server_fps": None, "server_ms": None, "hitches": None, "ping_ms": 24.4, "loss_pct": None,
+            "pop_shard": 400, "pop_srv": None}
+    fixed = r._ink_look(img, blk, rows, {}, snap)
+    assert snap["server_fps"] is None and snap["server_ms"] is None      # 50 fps is 20 ms, not 33.3: dropped
+    assert snap["hitches"] is None
+    assert snap["ping_ms"] == 24.4 and snap["loss_pct"] == 0.0 and fixed == {"net"}

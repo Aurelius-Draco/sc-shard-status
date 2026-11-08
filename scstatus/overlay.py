@@ -266,7 +266,9 @@ def _p_server(out, rest):
     else:
         parts = rest.strip().split(None, 1)
         name, tail = (parts[0] if parts else ""), (parts[1] if len(parts) > 1 else "")
-    out["server_name"] = out.get("server_name") or norm_server_name(name)
+    if not out.get("server_name"):
+        out["server_name"] = norm_server_name(name)
+        out["_server_unsure"] = bool(out["server_name"]) and not server_name_sure(name)
     _assign(out, tail, [("restarts", 0, r"r\s?[e3]\s?s\s?t\w*"),
                         ("pop_shard", 0, r"s\s?h\s?a\s?r\s?d"),
                         ("pop_srv", 0, r"s\s?r\s?v")])
@@ -295,9 +297,33 @@ def norm_server_name(s):
     if segs and re.fullmatch(r"game\d{1,4}", segs[-1]):
         segs[-1:] = ["game", segs[-1][4:]]
     s = "-".join(segs)
+    if "alph" in s and not _SERVER_CAN.fullmatch(s):
+        # The usual shape (env-region-sc-alpha-version-build-game-N) with a dash dropped or misread, or a stray
+        # letter ("alphal4102", "scalpha", "sg-alpha", "13132336game-09"): put back in shape, or None when it can't be
+        m = _SERVER_TOL.fullmatch(s)
+        if not m:
+            return None
+        env, a, d, b, ver, build, node = m.groups()
+        return f"{env}-{a}{d if d.isdigit() else '1'}{b}-sc-alpha-{ver}-{build}-game-{node}"
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+){3,}", s) or not re.fullmatch(r"\d{1,4}", segs[-1]):
         return None
     return s
+
+
+_SERVER_CAN = re.compile(r"[a-z]{2,5}-[a-z]{2,6}\d[a-z]?-sc-alpha-\d{3,4}-\d{7,8}-game-\d{1,4}")
+_SERVER_TOL = re.compile(r"([a-z]{2,5})-([a-z]{2,6})([0-9li|!])([a-z]?)[a-z]?-?s?[cgo]?[a-z]?-?alpha[a-z]?-?(\d{3,4})-?"
+                         r"(\d{7,8})\d?-?gam+e[a-z]?-?(\d{1,4})")
+
+
+def server_name_sure(raw):
+    """False when the region's digit had to be guessed from a letter with the segments run together
+    ("uselpsc-alpha": use1b or use1p?). Such a name is only kept when the shard id's region agrees."""
+    s = re.sub(r"\s+", "", raw.translate(_PUNCT)).strip(",.;:[]()").replace("_", "-").lower()
+    segs = re.sub(r"-{2,}", "-", s).split("-")
+    if len(segs) > 2 and re.fullmatch(r"[a-z]{2,6}\d[a-z]?|[a-z]{2,5}[li|!][a-z]", segs[1]) and segs[2] in ("sc", "sg", "so"):
+        return True
+    m = _SERVER_TOL.fullmatch(re.sub(r"-{2,}", "-", s))
+    return bool(m) and m.group(3).isdigit()
 
 
 def node_of(server_name):
@@ -491,6 +517,15 @@ def _fps_ms_check(out):
 
 
 def _sanity(out):
+    # A game server is part of its shard, so fewer on the shard than on the server is a misread shard count
+    # (a pop-up over "shard 427" read as 3, LIVE 8 Nov)
+    if out.get("pop_shard") is not None and out.get("pop_srv") is not None and out["pop_shard"] < out["pop_srv"]:
+        out["pop_shard"] = None
+    # A server name whose region had to be guessed stays only when the shard id's region agrees
+    if out.pop("_server_unsure", False) and out.get("server_name"):
+        sh = out.get("shard_id") or ""
+        if sh.split("_")[1:2] != out["server_name"].split("-")[1:2]:
+            out["server_name"] = None
     for f, (lo, hi) in LIMITS.items():
         v = out.get(f)
         if v is not None and not (lo <= v <= hi):
@@ -588,6 +623,58 @@ EXTRA_EVERY = 6          # read the extras every this many good readings
 EXTRA_KEEP_S = 90        # and keep the last ones this long
 EXTRA_RESCAN = 10        # look for where the extra lines are every this many extra reads
 ANCHORS = set(WANTED) | {"session"}
+# What each core line gives, to see when a line was read but came out short (a banner or pop-up across it)
+ROW_FIELDS = {"fps": ("client_fps",), "shard": ("shard_id",), "server_fps": ("server_fps", "server_ms", "hitches"),
+              "server": ("server_name", "pop_shard", "pop_srv"), "net": ("ping_ms", "loss_pct"), "rl": (),
+              "server_time": ("server_time",), "vram": ("vram_used_mb",), "location": ("location",)}
+# The values a second look may fill in (see OverlayReader._ink_look)
+# Not the shard id: a pop-up glyph over its last part reads as another valid-looking shard (LAB 8 Nov: 010 as 610);
+# the session QR code and Game.log give it instead
+INK_FIELDS = {"fps": ("client_fps",), "server_fps": ("server_fps", "server_ms"),
+              "server": ("server_name", "pop_shard", "pop_srv"), "net": ("ping_ms", "loss_pct"),
+              "server_time": ("server_time",), "vram": ("vram_used_mb",)}
+
+
+def _this_year(t):
+    m = re.search(r"(\d{4})\s*$", t or "")
+    return bool(m) and abs(int(m.group(1)) - time.gmtime().tm_year) <= 1
+
+
+# The overlay draws its text untinted in white, yellow and orange (red for bad numbers), each glyph with a black drop
+# shadow a pixel or two right of and below it. The ship name banner, mission pop-ups, name tags and the HUD are tinted
+# (cyan, blue, green) and have no such shadow, so keeping only overlay-coloured pixels with a shadow drops them out.
+INK_COLOURS = ((1.0, 1.0, 1.0), (1.0, 0.966, 0.586), (1.0, 0.645, 0.0))     # r, g, b as shares of the brightest
+
+
+def ink_mask(bgr, strict=False):
+    """Pixels that look like the overlay's own text: an overlay colour at some brightness, with a dark pixel 1 to 3
+    px down and to the right (the drop shadow). strict narrows the colours, for when the first look wasn't enough."""
+    a = bgr.astype(np.float32)
+    b, g, r = a[..., 0], a[..., 1], a[..., 2]
+    mx = np.maximum(np.maximum(r, g), b)
+    ok = np.zeros(mx.shape, bool)
+    for k, (cr, cg, cb) in enumerate(INK_COLOURS):
+        if k == 0:
+            t = 2 + 0.03 * mx if strict else 6 + 0.06 * mx
+        else:
+            t = 5 + 0.06 * mx if strict else 10 + 0.12 * mx
+        ok |= (np.abs(r - mx * cr) <= t) & (np.abs(g - mx * cg) <= t) & (np.abs(b - mx * cb) <= t)
+    ok |= (r >= 120) & (g <= 0.35 * r) & (b <= 0.35 * r)
+    ok &= mx >= (130 if strict else 100)
+    dark = mx < 70
+    near = np.zeros_like(ok)
+    for d in (1, 2, 3):
+        near[:-d, :-d] |= dark[d:, d:]
+    return ok & near
+
+
+def ink_only(bgr, strict=False):
+    """bgr with everything but the overlay's own text blacked out."""
+    # grow the glyphs' cores by a pixel so their soft edges come along (OCR reads anti-aliased text better)
+    m = cv2.dilate(ink_mask(bgr, strict).astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
+    out = np.zeros_like(bgr)
+    out[m] = bgr[m]
+    return out
 REUSE_MAX = 10          # re-read an unchanged line at least every this many reads
 LINE_SQUEEZE = 0.85      # horizontal squeeze of line crops before OCR
 
@@ -655,7 +742,8 @@ class OverlayReader:
         self._fails = 0
         self._last_wide = 0.0
         self.wide_search_every = wide_search_every
-        self.last_path = None        # "fast", "search", "wide" or None (diagnostics)
+        self.last_path = None        # "fast", "search", "wide", "ink" or None (diagnostics)
+        self.last_ink = []           # lines the last look at only the overlay's own text fixed (diagnostics)
         self._game_h = None          # the height the game draws at, once found (None: the screen's)
         self._extras = ({}, 0.0)     # the 1.5.0 extra lines (fields, when read)
         self._extra_n = 0
@@ -861,12 +949,58 @@ class OverlayReader:
             texts[key] = t
             labels_ok = labels_ok and classify(t)[0] == key
         snap, seen = _parse([texts[k] for k, _, _ in rows])
+        fixed = self._ink_look(img, blk, rows, texts, snap)
+        self.last_ink = sorted(fixed)
         for key, _, _ in todo:
             if key in seen:
                 self._seen[key] = (masks[key], texts[key], 0)
             else:
                 self._seen.pop(key, None)
         return snap, labels_ok
+
+    def _ink_look(self, img, blk, rows, texts, snap):
+        """Values a line should have given but didn't (a banner or pop-up across it) get a second look with only the
+        overlay's own text kept (ink_only), then a stricter third. Only missing values are filled, never ones already
+        read, and only when they check out: server fps with its frame time, the server time in this year. Hitches and
+        the location aren't taken this way (a pop-up across them reads as a wrong number or place, not a blank).
+        Returns the keys that gave something. Costs nothing when every line read fully."""
+        def gaps(k):
+            return [f for f in INK_FIELDS.get(k, ()) if snap.get(f) is None]
+        p, right = blk["pitch"], blk["right"]
+        need = [r for r in rows if gaps(r[0])]
+        # A banner across the Server FPS line can hide its label from the search too; it's the line right above Server
+        by = {r[0]: r for r in rows}
+        if "server_fps" not in by and "server" in by:
+            need.append(("server_fps", blk["rect"][0] + p, by["server"][2] - p))
+        if not need:
+            return set()
+        x0, y0, x1, y1 = (int(v) for v in blk["rect"])
+        fixed = set()
+        for strict in (False, True):
+            if not need:
+                break
+            clean = np.zeros_like(img)
+            clean[y0:y1 + 1, x0:x1 + 1] = ink_only(img[y0:y1 + 1, x0:x1 + 1], strict)
+            got = self._rec([self._line_crop(clean, lx, cy, right + 0.6 * p, p) for _, lx, cy in need])
+            still = []
+            for (k, lx, cy), t in zip(need, got):
+                if classify(t)[0] == k:
+                    new, _ = _parse([t])
+                    if k == "server_fps" and not _fps_agrees(new.get("server_fps"), new.get("server_ms")):
+                        new = {}
+                    if k == "server_time" and not _this_year(new.get("server_time")):
+                        new = {}
+                    for f in gaps(k):
+                        if new.get(f) is not None:
+                            snap[f] = new[f]
+                            fixed.add(k)
+                if gaps(k):
+                    still.append((k, lx, cy))
+            need = still
+        if fixed:
+            snap["ok"] = bool(snap.get("server_fps") is not None and (
+                snap.get("pop_shard") is not None or snap.get("pop_srv") is not None or snap.get("ping_ms") is not None))
+        return fixed
 
     def _merge_extras(self, img, snap):
         """Add the 1.5.0 extra lines (zone, render split, tracked mission, planet) to a good reading. Read every
@@ -1032,6 +1166,28 @@ class OverlayReader:
                                 self._seen = {}
                         if snap is not None:
                             break
+            if snap is None and img_bgr is not None and getattr(img_bgr, "ndim", 0) == 3 and img_bgr.shape[0] >= 200 \
+                    and self._fails < ALT_RECENT_FAILS:
+                # A banner or pop-up across the block can hide enough labels that it isn't found: look for it once
+                # more in a copy with only the overlay's own text (top right only, so it stays cheap)
+                H, W = img_bgr.shape[:2]
+                gh = self._game_h or H
+                rw, rh = int(min(W, 1500 * H / REF_H)), int(min(H, 800 * H / REF_H))
+                clean = np.zeros_like(img_bgr)
+                clean[0:rh, W - rw:W] = ink_only(img_bgr[0:rh, W - rw:W])
+                blk = self._search(clean, game_h=None if gh == H else gh)
+                if blk:
+                    snap, _ = self._read_rows(img_bgr, blk, blk["rows"])
+                    if snap["ok"]:
+                        # Found only through the banner: the lines it covers can read as a wrong place, count or
+                        # shard, so those aren't taken from this reading (LAB 8 Nov: "locatigh__NyxStart"); the
+                        # session QR code and Game.log still give the shard
+                        snap["location"] = snap["hitches"] = snap["shard_id"] = None
+                        self._cache = blk
+                        path = "ink"
+                    else:
+                        snap = None
+                        self._seen = {}
             if snap is None:
                 self._fails += 1
                 snap = dict.fromkeys(FIELDS)
