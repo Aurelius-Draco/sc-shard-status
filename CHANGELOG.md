@@ -2,6 +2,9 @@
 
 ## 1.5.3 (9 Nov 2026)
 - **The overlay is read on whichever screen the game is on.** Before, the app read only your main monitor, so with the game on a second screen it said "overlay off, readings paused" even with r_displayinfo on. It now follows the game's window to any monitor, at whatever size the game draws: fullscreen, borderless or windowed, including a game running at 1440p on a 4K screen. Nothing to set up, and the monitor setting in config.json is only used if the game's window can't be found.
+- **The overlay's text size in a window.** The game draws the overlay at your monitor's text size even in a small window, so a 1920x1080 window on a 4K screen now reads too, wherever it sits.
+- **"Reading, paused while you're out of the game."** Switching to another window (the dashboard, a browser) no longer shows "waiting for the game window" beside your live numbers. For a minute after the last reading it says the overlay is reading and only paused until you're back in the game.
+- **When the overlay can't be read,** the app keeps a picture of what it looked at as overlay-miss.png in its data folder. It stays on your PC; attach it to a GitHub report if you'd like help.
 
 ## 1.5.2 (8 Nov 2026)
 - **Places by the names players use.** The favourite place picker is now a type-ahead that offers the places everyone knows first (Orison, Lorville, Area18, New Babbage, Levski, the four big stations, Grim HEX, Ruin Station, Orbituary, Checkmate, Starlight, Gaslight, Patch City and the rest of the Pyro stations), then rest stops and stations, then everything else, with coded mining bases last. Typing a common name or the game's internal one finds it (PYAM-EXHANG-0-1 finds the Executive Hangar), and the common name is what's shown and saved.
