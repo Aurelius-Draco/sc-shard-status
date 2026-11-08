@@ -414,7 +414,7 @@ def test_second_look_only_fills_gaps_and_checks_them():
     """A second look through the banner never replaces a value already read, never takes hitches, the location or
     the shard id, and keeps server fps only when it agrees with its own frame time."""
     from scstatus.overlay import INK_FIELDS, OverlayReader
-    assert "shard" not in INK_FIELDS and "location" not in INK_FIELDS
+    assert "shard" not in INK_FIELDS and "location" not in INK_FIELDS and INK_FIELDS["server"] == ("server_name",)
     assert all("hitches" not in v for v in INK_FIELDS.values())
     r = OverlayReader()
     img = np.zeros((400, 800, 3), np.uint8)
@@ -429,3 +429,15 @@ def test_second_look_only_fills_gaps_and_checks_them():
     assert snap["server_fps"] is None and snap["server_ms"] is None      # 50 fps is 20 ms, not 33.3: dropped
     assert snap["hitches"] is None
     assert snap["ping_ms"] == 24.4 and snap["loss_pct"] == 0.0 and fixed == {"net"}
+
+
+def test_a_reading_through_a_banner_leaves_out_what_pop_ups_cover():
+    from scstatus.overlay import _banner_drop
+    snap = {"server_fps": 11.0, "server_ms": 90.6, "ping_ms": 26.3, "pop_shard": 330, "pop_srv": 53, "hitches": 0,
+            "location": "locatioh__Stantonla", "shard_id": "pub_apse2a_12881860_090", "server_name": "x", "ok": True}
+    _banner_drop(snap)
+    assert snap["ok"] and snap["server_fps"] == 11.0 and snap["ping_ms"] == 26.3 and snap["server_name"] == "x"
+    assert all(snap[f] is None for f in ("pop_shard", "pop_srv", "hitches", "location", "shard_id"))
+    snap = {"server_fps": 11.0, "ping_ms": None, "pop_shard": 330}
+    _banner_drop(snap)
+    assert snap["ok"] is False              # fps alone isn't a reading

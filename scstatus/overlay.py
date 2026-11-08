@@ -631,8 +631,19 @@ ROW_FIELDS = {"fps": ("client_fps",), "shard": ("shard_id",), "server_fps": ("se
 # Not the shard id: a pop-up glyph over its last part reads as another valid-looking shard (LAB 8 Nov: 010 as 610);
 # the session QR code and Game.log give it instead
 INK_FIELDS = {"fps": ("client_fps",), "server_fps": ("server_fps", "server_ms"),
-              "server": ("server_name", "pop_shard", "pop_srv"), "net": ("ping_ms", "loss_pct"),
+              "server": ("server_name",), "net": ("ping_ms", "loss_pct"),
               "server_time": ("server_time",), "vram": ("vram_used_mb",)}
+
+
+def _banner_drop(snap):
+    """A reading taken through a banner or pop-up (the block was only found, or its Server FPS line only read, with
+    the overlay's own text picked out) keeps fps, frame times, ping, the server name, the server time and VRAM. The
+    location, hitches, the shard id and the player counts sit where pop-ups cover them and read as a wrong place or
+    number ("locatigh__NyxStart", shard 339 as 330, 8 Nov), so they're left out of it; the session QR code and
+    Game.log still give the shard."""
+    for f in ("location", "hitches", "shard_id", "pop_shard", "pop_srv"):
+        snap[f] = None
+    snap["ok"] = bool(snap.get("server_fps") is not None and snap.get("ping_ms") is not None)
 
 
 def _this_year(t):
@@ -990,6 +1001,9 @@ class OverlayReader:
                         new = {}
                     if k == "server_time" and not _this_year(new.get("server_time")):
                         new = {}
+                    if k == "server" and (snap.get("shard_id") or "").split("_")[1:2] != \
+                            (new.get("server_name") or "").split("-")[1:2]:
+                        new = {}                  # a server name only when the shard id's region agrees
                     for f in gaps(k):
                         if new.get(f) is not None:
                             snap[f] = new[f]
@@ -997,7 +1011,9 @@ class OverlayReader:
                 if gaps(k):
                     still.append((k, lx, cy))
             need = still
-        if fixed:
+        if "server_fps" in fixed:
+            _banner_drop(snap)               # something is across the block: see _banner_drop
+        elif fixed:
             snap["ok"] = bool(snap.get("server_fps") is not None and (
                 snap.get("pop_shard") is not None or snap.get("pop_srv") is not None or snap.get("ping_ms") is not None))
         return fixed
@@ -1179,10 +1195,8 @@ class OverlayReader:
                 if blk:
                     snap, _ = self._read_rows(img_bgr, blk, blk["rows"])
                     if snap["ok"]:
-                        # Found only through the banner: the lines it covers can read as a wrong place, count or
-                        # shard, so those aren't taken from this reading (LAB 8 Nov: "locatigh__NyxStart"); the
-                        # session QR code and Game.log still give the shard
-                        snap["location"] = snap["hitches"] = snap["shard_id"] = None
+                        _banner_drop(snap)
+                    if snap["ok"]:
                         self._cache = blk
                         path = "ink"
                     else:
