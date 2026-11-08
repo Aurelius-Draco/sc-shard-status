@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from .config import VERSION, say
+from .config import TEST_LABEL, VERSION, say
 
 STATIC = Path(__file__).resolve().parent / "static"
 
@@ -72,7 +72,7 @@ def start_server(app, open_browser=False):
             qs = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
             if path in ("/", "/index.html"):
                 html = (STATIC / "index.html").read_text(encoding="utf-8")
-                html = html.replace("__TOKEN__", token).replace("__VERSION__", VERSION)
+                html = html.replace("__TOKEN__", token).replace("__VERSION__", VERSION + TEST_LABEL)
                 return self._send(200, html.encode("utf-8"), "text/html")
             m = re.fullmatch(r"/img/[a-z0-9-]+\.(jpg|png|webp)", path)
             if m:

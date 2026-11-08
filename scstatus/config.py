@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 VERSION = "1.5.1"
+# A test copy started with SCSTATUS_LABEL set (e.g. "TEST next 2d477ea") says so in the dashboard header
+TEST_LABEL = (" " + os.environ["SCSTATUS_LABEL"].strip()[:40]) if os.environ.get("SCSTATUS_LABEL", "").strip() else ""
 # The public community board (Cloudflare Worker in the admin repo)
 COMMUNITY_URL = "https://verseshards.com"
 APP_NAME = "SC Shard Status"          # install name: folders, shortcuts, data. Never changes.

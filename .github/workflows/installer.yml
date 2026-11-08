@@ -115,6 +115,20 @@ jobs:
           name: VerseShards-${{ env.VER }}-msix
           path: dist/VerseShards-*.msix
           retention-days: 30
+      # A copy of the app folder for testing a build from next beside the installed app (not for players): unzip it
+      # anywhere and start it with its own data folder (SCSTATUS_DATA) and port, and the installed copy isn't touched
+      - name: Zip the app folder for a test copy
+        if: ${{ !inputs.tag }}
+        run: |
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          "SHA7=$sha" | Out-File -Append $env:GITHUB_ENV
+          Compress-Archive -Path "dist\SC Shard Status\*" -DestinationPath "dist\Verse-Shards-test-$env:VER-$sha.zip"
+      - uses: actions/upload-artifact@v5
+        if: ${{ !inputs.tag }}
+        with:
+          name: Verse-Shards-test-${{ env.VER }}-${{ env.SHA7 }}
+          path: dist/Verse-Shards-test-*.zip
+          retention-days: 14
       - uses: actions/upload-artifact@v5
         with:
           name: SC-Shard-Status-Setup-${{ env.VER }}
