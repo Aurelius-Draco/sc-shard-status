@@ -1269,7 +1269,7 @@ function header(d) {
   $("libCount").textContent = d.library && d.library.problem ? d.library.problem : "";
   const u = d.update || {}, up = $("updPill");
   up.hidden = !u.available;
-  if (u.available) up.textContent = u.state === "idle" || u.state === "failed" ? `Version ${u.latest} is out` : "Updating…";
+  if (u.available) up.textContent = u.state === "idle" || u.state === "failed" ? (u.test ? "New TEST build" : `Version ${u.latest} is out`) : "Updating…";
   if (u.state === "starting installer") waitForRestart();
   const dot = $("setupDot"); dot.hidden = !!d.game_found; dot.title = d.game_found ? "" : "Game folder not found";
   const g = d.groups || {}, nInt = (g.interest || []).length;
@@ -1309,6 +1309,15 @@ document.addEventListener("click", async e => {
 // The installed app updates itself in one click; a copy unzipped by hand is sent to the download page
 function updNotice(u) {
   if (!u || !u.available) return "";
+  // Ray's TEST copy: the newest build from next, fetched from GitHub's test-next pre-release
+  if (u.test) {
+    const tb = {downloading: `Downloading ${esc(u.latest)}… ${Math.round((u.progress || 0) * 100)}%`, verifying: "Checking the download…", unpacking: "Unpacking…",
+      "starting installer": "Starting the new TEST build. This page reloads when it's back."}[u.state];
+    if (tb) return `<div class="notice"><div class="nt"><b>${tb}</b>${u.state === "downloading" ? `<div class="upbar"><i style="width:${Math.round((u.progress || 0) * 100)}%"></i></div>` : ""}</div></div>`;
+    const tn = u.notes ? `<details class="ex" id="updNotes" ${notesOpen ? "open" : ""}><summary>What's in it</summary><pre class="relnotes">${esc(u.notes)}</pre></details>` : "";
+    const te = u.state === "failed" && u.error ? `<br><span class="sub">${esc(u.error)}</span>` : "";
+    return `<div class="notice"><div class="nt"><b>A newer TEST build is ready: ${esc(u.latest)}</b> (you have ${esc(u.current)}). Fetch it and this TEST copy closes, unpacks it beside this one and starts again in a few seconds. Your test data stays.${te}${tn}</div>${u.can_install ? `<button class="btn sm" data-protected="true" data-upd="install">Fetch the new TEST build</button>` : ""}</div>`;
+  }
   const busy = {downloading: `Downloading version ${esc(u.latest)}… ${Math.round((u.progress || 0) * 100)}%`,
     verifying: "Checking the download…", "starting installer": "Installing. The app closes and starts again by itself; this page reloads when it's back."}[u.state];
   if (busy) return `<div class="notice"><div class="nt"><b>${busy}</b>${u.state === "downloading" ? `<div class="upbar"><i style="width:${Math.round((u.progress || 0) * 100)}%"></i></div>` : ""}</div></div>`;
