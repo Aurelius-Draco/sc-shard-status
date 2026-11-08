@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.2 (not released yet)
+- **Blueprints, a new tab.** Every crafting blueprint you've earned, read from your game logs: grouped (armour, FPS weapons, magazines and batteries, ship weapons, other), searchable, with the date and the contract it came from. Keep a want list, and when a wanted one turns up in game it comes off the list with a toast (and an alert, if alerts are on). It's built from the logs on this PC, so blueprints earned on another PC or before your logs were kept won't show, and a wipe isn't logged; the fabricator in game is the final word.
+- **Your sessions, in History.** One card for every time you played, nine to a page: the health score for the session, contracts completed and failed, blueprints, licences, problems hit, moments marked. Open one for the full report: every contract with its rep (a number only when the game states one; a ladder shows as "rep by rank"), shards and servers, problems with what happened, ships lost and why, and your own good or bad rating, a note and, if you like, your aUEC at the start and end. All of it stays on this PC.
+- **Your game settings, saved.** Set up lists every setting you've changed from the game's default and your custom key binds, saves them with one button, and checks each copy of the game (LIVE, PTU, Tech Preview) against the save. Put them back with one button while the game is closed; what's there is backed up first, to Documents\Verse Shards\Settings backups. When the copy you're playing isn't set up the way you saved it, the Now tab says so once per launch.
+- **The login queue** shows on the Now tab with your place and the game's own estimate.
+- **Why your ship was lost.** From 4.10.3 the log says why a ship was destroyed (combat, self destruct, collision); the session report shows it, never who did it. "Was it another player?" is only asked after a ship lost in combat.
+- **What you type into a moment is kept** as you type it, for a month, and shows on the list. Before, closing a moment without sending lost the note.
+- **Sent back to the menu by the server** is told apart from quitting or choosing Exit to Menu, on the timeline, in alerts and in moments.
+- **Server fps is checked against its frame time** on the overlay, and a reading where the two don't agree is dropped. A decimal point split by a space (110. 9ms) is read properly.
+- **Shard ids with a dropped or swapped digit** are caught against Game.log instead of showing as a new shard.
+
 ## 1.5.1 (7 Nov 2026)
 - **Ready for the Microsoft Store.** Windows 11's Smart App Control blocks apps it doesn't know, and it can switch itself on without asking. This version also comes as a Microsoft Store package, signed by Microsoft so Smart App Control lets it run, and kept up to date by the Store. Microsoft is reviewing it now; verseshards.com will link to it as soon as it's in the Store. It's the same app: the Store version uses the same folder for your settings and history, so moving from this copy keeps everything. Nothing changes for this GitHub version, which carries on updating itself as before.
 
