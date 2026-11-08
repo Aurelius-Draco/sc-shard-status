@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.3 (9 Nov 2026)
+- **The overlay is read on whichever screen the game is on.** Before, the app read only your main monitor, so with the game on a second screen it said "overlay off, readings paused" even with r_displayinfo on. It now follows the game's window to any monitor, at whatever size the game draws: fullscreen, borderless or windowed, including a game running at 1440p on a 4K screen. Nothing to set up, and the monitor setting in config.json is only used if the game's window can't be found.
+
 ## 1.5.2 (8 Nov 2026)
 - **Places by the names players use.** The favourite place picker is now a type-ahead that offers the places everyone knows first (Orison, Lorville, Area18, New Babbage, Levski, the four big stations, Grim HEX, Ruin Station, Orbituary, Checkmate, Starlight, Gaslight, Patch City and the rest of the Pyro stations), then rest stops and stations, then everything else, with coded mining bases last. Typing a common name or the game's internal one finds it (PYAM-EXHANG-0-1 finds the Executive Hangar), and the common name is what's shown and saved.
 - **Most-visited places in plain names.** My pilot's Most-visited places and the frame rate by location table show Orison, Seraphim Station or CRU-L4 Shallow Fields Station instead of the game's codes, and the codes for one place are counted together.
