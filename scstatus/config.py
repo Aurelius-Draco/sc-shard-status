@@ -8,7 +8,13 @@ import string
 import sys
 from pathlib import Path
 
-VERSION = "1.5.1"
+VERSION = "1.5.2"
+# A test copy started with SCSTATUS_LABEL set (e.g. "TEST next 2d477ea") says so in the dashboard header
+TEST_LABEL = (" " + os.environ["SCSTATUS_LABEL"].strip()[:40]) if os.environ.get("SCSTATUS_LABEL", "").strip() else ""
+# A TEST copy (Ray's, from the "Start Verse Shards TEST.cmd" launcher): its folder and the next build it is. It updates
+# itself from the "test-next" pre-release on GitHub instead of the player releases
+TEST_DIR = os.environ.get("SCSTATUS_TEST_DIR", "").strip().rstrip("\\/") or None
+TEST_BUILD = (os.environ.get("SCSTATUS_BUILD", "").strip().lower() or None) if TEST_DIR else None
 # The public community board (Cloudflare Worker in the admin repo)
 COMMUNITY_URL = "https://verseshards.com"
 APP_NAME = "SC Shard Status"          # install name: folders, shortcuts, data. Never changes.
@@ -75,7 +81,7 @@ DEFAULT_CONFIG = {
     "monitor": 1,
     # "What's gone wrong?" looks back this many minutes
     "lookback_minutes": 30,
-    # Local dashboard (only reachable from this PC). The inventory tracker uses 8765.
+    # Local dashboard (only reachable from this PC).
     "dashboard_port": 8775,
     # Community board (both off until you switch them on in the app's Set up tab).
     # share_readings: send a 5-minute summary of your overlay readings. community_board: show other shards.

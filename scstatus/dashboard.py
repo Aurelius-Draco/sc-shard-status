@@ -15,9 +15,19 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from .config import VERSION, say
+from .config import TEST_LABEL, VERSION, say
 
 STATIC = Path(__file__).resolve().parent / "static"
+
+# Brag cards (1.5.2): the bundled fonts, Fankit pictures, the card's CSS and the vendored html-to-image, served from
+# static/brag. A fixed list of names, so nothing else on disk can be asked for; anything not on it is a 404.
+_BRAG_FONTS = [f"fonts/barlow-latin-{w}-normal.woff2" for w in (400, 500, 600, 700)] + \
+              [f"fonts/barlow-semi-condensed-latin-{w}-normal.woff2" for w in (500, 600, 700, 800)]
+_BRAG_PICS = [f"img/SC_{n}.jpg" for n in ("01", "10", "13", "14", "25", "32", "33", "34", "36")]
+BRAG_FILES = dict(
+    [(n, "font/woff2") for n in _BRAG_FONTS] + [(n, "image/jpeg") for n in _BRAG_PICS] +
+    [("img/mbtc-white.png", "image/png"), ("brag-card.css", "text/css"), ("fonts.css", "text/css"),
+     ("html-to-image.js", "text/javascript")])
 
 
 class _Server(ThreadingHTTPServer):
@@ -72,7 +82,7 @@ def start_server(app, open_browser=False):
             qs = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
             if path in ("/", "/index.html"):
                 html = (STATIC / "index.html").read_text(encoding="utf-8")
-                html = html.replace("__TOKEN__", token).replace("__VERSION__", VERSION)
+                html = html.replace("__TOKEN__", token).replace("__VERSION__", VERSION + TEST_LABEL)
                 return self._send(200, html.encode("utf-8"), "text/html")
             m = re.fullmatch(r"/img/[a-z0-9-]+\.(jpg|png|webp)", path)
             if m:
@@ -80,6 +90,12 @@ def start_server(app, open_browser=False):
                 if not f.is_file():         # e.g. a screenshot Ray hasn't added yet: the page shows a placeholder
                     return self._send(404, b"", "text/plain")
                 return self._send(200, f.read_bytes(), {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[m.group(1)])
+            if path.startswith("/brag/"):
+                ctype = BRAG_FILES.get(path[len("/brag/"):])
+                f = STATIC / "brag" / path[len("/brag/"):] if ctype else None
+                if not f or not f.is_file():
+                    return self._send(404, b"", "text/plain")
+                return self._send(200, f.read_bytes(), ctype)
             if path == "/favicon.ico":
                 ico = STATIC.parent / "assets" / "status.ico"
                 return self._send(200, ico.read_bytes(), "image/x-icon") if ico.exists() else self._send(404, {})
@@ -90,6 +106,14 @@ def start_server(app, open_browser=False):
                 from .screenshots import thumbnail
                 got = thumbnail(app.game_dir / "screenshots", qs.get("name", ""))
                 return self._send(200, got[0], got[1]) if got else self._send(404, b"", "text/plain")
+            if path == "/api/feedback/shot":
+                # One of your screenshots for Send feedback, 1600 wide with the session QR blacked out (token in the
+                # address, like /api/shot)
+                if not secrets.compare_digest(qs.get("t", ""), token):
+                    return self._send(403, {"error": "bad token"})
+                from .screenshots import feedback_picture
+                got = feedback_picture(app.game_dir / "screenshots", qs.get("name", ""))
+                return self._send(200, got[0], got[1]) if got else self._send(404, b"", "text/plain")
             if self.headers.get("X-Token") != token:
                 return self._send(403, {"error": "bad token"})
             try:
@@ -97,6 +121,22 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.now())
                 if path == "/api/history":
                     return self._send(200, app.history())
+                if path == "/api/feedback/shots":
+                    return self._send(200, app.feedback_shots())
+                if path == "/api/news":
+                    return self._send(200, {"news": list(app.news)[-5:]})
+                if path == "/api/brag":
+                    return self._send(200, app.brag())
+                if path == "/api/logbook":
+                    return self._send(200, app.logbook())
+                if path == "/api/contracts":
+                    return self._send(200, app.contracts())
+                if path == "/api/blueprints":
+                    return self._send(200, app.blueprints())
+                if path == "/api/sessions":
+                    return self._send(200, app.sessions_cards(qs.get("page", 0)))
+                if path == "/api/session":
+                    return self._send(200, app.session_report(qs.get("id", "")))
                 if path == "/api/pc":
                     return self._send(200, app.pc())
                 if path == "/api/timeline":
@@ -105,6 +145,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, {"version": app.library.version, "rules": app.library.listing()})
                 if path == "/api/settings":
                     return self._send(200, app.settings())
+                if path == "/api/gamesettings":
+                    return self._send(200, app.gamesettings.state())
                 if path == "/api/last":
                     return self._send(200, app.last_result or {})
                 if path == "/api/groups":
@@ -117,6 +159,9 @@ def start_server(app, open_browser=False):
                                             "offer": g.pirate_offer(), "error": g.error})
                 if path == "/api/profile":
                     return self._send(200, {"profile": app.profiles.get()})
+                if path == "/api/pilot/lists":
+                    from .pilotlists import lists
+                    return self._send(200, lists())
                 if path == "/api/moment":
                     if qs.get("part") == "shots":
                         from .issues import asks_for
@@ -152,7 +197,7 @@ def start_server(app, open_browser=False):
                 return self._send(403, {"error": "not allowed"})
             try:
                 n = int(self.headers.get("Content-Length") or 0)
-                if n > 1_500_000:               # the largest thing posted is a profile picture (about 900 KB)
+                if n > 1_600_000:               # the largest things posted: a feedback picture (up to 1.5 MB), a profile picture
                     # Read and drop the body first (up to 20 MB), so the browser gets the answer instead of a broken pipe
                     left = min(n, 20_000_000)
                     while left > 0:
@@ -161,6 +206,8 @@ def start_server(app, open_browser=False):
                             break
                         left -= len(chunk)
                     self.close_connection = True
+                    if self.path == "/api/profile":
+                        return self._send(413, {"error": "That picture is too big to save. Pick a smaller one."})
                     return self._send(413, {"error": "That's too big."})
                 body = json.loads(self.rfile.read(n) or b"{}")
             except Exception:
@@ -198,6 +245,23 @@ def handle_post(app, path, body):
     if path == "/api/mark":
         m = app.mark("button")
         return {"message": "Moment marked. Keep playing; \"What's gone wrong?\" will look at it.", "mark": m}
+    if path == "/api/feedback":
+        return app.send_feedback(body)
+    if path == "/api/blueprints/want":
+        return app.want_add(body.get("name"))
+    if path == "/api/blueprints/unwant":
+        return app.want_remove(body.get("name"))
+    if path == "/api/session/note":
+        kw = {k: body[k] for k in ("rating", "note", "auec_start", "auec_end") if k in body}
+        return {"note": app.session_note(body.get("id"), **kw)}
+    if path == "/api/gamesettings/save":
+        return app.gamesettings.save(replace=bool(body.get("replace")))
+    if path == "/api/gamesettings/restore":
+        return app.gamesettings.restore(str(body.get("copy") or ""))
+    if path == "/api/gamesettings/dismiss":
+        return app.gamesettings_dismiss()
+    if path == "/api/mark/note":
+        return {"mark": app.mark_note(body.get("ts"), body.get("what"))}
     if path == "/api/groups/post":
         kind = body.get("kind")
         if kind not in ("recruit", "lfg", "pirate"):
@@ -234,6 +298,16 @@ def handle_post(app, path, body):
         return app.groups.decide(str(body.get("post") or ""), str(body.get("handle", "")), body.get("verdict"))
     if path == "/api/profile":
         return {"message": "Profile saved on this PC.", "profile": app.profiles.save(body.get("profile"))}
+    if path == "/api/profile/verify":
+        a = body.get("action")
+        if a == "start":
+            return app.profiles.verify_start()
+        if a == "check":
+            r = app.profiles.verify_check()
+            return dict(r, message="Verified on RSI. You can take the code out of your bio now.")
+        if a == "cancel":
+            return app.profiles.verify_cancel()
+        raise ValueError("Unknown step.")
     if path == "/api/groups/close":
         return {"message": app.groups.close(str(body.get("id", "")))}
     if path == "/api/groups/dismiss":

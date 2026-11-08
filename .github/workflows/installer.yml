@@ -115,6 +115,38 @@ jobs:
           name: VerseShards-${{ env.VER }}-msix
           path: dist/VerseShards-*.msix
           retention-days: 30
+      # A copy of the app folder for testing a build from next beside the installed app (not for players): unzip it
+      # anywhere and start it with its own data folder (SCSTATUS_DATA) and port, and the installed copy isn't touched
+      - name: Zip the app folder for a test copy
+        if: ${{ !inputs.tag }}
+        run: |
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          "SHA7=$sha" | Out-File -Append $env:GITHUB_ENV
+          Compress-Archive -Path "dist\SC Shard Status\*" -DestinationPath "dist\Verse-Shards-test-$env:VER-$sha.zip"
+      - uses: actions/upload-artifact@v5
+        if: ${{ !inputs.tag }}
+        with:
+          name: Verse-Shards-test-${{ env.VER }}-${{ env.SHA7 }}
+          path: dist/Verse-Shards-test-*.zip
+          retention-days: 14
+      # Ray's TEST copy fetches the newest next build from here (Set up and the Now tab offer it). A pre-release, so
+      # players' apps never see it (they ask for releases/latest) and the site's download counts skip it
+      - name: Publish the TEST build (pre-release test-next)
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/next' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = "dist\Verse-Shards-test-$env:VER-$env:SHA7.zip"
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  Verse-Shards-test-$env:VER-$env:SHA7.zip" | Out-File -Encoding ascii -NoNewline "$zip.sha256"
+          # What's in it: the changelog's newest section (the version still to be released) and this commit
+          $log = Get-Content -Raw CHANGELOG.md
+          $sec = ([regex]::Match($log, '(?ms)^## .+?(?=^## |\z)')).Value
+          $msg = git log -1 --format=%s
+          "TEST build of next ($env:SHA7) for testing before a release. Not for players: use the latest release.`n`nThis build: $msg`n`n$sec" | Out-File -Encoding utf8 notes.md
+          gh release delete test-next --yes --cleanup-tag 2>$null
+          gh release create test-next $zip "$zip.sha256" --prerelease --target "${{ github.sha }}" --title "TEST build: next $env:SHA7 (not for players)" --notes-file notes.md
+          if ($LASTEXITCODE -ne 0) { throw "couldn't publish the TEST build" }
       - uses: actions/upload-artifact@v5
         with:
           name: SC-Shard-Status-Setup-${{ env.VER }}

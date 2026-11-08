@@ -9,6 +9,10 @@ SC Shard Status is MIT licensed. It installs and uses these libraries, each unde
 | [OpenCV](https://opencv.org) (opencv-python-headless) | image handling | Apache 2.0 |
 | [NumPy](https://numpy.org) | image arrays | BSD 3-Clause |
 | [python-mss](https://github.com/BoboTiG/python-mss) | screen capture | MIT |
+| [html-to-image](https://github.com/bubkoo/html-to-image) 1.11.11 | drawing brag cards to a picture on your PC (bundled, unchanged, licence kept in the file) | MIT |
+| [Barlow and Barlow Semi Condensed](https://github.com/jpt/barlow) | the brag cards' type (bundled) | SIL Open Font License 1.1 |
+
+The brag cards' pictures are from the Star Citizen Fankit, used unaltered with their watermark under the Fankit's own rules, with the Made by the Community logo. No CIG logos are added.
 
 It reads the game's own files on your PC (Game.log and the localisation text) and never redistributes them.
 Star Citizen is a trademark of Cloud Imperium Rights LLC. This project is not affiliated with or endorsed by Cloud Imperium Games.

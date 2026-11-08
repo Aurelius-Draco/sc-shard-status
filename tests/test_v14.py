@@ -39,9 +39,10 @@ def test_header_status_is_not_a_button_and_inventory_link_left_the_header():
 
 
 def test_now_tab_is_the_cockpit_hud_with_the_next_step_in_the_situation_panel():
+    # 8 Nov 2026: the Verse Shards system. The gauges panel comes first, then the Situation panel with the next step.
     js = PAGE.split("async function renderNow()")[1].split("\n}\n")[0]
-    hud, hop, acts = (js.index(x) for x in ('class="hud', 'class="hhop"', 'class="hacts"'))
-    assert hud < hop < acts
+    gauges, sit, hop, acts = (js.index(x) for x in ('class="glass now-gg', 'class="glass-in sit hsit"', 'class="hhop"', 'class="hacts"'))
+    assert gauges < sit < hop < acts
     assert 'id="goCheck">What\'s gone wrong?' in js
     assert "Live numbers" not in js                          # the HUD gauges replace the old readout grid
 

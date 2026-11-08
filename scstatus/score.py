@@ -185,3 +185,24 @@ def compare(current_fps, history_fps):
         return None
     diff = (current_fps - avg) / avg * 100
     return {"your_median": round(avg, 1), "diff_pct": round(diff)}
+
+
+SESSION_MIN_READINGS = 5
+
+
+def session_score(snaps):
+    """One score for a whole session (every server it was on), from the same curves as the live score.
+    None with too few readings: the app wasn't reading the overlay, which isn't the same as a bad session."""
+    snaps = [s for s in snaps if s.get("server_fps") is not None]
+    if len(snaps) < SESSION_MIN_READINGS:
+        return None
+    sfps = _vals(snaps, "server_fps")
+    med, p10 = st.median(sfps), _pct(sfps, 10)
+    server = 0.7 * _curve(SERVER_FPS_CURVE, med) + 0.3 * _curve(SERVER_FPS_CURVE, p10)
+    pings = _vals(snaps, "ping_ms")
+    losses = [v for v in clean.settle([s.get("loss_pct") for s in snaps]) if v is not None]
+    net_parts = [v for v in (_curve(PING_CURVE, st.median(pings) if pings else None),
+                             _curve(LOSS_CURVE, st.median(losses) if losses else None)) if v is not None]
+    if net_parts:
+        return round(0.6 / 0.9 * server + 0.3 / 0.9 * min(net_parts))
+    return round(server)

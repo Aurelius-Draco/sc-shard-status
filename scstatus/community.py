@@ -120,6 +120,87 @@ def sessions_report(install_id, sessions, since, now=None, channel="LIVE"):
     return {"v": PAYLOAD_VERSION, "kind": "sessions", "install": install_id, "channel": channel, "sessions": rows[:20]} if rows else None
 
 
+# -- the login queue while you wait in it (opt-in, with sharing): your place and the game's estimate, nothing else
+QUEUE_EVERY_S = 60
+
+def queue_report(install_id, q, build, branch, channel="LIVE"):
+    """{position, eta_s} from the queue line in Game.log, for the site's "login queue right now" on patch days."""
+    if not q or not isinstance(q.get("position"), int):
+        return None
+    return {"v": PAYLOAD_VERSION, "kind": "queue", "install": install_id, "channel": channel,
+            "build": str(build) if build else None, "branch": branch, "ts": int(q["ts"] // 60 * 60),
+            "queue": q.get("queue") if re.fullmatch(r"[a-z]{1,16}", str(q.get("queue") or "")) else None,
+            "position": max(0, min(2_000_000, int(q["position"]))), "eta_s": max(0, min(86400, int(q.get("eta_s") or 0)))}
+
+
+# -- which kinds of contract gave which blueprints (opt-in, with sharing)
+DROPS_EVERY_S = 1800
+DROPS_DAYS = 30
+TIER = re.compile(r"\b(VLRT|LRT|MRT|HRT|VHRT|ERT)\b|\b(High Risk)\b")
+KIND_OK = re.compile(r"^[A-Za-z][A-Za-z' &-]{0,38}[A-Za-z]( \((VLRT|LRT|MRT|HRT|VHRT|ERT|High Risk)\))?$")
+BP_OK = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .\"'()/+-]{1,59}$")
+
+
+def contract_kind(name):
+    """'Verified Bounty: Lema Pressley | VLRT (Solo Craft, Minimal Support) [500/... Rep] [BP]*' -> 'Verified Bounty (VLRT)'.
+    Only the kind of contract and its risk tier are kept: whatever follows the colon (a target's or giver's name, a
+    place) is dropped, and anything that isn't plain words is refused (None)."""
+    from .logparse import contract_title
+    title = contract_title(name)[0]
+    head, _, rest = title.partition(":")
+    kind = re.sub(r"\s+", " ", head).strip()
+    t = TIER.search(rest or "") or TIER.search(head)
+    if t:
+        kind = f"{TIER.sub('', kind).strip()} ({t.group(1) or t.group(2)})"
+    return kind if KIND_OK.match(kind) else None
+
+
+def drops_report(install_id, sessions, since, handles=(), now=None, channel="LIVE"):
+    """Contracts with a blueprint reward ([BP] in the title) you completed since the last ones sent: their kind, and
+    the blueprint that came with it, or none. Also the misses, so the site can say how often each kind gives one.
+    The blueprint is the one the game handed over within 2 minutes of the contract finishing."""
+    from .logparse import BLUEPRINT_AFTER_S
+    now = now or time.time()
+    rows = []
+    for s in sessions:
+        if s.get("branch") and str(s.get("branch")).lower().startswith(("ptu", "eptu", "tech")):
+            continue
+        bps = sorted([b for b in s.get("blueprints") or [] if b.get("ts")], key=lambda b: b["ts"])
+        used = set()
+        for c in sorted(s.get("contracts") or [], key=lambda c: c.get("ended") or 0):
+            e = c.get("ended")
+            if c.get("result") != "complete" or not e or "[BP]" not in (c.get("name") or ""):
+                continue
+            if e <= since or e < now - DROPS_DAYS * 86400:
+                continue
+            kind = contract_kind(c.get("name"))
+            if not kind:
+                continue
+            got = next((i for i, b in enumerate(bps) if i not in used and 0 <= b["ts"] - e <= BLUEPRINT_AFTER_S), None)
+            bp = None
+            if got is not None:
+                used.add(got)
+                bp = re.sub(r"\s+", " ", bps[got]["name"]).strip()
+                if not BP_OK.match(bp):
+                    bp = None
+            row = {"ended": int(e // 60 * 60), "kind": kind, "bp": bp}
+            if leaks(f"{kind} {bp or ''}", handles):
+                continue
+            rows.append((row, str(s.get("build") or ""), s.get("branch")))
+    if not rows:
+        return None
+    rows.sort(key=lambda r: r[0]["ended"])
+    # One build per payload, oldest first, up to 50; the rest go next time
+    build, branch = rows[0][1], rows[0][2]
+    keep = []
+    for r in rows:
+        if r[1] != build or len(keep) >= 50:
+            break
+        keep.append(r[0])
+    return {"v": PAYLOAD_VERSION, "kind": "drops", "install": install_id, "channel": channel, "build": build or None,
+            "branch": branch, "drops": keep}
+
+
 REASON_KEEP = re.compile(r"[^A-Za-z .,:;'()_\-]")
 
 
@@ -209,6 +290,11 @@ class Community:
         self.fed_at = 0
         self.posts = None           # the public groups feed (GET /api/v1/posts), when the community board is on
         self.posts_at = 0
+        self.queue_at = 0
+        self.drops_at = 0
+        self.drops_sent = 0
+        self.last_queue = None
+        self.last_drops = None
 
     def _req(self, path, body=None):
         data = None if body is None else json.dumps(body).encode()
@@ -259,6 +345,36 @@ class Community:
             return len(payload["sessions"])
         return 0
 
+    def send_queue(self, q):
+        """Your place in the login queue, at most once a minute while you're in it. Only with sharing on."""
+        s = self.app.session
+        payload = queue_report(self.app.store.install_id(), q, self.app.build, getattr(s, "branch", None), _channel(self.app))
+        if not payload:
+            return False
+        self.last_queue = payload
+        code, d = self._req("/api/v1/queue", payload)
+        return code == 200
+
+    def send_drops(self, now=None):
+        """Blueprint rewards from contracts finished since the last ones sent (and the ones that gave none)."""
+        now = now or time.time()
+        since = float(self.app.store.meta("drops_sent_upto", 0) or 0)
+        sessions = list(self.app.store.session_data(limit=200))
+        live = self.app.session
+        if live is not None and live.start:
+            sessions.append(live.summary())
+        handles = list(getattr(live, "handles", None) or [])
+        payload = drops_report(self.app.store.install_id(), sessions, since, handles, now, _channel(self.app))
+        if not payload:
+            return 0
+        self.last_drops = payload
+        code, d = self._req("/api/v1/drops", payload)
+        if code == 200:
+            self.app.store.set_meta("drops_sent_upto", max(r["ended"] for r in payload["drops"]))
+            self.drops_sent += len(payload["drops"])
+            return len(payload["drops"])
+        return 0
+
     def tick(self, now=None):
         now = now or time.time()
         cfg = self.app.cfg
@@ -276,6 +392,20 @@ class Community:
             self.sessions_at = now
             try:
                 self.send_sessions(now)
+            except Exception:
+                pass
+        if live and cfg.get("share_readings") and cfg.get("share_queue", True) and now - self.queue_at >= QUEUE_EVERY_S:
+            q = self.app.queue_state() if hasattr(self.app, "queue_state") else None
+            if q:
+                self.queue_at = now
+                try:
+                    self.send_queue(q)
+                except Exception:
+                    pass
+        if live and cfg.get("share_readings") and cfg.get("share_drops", True) and now - self.drops_at >= DROPS_EVERY_S:
+            self.drops_at = now
+            try:
+                self.send_drops(now)
             except Exception:
                 pass
         if cfg.get("community_board") and now - self.board_at >= BOARD_EVERY_S:
@@ -401,6 +531,19 @@ class Community:
         if code != 200 or not d.get("ok"):
             raise ValueError(d.get("error") or f"Verse Shards answered {code}.")
         return {"matched": d.get("matched") or [], "sent": body}
+
+    def send_feedback(self, body):
+        """Send feedback: the player's answers, one picture if they added one, the app version and channel, and their
+        RSI handle only if they asked for a reply. The install id goes only so the site can count five a day; the
+        site doesn't keep it. Pressing Send is the player's own yes, so it doesn't depend on sharing being on."""
+        out = dict(body, source="companion", app_version=self.version, install=self.app.store.install_id())
+        try:
+            code, d = self._req("/api/v1/feedback", out)
+        except Exception as e:
+            raise ValueError(f"Couldn't reach Verse Shards ({e.__class__.__name__}). Try again in a minute.")
+        if code != 200 or not d.get("ok"):
+            raise ValueError(d.get("error") or f"Verse Shards answered {code}.")
+        return d
 
     def run(self, stop):
         while not stop.wait(15):

@@ -52,6 +52,13 @@ PU_LOADED = re.compile(r'establisher="CReplicationModel" runningTime=([\d.]+) ma
 PLATFORM = re.compile(r"Loading Platform Manager \[([^\]]+)\] Platform state changed to (\w+)")
 UNSTOW = re.compile(r"Processed bindings into transfer request - Entities: (\d+)")
 LOGIN = re.compile(r"Handle\[([^\]]+)\]")
+# Waiting to get in: "queue name global - position 12 - eta (seconds) 340"
+QUEUE = re.compile(r"queue name (\S+) - position (\d+) - eta \(seconds\) (-?\d+)")
+# Your character's id (the line also names the character; only the number is kept, in memory, to tell your ships apart)
+OWN_ID = re.compile(r"\bgeid (\d+)\b")
+# A ship destroyed: class, whose it was (by id) and why. The line also names whoever destroyed it; that's never read
+VEHICLE_DESTROYED = re.compile(r"Vehicle '[^']*' \[\d+\] class '([A-Za-z][A-Za-z0-9_]*)' \(owner player \[(\d+)\], driver \[(\d+)\]\)"
+                               r" destroyed: reason \[(\w+)\] level \[(\d)\] -> \[(\d)\]")
 # Travel and places (the player's own ship is named before its [entity id]; AI ships have _AI_ in the name)
 QT_TARGET = re.compile(r"\|\s*([A-Za-z][A-Za-z0-9_]*?)_\d+\[\d+\]\|CSCItemNavigation::OnPlayerSelectedQuantumTarget\|"
                        r"Player has selected point (\S+) as their destination")
@@ -226,6 +233,15 @@ def parse_line(raw):
         return {"ts": ts, "kind": "qt_arrived", "ship": q.group(1)}
     if tag == "RequestLocationInventory" and (loc := LOCATION.search(msg)):
         return {"ts": ts, "kind": "location", "code": loc.group(1)}
+    if tag == "CEntityComponentShopUIProvider::SendShopBuyRequest" and (b := SHOP_BUY.search(msg)):
+        # What you paid at a shop (client_price is the total for the quantity). The ids and the item code are dropped
+        return {"ts": ts, "kind": "shop_buy", "shop": b.group(1), "price": float(b.group(2)), "qty": int(b.group(4)),
+                "item": b.group(3)}
+    if tag == "CEntityComponentShopUIProvider::SendStandardItemBuyRequest" and (b := SHOP_BUY.search(msg)):
+        return {"ts": ts, "kind": "shop_buy", "shop": b.group(1), "price": float(b.group(2)), "qty": int(b.group(4)),
+                "item": b.group(3)}
+    if tag == "CEntityComponentShopUIProvider::RmShopFlowResponse" and (r := SHOP_OK.search(msg)):
+        return {"ts": ts, "kind": "shop_done", "shop": r.group(1), "ok": r.group(2) == "Success", "type": r.group(3)}
     if tag == "CEntityComponentShipListProvider::SetVehicleSpawningInformations":
         return {"ts": ts, "kind": "ship_retrieved", "ship": None}
     if tag == "ATC_Reset_VehiclesBeingStoredCleared" and (a := ATC_SHIP.search(msg)):
@@ -238,6 +254,16 @@ def parse_line(raw):
         return {"ts": ts, "kind": "died_in_ship", "actor": dd.group(1), "ship": dd.group(2)}
     if tag == "FatalCollision" and (fc := FATAL_COLLISION.search(msg)):
         return {"ts": ts, "kind": "collision", "ship": fc.group(1), "pilot": fc.group(2) == "1"}
+    if tag == "AccountLoginQueueStatus" and (q := QUEUE.search(msg)):
+        return {"ts": ts, "kind": "login_queue", "queue": q.group(1), "position": int(q.group(2)),
+                "eta_s": max(0, int(q.group(3)))}
+    if tag == "AccountLoginCharacterStatus_Character" and (g := OWN_ID.search(msg)):
+        return {"ts": ts, "kind": "own_id", "id": g.group(1)}
+    if tag == "Vehicle Destroyed" and (v := VEHICLE_DESTROYED.search(msg)):
+        if "_AI_" in v.group(1) or v.group(2) == "0":
+            return None                          # AI ships and ships nobody owns
+        return {"ts": ts, "kind": "vehicle_destroyed", "ship": v.group(1), "owner": v.group(2),
+                "reason": v.group(4), "from": int(v.group(5)), "to": int(v.group(6))}
     if tag == "Legacy login response" and (h := LOGIN.search(msg)):
         return {"ts": ts, "kind": "login", "handle": h.group(1)}
     if (tag and "FastShutdown" in tag) or any(k in msg for k in SHUTDOWN_MARKS):
@@ -273,6 +299,8 @@ def _header(ts, msg):
         return {"ts": ts, "kind": "hardware", "cpu_bench_ms": float(m.group(1)), "cpu_bench_fp_ms": float(m.group(2))}
     if any(k in msg for k in SHUTDOWN_MARKS):
         return {"ts": ts, "kind": "shutdown"}
+    if "CSessionManager::RequestFrontEnd] Started" in msg:
+        return {"ts": ts, "kind": "to_frontend"}
     return None
 
 
@@ -288,11 +316,48 @@ NOTE_KINDS = [
 ]
 
 
+# Shops: "shopName[SCShop_X] ... client_price[480000.000000] ... itemName[SHLD_X] quantity[2]", then a ShopFlowResponse
+SHOP_BUY = re.compile(r"shopName\[([^\]]*)\].*?client_price\[([\d.]+)\].*?itemName\[([^\]]*)\]\s*quantity\[(\d+)\]")
+SHOP_OK = re.compile(r"shopName\[([^\]]*)\].*?result\[(\w+)\]\s*type\[(\w+)\]")
+# Notifications with something worth keeping. Names of other players in transfers are never kept, only the amount
+MONEY_IN = re.compile(r"^.+? has sent you:\s*([\d,]+)\s*aUEC", re.S)
+MONEY_OUT = re.compile(r"^You sent .+?:\s*([\d,]+)\s*aUEC", re.S)
+AWARDED = re.compile(r"^Awarded\s*([\d,]+)\s*aUEC", re.S)
+INJURY = re.compile(r"^(Minor|Moderate|Severe) Injury Detected - (.+?) - Tier (\d) Treatment Required", re.S)
+DOWNED = re.compile(r"^Standby, Local Emergency Services Are En Route", re.S)
+MEDBED = re.compile(r"^Medical Bed: The bed has restored your health", re.S)
+JURISDICTION = re.compile(r"^Entered (.+?) Jurisdiction\s*:?\s*$", re.S)
+HANGAR_READY = re.compile(r"^Hangar Request Completed", re.S)
+BLUEPRINT = re.compile(r"^Received Blueprint:\s*(.+?)\s*:?\s*$", re.S)
+JOURNAL = re.compile(r"^Journal Entry Added:\s*(.+?)\s*:?\s*$", re.S)
+
+
+def _clean_name(s):
+    return re.sub(r"\s+", " ", s).strip(" :")
+
+
 def _notification(ts, text, mission_id, objective_id=None):
     text = re.sub(r"<[^>]+>", "", text).strip()
     mid = None if mission_id == ZERO_GUID else mission_id
     if a := ARMISTICE.match(text):
         return {"ts": ts, "kind": "armistice", "on": a.group(1).lower() == "entering"}
+    if b := BLUEPRINT.match(text):
+        return {"ts": ts, "kind": "blueprint", "name": _clean_name(b.group(1))}
+    for rx, kind in ((MONEY_IN, "money_in"), (MONEY_OUT, "money_out"), (AWARDED, "money_awarded")):
+        if m := rx.match(text):
+            return {"ts": ts, "kind": kind, "amount": int(m.group(1).replace(",", ""))}
+    if m := INJURY.match(text):
+        return {"ts": ts, "kind": "injury", "level": m.group(1), "part": _clean_name(m.group(2)), "tier": int(m.group(3))}
+    if DOWNED.match(text):
+        return {"ts": ts, "kind": "downed"}
+    if MEDBED.match(text):
+        return {"ts": ts, "kind": "medbed"}
+    if m := JURISDICTION.match(text):
+        return {"ts": ts, "kind": "jurisdiction", "name": _clean_name(m.group(1))}
+    if HANGAR_READY.match(text):
+        return {"ts": ts, "kind": "hangar_ready"}
+    if j := JOURNAL.match(text):
+        return {"ts": ts, "kind": "journal", "text": _clean_name(j.group(1))}
     for rx, kind in NOTE_KINDS:
         if m := rx.match(text):
             name = re.sub(r"\s*\n\s*", " ", m.group(1)).strip(" :")
@@ -306,6 +371,26 @@ def _notification(ts, text, mission_id, objective_id=None):
 
 # Disconnect causes that are part of normal play. A 30016 while still spawning is not; the library flags it.
 NORMAL_CAUSES = {30010, 30016, 30028}      # 30028: kicked for being idle, not a server problem
+
+
+BLUEPRINT_AFTER_S = 120     # a blueprint this soon after a contract finished came from that contract
+SUMMARY_FMT = 4             # bump to have past sessions read again (3: blueprints, journal, ships lost, rep; 4: spending,
+                            # injuries, jurisdictions, ship waits, quantum jumps)
+
+REP = re.compile(r"\s*\[([\d,/ ]+)\s*Rep\]\s*")
+
+
+def contract_title(name):
+    """'Reclusive Bounty [200 Rep]' -> ('Reclusive Bounty', '200 Rep'). A ladder ([500/1000/2000 Rep]) depends on
+    your rank, so it's 'rep by rank', never a number. [BP] (a blueprint reward) is dropped from the title."""
+    name = name or ""
+    rep = None
+    if m := REP.search(name):
+        parts = [p.strip().replace(",", "") for p in m.group(1).split("/") if p.strip()]
+        rep = f"{int(parts[0]):,} Rep" if len(parts) == 1 and parts[0].isdigit() else ("rep by rank" if parts else None)
+        name = REP.sub(" ", name)
+    name = re.sub(r"\s*\[BP\]\*?\s*", " ", name)
+    return re.sub(r"\s+", " ", name).strip(" :"), rep
 
 
 class Session:
@@ -330,6 +415,21 @@ class Session:
         self.branch = None          # the patch as players know it, e.g. 4.10.2
         self.item_moves = []        # (ts, [item classes]) moved in the inventory, for "What were you doing?"
         self.deaths = []            # your ship destroyed with you in it: {ts, ship, collision}
+        self.blueprints = []        # {ts, name, contract}: "Received Blueprint" notifications
+        self.journal = []           # {ts, text}: "Journal Entry Added" (licences and the like)
+        self.vehicles_lost = []     # {ts, ship, reason}: your own ships destroyed (Vehicle Destroyed lines, 4.10.3 on)
+        self.queue = None           # the login queue while you wait in it; cleared once you're in
+        self.spent = []             # {ts, shop, price, qty}: shop purchases the shop confirmed
+        self._buying = {}           # shop -> the buy request waiting for its answer
+        self.money = []             # {ts, kind: in/out/awarded, amount}: aUEC the game stated (never who)
+        self.injuries = []          # {ts, level, part, tier}
+        self.downed = []            # times "Local Emergency Services Are En Route"
+        self.medbed = []            # times a med bed restored your health
+        self.jurisdictions = []     # {ts, name}
+        self.waits = []             # {ts, secs}: asking for a ship until "Hangar Request Completed"
+        self._asked = None
+        self.quantum = 0            # quantum jumps that arrived
+        self._own_id = None         # your character's id, in memory only, to tell your ships from others'
         self.quit = None
         self.clean_exit = False
         self.crash = None
@@ -374,20 +474,68 @@ class Session:
             for key, v in ev.items():
                 if key not in ("ts", "kind"):
                     self.hardware.setdefault(key, v)
+        elif k == "own_id":
+            self._own_id = ev["id"]
+        elif k == "login_queue":
+            self.queue = ev
+        elif k == "vehicle_destroyed":
+            # Yours (owned by your character) and newly destroyed outright (level 2); a disabled ship is level 1
+            if self._own_id and ev["owner"] == self._own_id and ev["to"] >= 2 > ev["from"]:
+                self.vehicles_lost.append({"ts": ts, "ship": ev["ship"], "reason": ev["reason"]})
+        elif k == "blueprint":
+            self.blueprints.append({"ts": ts, "name": ev["name"], "contract": self._just_finished(ts)})
+        elif k == "shop_buy":
+            self._buying[ev["shop"]] = ev
+        elif k == "shop_done":
+            b = self._buying.pop(ev["shop"], None)
+            if b and ev["ok"] and ev["type"] == "Buying" and ts is not None and b["ts"] is not None and ts - b["ts"] <= 60:
+                self.spent.append({"ts": b["ts"], "shop": b["shop"], "price": round(b["price"]), "qty": b["qty"],
+                                   "item": b["item"]})
+        elif k in ("money_in", "money_out", "money_awarded"):
+            self.money.append({"ts": ts, "kind": k[6:], "amount": ev["amount"]})
+        elif k == "injury":
+            self.injuries.append({"ts": ts, "level": ev["level"], "part": ev["part"], "tier": ev["tier"]})
+        elif k == "downed":
+            if not self.downed or ts is None or self.downed[-1] is None or ts - self.downed[-1] > 30:
+                self.downed.append(ts)
+        elif k == "medbed":
+            self.medbed.append(ts)
+        elif k == "jurisdiction":
+            self.jurisdictions.append({"ts": ts, "name": ev["name"]})
+        elif k == "hangar_ready":
+            if self._asked is not None and ts is not None and 0 <= ts - self._asked <= 1200:
+                self.waits.append({"ts": self._asked, "secs": round(ts - self._asked)})
+            self._asked = None
+        elif k == "journal":
+            self.journal.append({"ts": ts, "text": ev["text"]})
         elif k == "login":
             if ev["handle"] not in self.handles:
                 self.handles.append(ev["handle"])
         elif k == "join_pu":
             self.joins.append(ev)
+            self.queue = None
         elif k == "pu_loaded":
             self.loads.append(ev)
+            self.queue = None
         elif k == "disconnect":
             self.disconnects.append(ev)
+        elif k == "to_frontend":
+            # Back to the main menu right after leaving the server. Exit to Menu from the game's own menu is written
+            # on this PC ("DisconnectCmd ... ExitToMenu", isRemote=0). "Player requested disconnect" landing on the
+            # menu is also how quitting starts: when the game quits straight after, it was you (see _left_menu_quit).
+            # Only a remote 30016 that lands on the menu and stays there is put down to the server
+            d = next((x for x in reversed(self.disconnects[-3:]) if ev["ts"] is not None and x.get("ts") is not None
+                      and 0 <= ev["ts"] - x["ts"] <= 10 and not x.get("frontend")), None)
+            if d is not None and d.get("view_state") in (None, "eCVS_InGame", "eCVS_UnstowPlayer"):
+                d["to_menu"] = True
+                d["by_server"] = bool(d.get("remote")) and not str(d.get("reason") or "").startswith("DisconnectCmd")
         elif k == "quit":
             self.quit = ev
             self.clean_exit = True
+            self._left_menu_quit(ts)
         elif k == "shutdown":
             self.clean_exit = True
+            self._left_menu_quit(ts)
         elif k == "crash":
             self.crash = self.crash or {"ts": self.end}
             self.clean_exit = False
@@ -416,6 +564,9 @@ class Session:
             if k == "qt_arrived":
                 dest = next((e for e in reversed(self.travel) if e["kind"] == "qt_target"), None)
                 ev["dest"] = dest["dest"] if dest else None
+                self.quantum += 1
+            if k == "ship_retrieved":
+                self._asked = ts
             self.travel.append(ev)
 
     def _new_contract(self, mid, name, ts=None):
@@ -468,6 +619,35 @@ class Session:
             c["ended"] = ev["ts"]
             c["end_reason"] = "Left the server"
 
+    def _left_menu_quit(self, ts):
+        """The game quitting straight after landing on the menu: you quit (from the game's menu), nobody kicked you.
+        8 Nov: "Player requested disconnect" then the menu then CSystem::Quit in the same moment is how Ray's
+        sessions end when he quits; it was being called "The server sent you back to the menu"."""
+        for d in self.disconnects[-3:]:
+            if d.get("to_menu") and ts is not None and d.get("ts") is not None and 0 <= ts - d["ts"] <= 10:
+                d["to_menu"] = False
+                d["by_server"] = False
+                d["quit_after"] = True
+
+    def _just_finished(self, ts):
+        """The contract that finished just before a blueprint arrived (the game gives it as the reward)."""
+        best = None
+        for c in self.contracts.values():
+            e = c.get("ended")
+            if c["result"] == "complete" and e is not None and ts is not None and 0 <= ts - e <= BLUEPRINT_AFTER_S:
+                if best is None or e > best["ended"]:
+                    best = c
+        return contract_title(best["name"])[0] if best else None
+
+    def ships_lost(self):
+        """Your ships lost this session and why: Vehicle Destroyed lines, else dying in your ship (older logs)."""
+        out = [dict(v) for v in self.vehicles_lost]
+        for d in self.deaths:
+            if not any(o["ship"] == d["ship"] and o["ts"] is not None and d["ts"] is not None
+                       and abs(o["ts"] - d["ts"]) <= 20 for o in out):
+                out.append({"ts": d["ts"], "ship": d["ship"], "reason": "Collision" if d["collision"] else None})
+        return sorted(out, key=lambda o: o["ts"] or 0)
+
     @property
     def shard_id(self):
         return self.joins[-1]["shard_id"] if self.joins else None
@@ -491,7 +671,12 @@ class Session:
                             for d in self.disconnects],
             "bad_disconnects": len(bad), "errors": len(self.errors), "clean_exit": self.clean_exit,
             "crash": self.crash, "quit": self.quit,
-            "contracts": list(self.contracts.values()), "hardware": self.hardware,
+            "contracts": [dict(c, title=contract_title(c["name"])[0], rep=contract_title(c["name"])[1])
+                          for c in self.contracts.values()], "hardware": self.hardware,
+            "fmt": SUMMARY_FMT,
+            "blueprints": self.blueprints, "journal": self.journal, "ships_lost": self.ships_lost(),
+            "spent": self.spent, "money": self.money, "injuries": self.injuries, "downed": self.downed,
+            "medbed": self.medbed, "jurisdictions": self.jurisdictions, "waits": self.waits, "quantum": self.quantum,
             "freight_cycles": len(self.freight_cycles),
             # ships you called from an ASOP terminal this session, by class (names only, never a handle)
             "ships_retrieved": self.ships_retrieved(),

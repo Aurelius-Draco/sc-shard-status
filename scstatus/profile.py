@@ -5,18 +5,50 @@ hands the picture back to the page as a data URL, so nothing outside this PC eve
 """
 
 import base64
+import html as _html
 import json
 import re
+import secrets
+import time
+import urllib.request
 
 from .config import DATA
 
-FIELDS_TEXT = {"handle": 30, "org": 40, "region": 20, "times": 40, "bio": 200, "fav": 40}
+FIELDS_TEXT = {"handle": 30, "name": 30, "org": 40, "region": 20, "times": 40, "bio": 200, "fav": 60}
 EXP = ("new", "regular", "veteran")
 VOICE = ("voice", "text")
 PIC_MAX = 900 * 1024            # about 900 KB once decoded
 PIC_RX = re.compile(r"^data:image/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=\s]+)$")
 EXT = {"png": "png", "jpeg": "jpg", "webp": "webp", "gif": "gif"}
 MIME = {v: k for k, v in EXT.items()}
+
+
+PIC_SIDE = 512                  # a picture is kept at up to 512 px on its longest side
+
+
+def shrink(data, side=PIC_SIDE, quality=85):
+    """A picture made smaller on this PC: longest side `side` px, saved as JPEG. The page shrinks pictures before it
+    sends them; this catches any that still arrive too big. None when it can't be read (OpenCV is part of the app)."""
+    try:
+        import cv2
+        import numpy as np
+    except Exception:
+        return None
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
+    if img is None:
+        return None
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif img.shape[2] == 4:                       # see-through parts go on the app's dark background
+        a = img[:, :, 3:4].astype("float32") / 255.0
+        bg = np.empty_like(img[:, :, :3]); bg[:] = (0x12, 0x0e, 0x0b)
+        img = (img[:, :, :3] * a + bg * (1 - a)).astype("uint8")
+    h, w = img.shape[:2]
+    k = side / max(h, w)
+    if k < 1:
+        img = cv2.resize(img, (max(1, round(w * k)), max(1, round(h * k))), interpolation=cv2.INTER_AREA)
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    return bytes(buf) if ok else None
 
 
 def _text(v, n):
@@ -45,6 +77,9 @@ def clean(p):
     out["main"] = p.get("main") if p.get("main") in out["ships"] else (out["ships"][0] if out["ships"] else "")
     if not out["handle"]:
         raise ValueError("Add your RSI handle first.")
+    if out["fav"]:                                # saved as the name players use (Orison, not Stanton2_Orison)
+        from .pilotlists import common_name
+        out["fav"] = common_name(out["fav"]) or out["fav"]
     pic = p.get("pic")
     picture = None
     if isinstance(pic, str) and pic:
@@ -55,10 +90,44 @@ def clean(p):
             data = base64.b64decode(re.sub(r"\s", "", m.group(2)), validate=True)
         except ValueError:
             raise ValueError("That picture couldn't be read.")
+        ext = EXT[m.group(1)]
         if len(data) > PIC_MAX:
-            raise ValueError("That picture is too big. Try one under about 900 KB.")
-        picture = (data, EXT[m.group(1)])
+            data, ext = shrink(data), "jpg"
+            if not data or len(data) > PIC_MAX:
+                raise ValueError("That picture is too big and couldn't be made smaller. Pick another one, a PNG or JPEG works best.")
+        picture = (data, ext)
     return out, picture
+
+
+# Verifying the pilot card (8 Nov): the same check verseshards.com uses for org claims. The app shows a short code, the
+# player puts it anywhere in their RSI bio, and the app reads their public citizen page from this PC. Nothing is sent to
+# Verse Shards; the only request is the page RSI shows anyone.
+RSI = "https://robertsspaceindustries.com"
+HANDLE_RX = re.compile(r"^[A-Za-z0-9_-]{3,30}$")
+CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+CODE_S = 30 * 60                 # a code lasts 30 minutes, as on the site
+UA = "Verse Shards for PC (pilot card check)"
+
+
+def new_code():
+    pick = lambda n: "".join(secrets.choice(CODE_ABC) for _ in range(n))
+    return f"VS-{pick(4)}-{pick(4)}"
+
+
+def bio_from(page):
+    """The bio text from an RSI citizen page, or None when the page has no bio box (as the site's bioFrom)."""
+    m = re.search(r'class="entry bio">[\s\S]*?class="value">([\s\S]*?)</div>', str(page or ""))
+    if not m:
+        return None
+    t = re.sub(r"<br\s*/?>", "\n", m.group(1), flags=re.I)
+    t = re.sub(r"<[^>]+>", " ", t)
+    return re.sub(r"[ \t]+", " ", _html.unescape(t)).strip()
+
+
+def _fetch(url, timeout=12):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.status, r.read(600_000).decode("utf-8", "replace")
 
 
 class Profiles:
@@ -86,16 +155,32 @@ class Profiles:
                 break
         return p
 
-    def save(self, raw):
-        """Save the card. A missing or empty picture keeps none; "keep" leaves the saved one as it is."""
-        keep = isinstance(raw, dict) and raw.get("pic") == "keep"
-        if keep:
-            raw = dict(raw, pic="")
-        prof, picture = clean(raw)
+    def _raw(self):
+        try:
+            p = json.loads(self.path.read_text(encoding="utf-8"))
+            return p if isinstance(p, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
+    def _write(self, prof):
         self.folder.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(prof, indent=1), encoding="utf-8")
         tmp.replace(self.path)
+
+    def save(self, raw):
+        """Save the card. A missing or empty picture keeps none; "keep" leaves the saved one as it is. A verified tick
+        and a code in progress stay only while the handle stays the same: a new handle has to be checked again."""
+        keep = isinstance(raw, dict) and raw.get("pic") == "keep"
+        if keep:
+            raw = dict(raw, pic="")
+        prof, picture = clean(raw)
+        old = self._raw()
+        same = (old.get("handle") or "").lower() == prof["handle"].lower()
+        for k in ("verified", "verify"):
+            if same and isinstance(old.get(k), dict):
+                prof[k] = old[k]
+        self._write(prof)
         if not keep:
             for f in self._pictures():
                 if f.is_file():
@@ -103,3 +188,51 @@ class Profiles:
             if picture:
                 (self.folder / f"profile.{picture[1]}").write_bytes(picture[0])
         return self.get()
+
+    # -- verify on RSI
+    def verify_start(self, now=None):
+        """A code for the saved handle (the same one again while it's still valid)."""
+        now = now or time.time()
+        p = self._raw()
+        h = p.get("handle") or ""
+        if not HANDLE_RX.match(h):
+            raise ValueError("Save your pilot card with your RSI handle first.")
+        v = p.get("verify") if isinstance(p.get("verify"), dict) else None
+        if not (v and v.get("handle", "").lower() == h.lower() and v.get("expires", 0) > now):
+            v = {"handle": h, "code": new_code(), "expires": int(now + CODE_S)}
+            p["verify"] = v
+            self._write(p)
+        return {"code": v["code"], "expires": v["expires"], "handle": h, "url": f"{RSI}/citizens/{h}"}
+
+    def verify_check(self, now=None, fetch=_fetch):
+        """Read the player's public RSI page and look for the code in the bio."""
+        now = now or time.time()
+        p = self._raw()
+        v = p.get("verify") if isinstance(p.get("verify"), dict) else None
+        if not v or v.get("handle", "").lower() != (p.get("handle") or "").lower():
+            raise ValueError("Get a code first.")
+        if v.get("expires", 0) <= now:
+            raise ValueError("That code has run out (they last 30 minutes). Get a new one and swap it in your bio.")
+        try:
+            status, page = fetch(f"{RSI}/citizens/{urllib.request.quote(v['handle'])}")
+        except Exception:  # noqa: BLE001 - any network failure gets the same plain answer
+            raise ValueError("Couldn't reach robertsspaceindustries.com just now. Check your connection and try again.")
+        if status == 404:
+            raise ValueError(f"RSI has no citizen called {v['handle']}. Check the handle on your pilot card.")
+        if status != 200:
+            raise ValueError("RSI didn't answer properly just now. Try again in a minute.")
+        bio = bio_from(page)
+        if bio is None:
+            raise ValueError("Couldn't find a bio on your RSI page. Add the code to your bio and save it on RSI first.")
+        if v["code"] not in bio.upper():
+            raise ValueError("The code isn't in your bio yet. RSI can take a minute to update after you save. Try Check again.")
+        p["verified"] = {"handle": p["handle"], "at": int(now)}
+        p.pop("verify", None)
+        self._write(p)
+        return {"verified": p["verified"]}
+
+    def verify_cancel(self):
+        p = self._raw()
+        if p.pop("verify", None) is not None:
+            self._write(p)
+        return {"ok": True}

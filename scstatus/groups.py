@@ -378,10 +378,21 @@ class Groups:
     def pirate_offer(self, now=None):
         now = now or time.time()
         s = self.app.session
-        if not s or not getattr(s, "deaths", None) or self.open is False:
+        if not s or self.open is False:
             return None
-        d = s.deaths[-1]
-        if d.get("collision") or not d.get("ts") or now - d["ts"] > OFFER_WINDOW_S:
+        # Only a ship lost in combat. Since 4.10.3 the log says why a ship was destroyed (Combat, SelfDestruct,
+        # Collision...); a death in your ship that the log puts down to anything but Combat is no reason to ask
+        lost = list(getattr(s, "vehicles_lost", None) or [])
+        cands = [x for x in lost if x.get("reason") == "Combat"]
+        for d in getattr(s, "deaths", None) or []:
+            near = [x for x in lost if x.get("ts") and d.get("ts") and abs(x["ts"] - d["ts"]) <= 20]
+            if not d.get("collision") and not near:
+                cands.append(d)
+        cands = [c for c in cands if c.get("ts")]
+        if not cands:
+            return None
+        d = max(cands, key=lambda c: c["ts"])
+        if now - d["ts"] > OFFER_WINDOW_S:
             return None
         if float(self.app.store.meta("pirate_offer_done", 0) or 0) >= d["ts"]:
             return None
