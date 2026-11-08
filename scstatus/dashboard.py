@@ -105,6 +105,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, {"version": app.library.version, "rules": app.library.listing()})
                 if path == "/api/settings":
                     return self._send(200, app.settings())
+                if path == "/api/gamesettings":
+                    return self._send(200, app.gamesettings.state())
                 if path == "/api/last":
                     return self._send(200, app.last_result or {})
                 if path == "/api/groups":
@@ -198,6 +200,12 @@ def handle_post(app, path, body):
     if path == "/api/mark":
         m = app.mark("button")
         return {"message": "Moment marked. Keep playing; \"What's gone wrong?\" will look at it.", "mark": m}
+    if path == "/api/gamesettings/save":
+        return app.gamesettings.save(replace=bool(body.get("replace")))
+    if path == "/api/gamesettings/restore":
+        return app.gamesettings.restore(str(body.get("copy") or ""))
+    if path == "/api/gamesettings/dismiss":
+        return app.gamesettings_dismiss()
     if path == "/api/mark/note":
         return {"mark": app.mark_note(body.get("ts"), body.get("what"))}
     if path == "/api/groups/post":
