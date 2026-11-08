@@ -309,6 +309,23 @@ class Community:
             except Exception:
                 return e.code, {}
 
+    def home(self):
+        """The maker's numbers and the Store state from verseshards.com's home page API, for the About tab. Asked at
+        most every 10 minutes, and only when the player has the community board or update checks on (the caller
+        checks). Sends nothing about the player. Any error gives the last copy, or None."""
+        now = time.time()
+        if getattr(self, "_home", None) is not None and now - self._home_at < 600:
+            return self._home
+        try:
+            code, d = self._req("/api/v1/home")
+        except Exception:
+            return getattr(self, "_home", None)
+        if code == 200 and isinstance(d, dict):
+            self._home = {"maker": d.get("maker") if isinstance(d.get("maker"), dict) else {},
+                          "store": d.get("store") if isinstance(d.get("store"), dict) else {}}
+            self._home_at = now
+        return getattr(self, "_home", None)
+
     def fetch_fed(self):
         """How many of this install's 5-minute summaries the site counted this week. Only asked while sharing is on;
         any error, or an older site without this (404), gives None and the page leaves the count out."""

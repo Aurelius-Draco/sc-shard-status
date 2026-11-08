@@ -29,6 +29,15 @@ BRAG_FILES = dict(
     [("img/mbtc-white.png", "image/png"), ("brag-card.css", "text/css"), ("fonts.css", "text/css"),
      ("html-to-image.js", "text/javascript")])
 
+# About (1.6): the site's own About, drawn by the site's home page code (home.js, home.css, holo-foil.js and .css,
+# copied from verseshards.com into static/site) with the pictures it uses in static/img/home. A fixed list again.
+SITE_FILES = {
+    "/site/home.js": "text/javascript", "/site/home.css": "text/css",
+    "/site/holo-foil.js": "text/javascript", "/site/holo-foil.css": "text/css",
+    "/img/home/fankit-sc-28.webp": "image/webp", "/img/home/fankit-sc-28-800.webp": "image/webp",
+    "/img/home/fankit-sc-06-800.webp": "image/webp", "/img/home/ms-store-badge-dark.svg": "image/svg+xml",
+}
+
 
 class _Server(ThreadingHTTPServer):
     # On Windows SO_REUSEADDR lets a second copy bind a port that's already in use; ask for the port to ourselves
@@ -84,6 +93,9 @@ def start_server(app, open_browser=False):
                 html = (STATIC / "index.html").read_text(encoding="utf-8")
                 html = html.replace("__TOKEN__", token).replace("__VERSION__", VERSION + TEST_LABEL)
                 return self._send(200, html.encode("utf-8"), "text/html")
+            if path in SITE_FILES:
+                f = STATIC / path.lstrip("/")
+                return self._send(200, f.read_bytes(), SITE_FILES[path]) if f.is_file() else self._send(404, b"", "text/plain")
             m = re.fullmatch(r"/img/[a-z0-9-]+\.(jpg|png|webp)", path)
             if m:
                 f = STATIC / path.lstrip("/")
@@ -183,6 +195,12 @@ def start_server(app, open_browser=False):
                                             # the star count comes from GitHub, so only with update checks on
                                             "star": dict(about.STAR, show_count=app.updater.enabled),
                                             "coming": about.COMING})
+                if path == "/api/about/site":
+                    # The live numbers on the maker's card, from verseshards.com: only with the community board or
+                    # update checks on (the app goes online only when the player has said yes to one of them)
+                    on = bool(app.cfg.get("community_board")) or bool(app.updater.enabled)
+                    return self._send(200, {"on": on, "home": app.community.home() if on else None,
+                                            "sharing": bool(app.cfg.get("share_readings"))})
             except ValueError as e:
                 return self._send(400, {"error": str(e)})
             except Exception as e:

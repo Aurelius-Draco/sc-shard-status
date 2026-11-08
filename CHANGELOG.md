@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6 (not released yet)
+- **About is the same as verseshards.com/about.** The maker scene with Aurelius_Draco's holo card, "What it does with your PC" with its sharing switch (it only shows what happens, and says whether your own sharing is on), ground rules, the org, coming up, thanks, feedback, help wanted and the referral, drawn by the site's own code bundled in the app. The card's live numbers (players sharing this week, sessions shared, updates shipped) come from verseshards.com only when Show other shards or update checks are on; otherwise the card shows without them.
+
 ## 1.5.2 (8 Nov 2026)
 - **Places by the names players use.** The favourite place picker is now a type-ahead that offers the places everyone knows first (Orison, Lorville, Area18, New Babbage, Levski, the four big stations, Grim HEX, Ruin Station, Orbituary, Checkmate, Starlight, Gaslight, Patch City and the rest of the Pyro stations), then rest stops and stations, then everything else, with coded mining bases last. Typing a common name or the game's internal one finds it (PYAM-EXHANG-0-1 finds the Executive Hangar), and the common name is what's shown and saved.
 - **Most-visited places in plain names.** My pilot's Most-visited places and the frame rate by location table show Orison, Seraphim Station or CRU-L4 Shallow Fields Station instead of the game's codes, and the codes for one place are counted together.

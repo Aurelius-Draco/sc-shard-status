@@ -785,11 +785,12 @@ i.st.new { background: var(--amber); }
 .hs { font-size: 1.0625rem; } .hs.good { color: var(--st-good); } .hs.ok { color: var(--st-ok); } .hs.poor { color: var(--st-poor); } .hs.bad { color: var(--st-bad); }
 .hn { display: grid; gap: 1px; min-width: 0; } .hn b { font-stretch: semi-condensed; letter-spacing: .03em; } .hn span { font-size: .8125rem; color: var(--muted); }
 .hpips { display: flex; gap: 3px; }
-.hp { position: relative; width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line2); }
-.hp.lit { background: var(--st-good); box-shadow: none; }
-.hp.you.off { background: rgba(242,169,59,.22); box-shadow: inset 0 0 0 1.5px var(--amber); animation: youPulse 2.4s ease-in-out infinite; }
-.hp.you.on { background: var(--st-good); box-shadow: 0 0 0 2px rgba(76,196,176,.35); }
-.hp.you.on::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--st-good); animation: txRing 2.4s ease-out infinite; }
+/* the board pips were .hp until 1.6; the site's About uses .hp as its page wrapper */
+.hpip { position: relative; width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line2); }
+.hpip.lit { background: var(--st-good); box-shadow: none; }
+.hpip.you.off { background: rgba(242,169,59,.22); box-shadow: inset 0 0 0 1.5px var(--amber); animation: youPulse 2.4s ease-in-out infinite; }
+.hpip.you.on { background: var(--st-good); box-shadow: 0 0 0 2px rgba(76,196,176,.35); }
+.hpip.you.on::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--st-good); animation: txRing 2.4s ease-out infinite; }
 @keyframes youPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: .65; } }
 @keyframes lampPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(76,196,176,.55); } 50% { opacity: .6; box-shadow: 0 0 0 6px rgba(76,196,176,0); } }
 @keyframes txRing { from { transform: scale(1); opacity: .9; } to { transform: scale(3); opacity: 0; } }
@@ -922,6 +923,20 @@ i.st.new { background: var(--amber); }
 /* P10 time-left bar drains smoothly over each minute */
 .tleft i, .hbar.drain i { transition: width 60s linear, background-color 1s; }
 @media (prefers-reduced-motion: reduce) { .gbars.draw i, svg.draw path, .toast, .pips i.pop { animation: none !important; } .btn.copied, .tleft i, .hbar.drain i { transition: none !important; } }
+/* About (1.6): the site's About (home.css makes its parts full width, as on the site); Barlow everywhere (the copied home.css says Bahnschrift first) */
+#view .hp, #view .hf-scope { --font: var(--f-body); --cond: var(--f-head); --mono: var(--f-mono); }
+.hp .ab-made { border-top: 0; padding-block: clamp(56px, 8vw, 120px); }
+.hp .ab-made .made-pic img { object-position: 62% 50%; }
+.hp .ab-made .made-copy h1 { margin: 0; font: 800 clamp(2.4rem, 5.6vw, 4.6rem)/.92 var(--cond); text-wrap: balance; }
+.hp .ab-made .made-copy h1 .handle { color: #ffd166; }
+#view .hp .ab-made .made-copy > p.ab-story { max-width: 60ch; font-size: 1.1rem; }
+#view .hp .ab-made .made-copy > p.ab-free { margin-top: -6px; font-size: 1rem; color: #c3cad3; }
+.hp .ab-more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 0; font-size: .9375rem; color: #c3cad3; }
+.hp .ab-more span { flex-basis: 100%; }
+.hp .ab-more a { color: #ffd166; }
+.ab-rest { padding-top: var(--s7, 48px); }
+/* the site's section headings (.gh-h2), not the small labels */
+.ab-rest .ab-h { margin: 0 0 var(--s3); font: 800 var(--fs-h3)/1.15 var(--f-head); letter-spacing: 0; text-transform: none; color: var(--text); }
 /* About: same as the site */
 /* about */
 .ab-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--s7); align-items: center; margin-top: var(--s6); }
@@ -2372,7 +2387,7 @@ async function renderNow() {
   const srvName = h.server_name ? h.server_name.split("-").slice(-1)[0] : "";
   const areaName = d.where && d.where.area_name;
   const c0 = d.community, shareOn = share ? share.on : false;
-  const pip = (cl) => `<i class="hp ${cl}"></i>`;
+  const pip = (cl) => `<i class="hpip ${cl}"></i>`;
   const regRow = x => {
     const me = mineB && x.shard_id === mineB.shard_id, n = Math.min(5, x.reporters || 0);
     const conf = x.reporters >= 3 ? "Solid" : x.reporters === 2 ? "Fair" : "First look";
@@ -4133,71 +4148,76 @@ async function renderSetup() {
 }
 
 /* ---------- About ---------- */
-// Same About as verseshards.com/about, then the app's own bits (version, theme, star)
-// About, How it works, card 2 (1.5.2): a small live Now panel from this PC's own numbers, in place of the old
-// screenshot. With nothing read yet it says so in plain words.
-function aboutNow() {
-  const h = nowData && nowData.health, sh = (nowData && nowData.shard) || {};
-  if (!h || h.score == null) return `<div class="ab-now is-empty"><p>Nothing read yet. Start the game with the overlay on and this shows your shard's score, server fps and shard name, live.</p></div>`;
-  const r = 34, c = 2 * Math.PI * r, pct = Math.max(0, Math.min(100, h.score)) / 100;
-  return `<div class="ab-now" data-h="${esc(h.cls || "")}" aria-label="Right now: score ${h.score}, ${esc(h.label || "")}">
-    <svg class="ab-ring" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="${r}" class="tr"/><circle cx="40" cy="40" r="${r}" class="arc" stroke-dasharray="${(c * pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 40 40)"/><text x="40" y="47" text-anchor="middle">${h.score}</text></svg>
-    <div class="ab-nowt"><span class="eyebrow">Right now</span><b>${esc(h.label || "")}</b>
-      <span>${h.server_fps != null ? `Server <b>${fmt(h.server_fps, 1)}</b> fps` : "Server fps not read yet"}</span>
-      <span class="muted">${esc(sh.name || "Shard not known yet")}</span></div></div>`;
-}
+// The same About as verseshards.com/about (1.6, Ray 8 Nov: "about on the website is perfect, why can't it be the same
+// in the app"). The site's own home page code (static/site: home.js, home.css, holo-foil.js and .css, copied from the
+// site) draws the maker scene with the holo card and "What it does with your PC"; then the site's sections; then the
+// app's own bits (the star, the version). The maker's live numbers come from verseshards.com only with the community
+// board or update checks on, since the app goes online only when the player has said yes to one of them.
+let siteAssets = null;
+const siteCss = h => new Promise((res, rej) => { if (document.querySelector(`link[data-site="${h}"]`)) return res();
+  const l = document.createElement("link"); l.rel = "stylesheet"; l.href = h; l.dataset.site = h; l.onload = res; l.onerror = () => { l.remove(); rej(new Error(h)); }; document.head.append(l); });
+const siteJs = (h, ok) => new Promise((res, rej) => { if (ok()) return res(); const sc = document.createElement("script"); sc.src = h;
+  sc.onload = () => ok() ? res() : rej(new Error(h)); sc.onerror = () => rej(new Error(h)); document.head.append(sc); });
+const siteLoad = () => siteAssets || (siteAssets = Promise.all([siteCss("site/holo-foil.css"), siteCss("site/home.css"),
+  siteJs("site/holo-foil.js", () => window.VSHolo), siteJs("site/home.js", () => window.VSHome)])
+  .then(() => window.VSHome).catch(e => { siteAssets = null; throw e; }));
 async function renderAbout() {
-  const d = await api("/api/about");
+  const [d, st] = await Promise.all([api("/api/about"), api("/api/settings").catch(() => ({}))]);
+  let V = null; try { V = await siteLoad(); } catch (e) { V = null; }
   if (tab !== "about") return;
-  const shot = (src, label, cls = "") => `<div class="shot ${cls}"><span>${label}</span><img src="${src}" alt="${label}" onerror="this.remove()"></div>`;
+  const SITE = COMMUNITY_SITE, IH = "img/home/", out = ` target="_blank" rel="noopener"`;
+  const REPO = "https://github.com/Aurelius-Draco/sc-shard-status", CITIZEN = "https://robertsspaceindustries.com/citizens/Aurelius_Draco";
+  const SPECTRUM = "https://robertsspaceindustries.com/spectrum/community/SC/forum/50172/thread/sc-shard-status-free-app-that-scores-your-shard-s-/575329";
   const road = [["Verse Shards for PC 1.4: the cockpit Now tab, group cards that match the site, My pilot", "Done"], ["Group posts with details, crew filled, “poster has seen you”, extend and close when full", "Done"],
-    ["Community: The Shard Courier, creators and orgs", "Done"], ["Org tools: plan events on the healthiest shard and rally members", "Next"],
+    ["Community: creators and orgs", "Done"], ["Org tools: plan events on the healthiest shard and rally members", "Next"],
     ["Quick search across shards, issues and commodities", "Later"], ["Share cards, so a shard link shows its health when posted", "Later"]];
-  const siteAbout = `<section class="ab-hero">
-    <div class="ab-me"><div class="ab-who"><img src="img/aurelius-draco.jpg" alt="Aurelius_Draco"><div><span class="ab-eye">Made by a player</span><h1>Aurelius_Draco</h1></div></div>
-      <p class="ab-story">I’m Aurelius_Draco, an Aussie who flies mostly solo PvE. My usual loop is hauling gold out of Pyro in my Constellation Mk V Centaurus and selling it back in Stanton. Too many runs went wrong and I never knew if it was me or the server, so I built a tool to find out. Verse Shards grew from that: players sharing readings so everyone can pick a healthy shard before starting a run.</p>
-      <p class="muted" style="margin:0">Free, and it stays free. If you see me in game, say hi.</p>
-      <div class="ab-acts"><a class="btn" href="https://robertsspaceindustries.com/citizens/Aurelius_Draco" target="_blank" rel="noopener">Add me as a friend</a><a class="btn ghost" href="https://discord.gg/8kH5pfHYbe" target="_blank" rel="noopener">Discord</a><a class="btn ghost" href="https://robertsspaceindustries.com/spectrum/community/SC/forum/50172/thread/sc-shard-status-free-app-that-scores-your-shard-s-/575329" target="_blank" rel="noopener">Spectrum thread</a><a class="btn ghost" href="https://github.com/Aurelius-Draco/sc-shard-status" target="_blank" rel="noopener">Code on GitHub</a></div></div>
-    <figure class="ab-ship">${shot("img/centaurus.webp", "Constellation Mk V Centaurus in orbit", "wide")}
-      <figcaption><span><b>Constellation Mk V Centaurus</b> <span class="muted">· the gold hauler</span></span><span class="muted">Also: Origin M80 · C2 Hercules</span></figcaption></figure></section>
-
-  <section class="sec"><h2 class="ab-h">How it works</h2><div class="ab-how">
-    <div class="frame"><div class="ab-step"><b class="n">1</b><b>The game's overlay</b></div>
-      <div class="ab-ov" aria-hidden="true"><span>Server FPS: 20.8</span><span>Players: 445 / 37</span><span>Ping: 33 ms</span><span>Packet loss: 0%</span><span class="muted">r_displayinfo 3</span></div>
-      <p>Star Citizen already shows server numbers in the corner of your screen. Turn it on once with one console line.</p></div>
-    <span class="ab-arrow" aria-hidden="true">›</span>
-    <div class="frame"><div class="ab-step"><b class="n">2</b><b>Verse Shards for PC</b></div>
-      ${aboutNow()}
-      <p>The app reads those numbers and Game.log, and tells you in plain English how your shard is doing.</p></div>
-    <span class="ab-arrow" aria-hidden="true">›</span>
-    <div class="frame"><div class="ab-step"><b class="n">3</b><b>The board</b></div>
-      <div class="ab-mini" aria-hidden="true"><div><span><i class="st good"></i> <b>AU-110</b></span><span class="muted">96 · 21.6 fps</span></div><div><span><i class="st good"></i> <b>AU-90</b></span><span class="muted">92 · 20.0 fps</span></div><div><span><i class="st bad"></i> <b>AU-60</b></span><span class="muted">31 · 6.2 fps</span></div></div>
-      <p>If you switch sharing on, a short summary joins everyone else's on <a href="${esc(COMMUNITY_SITE)}/board" target="_blank" rel="noopener">verseshards.com/board</a>, so anyone can pick a healthy shard.</p></div></div></section>
-
+  const story = `<p class="ab-story">I’m Aurelius_Draco, an Aussie who flies mostly solo PvE. My usual loop is hauling gold out of Pyro in my Constellation Mk V Centaurus and selling it back in Stanton. Too many runs went wrong and I never knew if it was me or the server, so I built a tool to find out. Verse Shards grew from that: players sharing readings so everyone can pick a healthy shard before starting a run.</p>
+      <p class="ab-free">Free, and it stays free. If you see me in game, say hi.</p>`;
+  const more = `<p class="ab-more"><span>Flies a Constellation Mk V Centaurus (the gold hauler), an Origin M80 and a C2 Hercules.</span>
+      <a href="${SPECTRUM}"${out}>Spectrum thread</a><a href="${REPO}"${out}>Code on GitHub</a><a href="${esc(SITE)}/about"${out}>verseshards.com</a></p>`;
+  const PIC = `src="${IH}fankit-sc-28.webp" srcset="${IH}fankit-sc-28-800.webp 800w, ${IH}fankit-sc-28.webp 1200w"`;
+  const made = V ? V.part("made")
+      .replace('<section class="made ', '<section class="made ab-made ')
+      .replace(/src="\/?img\/home\/fankit-sc-33\.webp" srcset="[^"]*"/, PIC)
+      .replace('<h2 id="made-h">', '<h1 id="made-h">').replace(/<\/h2>/, "</h1>")
+      .replace(/<p>One player in Australia[^<]*<\/p>/, story)
+      .replace('</div>\n    </div>\n    <div id="maker"', `</div>\n      ${more}\n    </div>\n    <div id="maker"`)
+    : `<section class="sec"><span class="ab-eye">Made by a player</span><h1>Aurelius_Draco</h1>${story}<div class="ab-acts"><a class="btn" href="${CITIZEN}"${out}>Add me as a friend</a><a class="btn ghost" href="https://discord.gg/8kH5pfHYbe"${out}>Join the Discord</a></div>${more}</section>`;
+  // The switch here only shows what happens; the player's own setting is on Set up, and it starts as theirs is
+  const trust = V ? V.part("trust").replace("Try the switch.</p>", `Try the switch. It only shows what happens: your own setting is on the Set up tab, and sharing is <b>${st.share ? "on" : "off"}</b> on this PC.</p>`) : "";
+  $("view").innerHTML = `<div class="abx">${made}${trust}</div>
+  <div class="ab-rest">
   <section class="sec ab-two"><div><h2 class="ab-h">Ground rules</h2><div class="ab-rules">
       <div><b>Reads, never touches</b><span>Only your screen's overlay, Game.log and the game's text file. Never the game's memory or network traffic, never your mouse or keyboard.</span></div>
       <div><b>Nothing leaves unless you say so</b><span>Update checks ask GitHub, only when switched on. Show other shards downloads the board and sends nothing about you. Sharing readings, app error reports, Send feedback and the buttons you press send to verseshards.com, and you can see what was last sent. Never your handle, other players' names or your IP.</span></div>
       <div><b>No accounts</b><span>Verse Shards stores no IP addresses. The app uses a random install id, never your handle, so nothing is counted twice.</span></div>
       <div><b>You file the reports</b><span>Issue Council reports are drafts. You check them and submit them yourself.</span></div></div>
-      <p class="sub" style="margin:var(--s2) 0 0">Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.</p></div>
-    <div><h2 class="ab-h">The org</h2><div class="frame ab-org">${shot("img/centaurus-pyro.webp", "The Centaurus over ArcCorp")}
+      <p class="sub" style="margin:var(--s2) 0 0">This is an unofficial Fansite. Verse Shards is a Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners. This site is not endorsed by or affiliated with the Cloud Imperium or Roberts Space Industries group of companies. All game content and materials are copyright Cloud Imperium Rights LLC and Cloud Imperium Rights Ltd. Star Citizen®, Squadron 42®, Roberts Space Industries®, and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. All rights reserved. <a href="https://robertsspaceindustries.com"${out}>Official Star Citizen site</a>.</p></div>
+    <div><h2 class="ab-h">The org</h2><div class="frame ab-org"><div class="shot"><img src="img/centaurus-pyro.webp" alt="The Centaurus over ArcCorp" onerror="this.remove()"></div>
       <div class="ab-orgb"><div class="ab-orgt"><b>Shardwatch</b><code>SHARDWATCH</code></div><p>Watching shards and giving each other a heads-up. New, founded by Aurelius_Draco, and the first home for org tools when they land.</p>
 </div></div></div></section>
 
-  <section class="sec ab-two"><div><h2 class="ab-h">Coming up</h2><div class="frame ab-road">${road.map(([t, st], i) => `<div class="${st.toLowerCase()}${i === 0 ? " first" : ""}${st === "Next" && road.findIndex(r => r[1] === "Next") === i ? " now" : ""}"><i></i><span>${t}</span><b>${st}</b></div>`).join("")}</div></div>
+  <section class="sec ab-two"><div><h2 class="ab-h">Coming up</h2><div class="frame ab-road">${road.map(([t, s2], i) => `<div class="${s2.toLowerCase()}${i === 0 ? " first" : ""}${s2 === "Next" && road.findIndex(r => r[1] === "Next") === i ? " now" : ""}"><i></i><span>${t}</span><b>${s2}</b></div>`).join("")}</div></div>
     <div><h2 class="ab-h">Thanks</h2><ul class="ab-thanks"><li>Every player sharing readings from Verse Shards for PC</li><li>The testers and Discord members who report bugs and suggest fixes</li><li>The players adding workarounds and Issue Council links on Known issues</li><li>UEX, for the trade and price data</li></ul></div></section>
 
-  <section class="sec"><div class="notice teal"><p><b>Help wanted.</b> Testers with 1440p, 4K or ultrawide screens, and moderators and admins for the community side.</p><a class="btn ghost" href="https://verseshards.com/help" target="_blank" rel="noopener">See what's needed</a></div></section>
-  <section class="sec"><div class="notice"><p><b>Want something added or changed?</b> Tell Aurelius_Draco what you'd like, with a picture if it helps. Ask for a reply and he can message you on Spectrum.</p><button class="btn ghost" type="button" data-protected="true" id="abFb">Send feedback</button></div></section>
+  <section class="sec"><div class="notice"><p><b>An idea, or something you'd change?</b> Ask for it, with a picture if it helps. Ask for a reply and I can answer you on Spectrum.</p><button class="btn ghost" type="button" data-protected="true" id="abFb">Send feedback</button></div></section>
+  <section class="sec"><div class="notice teal"><p><b>Help wanted.</b> Testers with 1440p, 4K or ultrawide screens, and moderators and admins for the community side.</p><a class="btn ghost" href="${esc(SITE)}/help"${out}>See what's needed</a></div></section>
   <section class="sec"><div class="frame refcard ab-ref"><div class="rtext"><small>Bringing a friend into the 'verse?</small><b>Start with 50,000 UEC</b><span>New players who sign up with my referral code get the bonus, and it's the best way to say thanks for the tools.</span></div>
-    <div class="rcode"><div class="rrow"><code>STAR-VD9W-346V</code><button class="btn ghost" type="button" data-protected="true" data-chat="STAR-VD9W-346V" data-plain>Copy</button></div><a class="btn" href="https://robertsspaceindustries.com/en/enlist?referral=STAR-VD9W-346V" target="_blank" rel="noopener">Sign up with the code</a></div></div></section>`;
-  $("view").innerHTML = `<div class="abwrap">${siteAbout}</div>
-  <section class="sec"><div class="frame starline"><p>${esc(d.star.text)}</p><a class="btn sm ghost" href="${esc(d.star.url)}" target="_blank" rel="noopener">★ Star on GitHub <span id="starN"></span></a></div></section>
+    <div class="rcode"><div class="rrow"><code>STAR-VD9W-346V</code><button class="btn ghost" type="button" data-protected="true" data-chat="STAR-VD9W-346V" data-plain>Copy</button></div><a class="btn" href="https://robertsspaceindustries.com/en/enlist?referral=STAR-VD9W-346V"${out}>Sign up with the code</a></div></div></section>
+  <section class="sec"><div class="frame starline"><p>${esc(d.star.text)}</p><a class="btn sm ghost" href="${esc(d.star.url)}"${out}>★ Star on GitHub <span id="starN"></span></a></div></section>
   ${(d.also_by || []).length ? `<section class="sec"><h3>Also by Aurelius_Draco</h3><div class="tiles">
-    ${d.also_by.map(a => `<a class="frame tile" href="${esc(a.download || a.url)}" target="_blank" rel="noopener"><b>${esc(a.name)}</b><span>${esc(a.about)}</span><span class="go">Download from GitHub →</span></a>`).join("")}
+    ${d.also_by.map(a => `<a class="frame tile" href="${esc(a.download || a.url)}"${out}><b>${esc(a.name)}</b><span>${esc(a.about)}</span><span class="go">Download from GitHub →</span></a>`).join("")}
   </div></section>` : ""}
-  <section class="sec"><h3>Look</h3><p class="sub" style="margin:0">Dark, the same look as verseshards.com.</p></section>
-  <p class="foot">Verse Shards for PC v${esc(d.version)}</p>`;
+  <p class="foot">Verse Shards for PC v${esc(d.version)}</p></div>`;
+  // The site's parts, drawn and wired by its own code: first without numbers, then with them if verseshards.com answers
+  const shape = h => { const s = Object.assign({}, (h && h.store) || {});
+    s.url = !s.url ? `${SITE}/get` : s.url.startsWith("/") ? SITE + s.url : s.url; s.github_url = s.github_url || `${REPO}/releases/latest`;
+    return {store: s, maker: (h && h.maker) || {}}; };
+  if (V) {
+    const sw = $("share-sw"); if (sw) sw.checked = !!st.share;
+    V.mountParts($("view"), shape(null), ["made", "trust"]);
+    api("/api/about/site").then(r => { if (tab === "about" && r && r.home && $("maker")) V.mountParts($("view"), shape(r.home), ["made", "trust"]); }).catch(() => {});
+  }
   // The star count asks GitHub, so only when update checks are on (the same yes); otherwise no count
   if (d.star.show_count) fetch(d.star.api, {headers: {accept: "application/vnd.github+json"}}).then(r => r.ok ? r.json() : null)
     .then(j => { if (j && $("starN")) $("starN").textContent = "· " + j.stargazers_count; }).catch(() => {});
