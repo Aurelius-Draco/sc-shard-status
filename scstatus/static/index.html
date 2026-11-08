@@ -3996,7 +3996,7 @@ async function renderSetup() {
       <li><b>Keep the top right corner clear.</b> Move other overlays (Discord, Steam, NVIDIA or AMD performance counters, RivaTuner) to another corner so they don't sit on top of the game's text.</li>
       <li><b>Turn off Chromatic Aberration and Film Grain</b> in the game's Graphics settings. Both blur small text.</li>
       <li><b>1440p or higher reads every value reliably.</b> At 1080p the text is tiny; the main numbers still read, but the odd small value can be misread. The app takes the middle value over a few minutes, so one bad reading doesn't change the score.</li>
-      <li><b>Play on your main monitor,</b> or set <code>monitor</code> to the screen the game is on (2, 3 and so on) in <code>config.json</code> in the app's data folder: <code>%LOCALAPPDATA%\\SC Shard Status</code> for the installed app. <button class="btn sm ghost" data-protected="true" data-open="data">Open the data folder</button></li>
+      <li><b>Any screen works.</b> The app reads the overlay wherever the game's window is, on any monitor and at any size, fullscreen, borderless or windowed. Keep the game in front while you play: readings pause while another window has focus.</li>
       <li>Live reading skips anything it can't read and tries again 5 seconds later, so a bright moment just means a gap, not a wrong number.</li>
     </ul>
   </section>

@@ -40,19 +40,81 @@ def game_in_front():
         return True
 
 
-def make_grabber(monitor=1):
-    import cv2
-    import mss
-    sct = mss.MSS() if hasattr(mss, "MSS") else mss.mss()
-    mons = sct.monitors
-    mon = mons[monitor] if 0 < monitor < len(mons) else mons[1]
-    # The overlay lives in the top right; grabbing just that is much cheaper at 4K
-    region = {"left": mon["left"] + mon["width"] // 2, "top": mon["top"],
-              "width": mon["width"] - mon["width"] // 2, "height": int(mon["height"] * 0.4)}
+def game_rect():
+    """Where the game draws on the desktop: the Star Citizen window's inside (no title bar), as
+    (left, top, width, height) in screen pixels. Called right after game_in_front(), so the window in front is the
+    game. Follows the game to whichever monitor it's on, at whatever size it draws (9 Nov: players with the game on
+    their second screen got "overlay off" because only monitor 1 was read). None when it can't be told."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        hwnd = user32.GetForegroundWindow()
+        if not hwnd or user32.IsIconic(hwnd):
+            return None
+        rc = wintypes.RECT()
+        if not user32.GetClientRect(hwnd, ctypes.byref(rc)):
+            return None
+        pt = wintypes.POINT(0, 0)
+        if not user32.ClientToScreen(hwnd, ctypes.byref(pt)):
+            return None
+        return pt.x, pt.y, rc.right - rc.left, rc.bottom - rc.top
+    except Exception:
+        return None
 
-    def grab():
-        img = cv2.cvtColor(np.array(sct.grab(region)), cv2.COLOR_BGRA2BGR)
-        return img, (mon["width"], mon["height"])
+
+def _region(left, top, w, h):
+    # The overlay lives in the top right; grabbing just that is much cheaper at 4K
+    return {"left": left + w // 2, "top": top, "width": w - w // 2, "height": int(h * 0.4)}
+
+
+def pick_area(mons, monitor, rect):
+    """The part of the desktop to read and the screen size the overlay is drawn for. With the game's window known
+    and sensible (at least 640x360 and on the desktop), that window; otherwise the monitor in config (1 = main)."""
+    if rect:
+        x, y, w, h = rect
+        cx, cy = x + w // 2, y + h // 2
+        on = next((m for m in mons[1:] if m["left"] <= cx < m["left"] + m["width"]
+                   and m["top"] <= cy < m["top"] + m["height"]), None)
+        if on and w >= 640 and h >= 360:
+            # clip to the screen it's on (a maximised window hangs a few pixels over the edges)
+            l, t = max(x, on["left"]), max(y, on["top"])
+            r, b = min(x + w, on["left"] + on["width"]), min(y + h, on["top"] + on["height"])
+            if r - l >= 640 and b - t >= 360:
+                return _region(l, t, r - l, b - t), (r - l, b - t), "window"
+    mon = mons[monitor] if 0 < monitor < len(mons) else mons[1]
+    return _region(mon["left"], mon["top"], mon["width"], mon["height"]), (mon["width"], mon["height"]), "monitor"
+
+
+def make_grabber(monitor=1, sct=None):
+    import cv2
+    if sct is None:
+        import mss
+        sct = mss.MSS() if hasattr(mss, "MSS") else mss.mss()
+    state = {"sct": sct}
+
+    def grab(rect=None):
+        s = state["sct"]
+        mons = s.monitors
+        region, size, how = pick_area(mons, monitor, rect)
+        if rect and how == "monitor" and not getattr(grab, "relisted", False):
+            # the game's window isn't on any screen we know: the screens changed since they were listed (a monitor
+            # added, or exclusive fullscreen changed the resolution), so list them again, once
+            try:
+                import mss
+                state["sct"] = s = mss.MSS() if hasattr(mss, "MSS") else mss.mss()
+                region, size, how = pick_area(s.monitors, monitor, rect)
+            except Exception:
+                pass
+            grab.relisted = True
+        elif how == "window":
+            grab.relisted = False
+        img = cv2.cvtColor(np.array(s.grab(region)), cv2.COLOR_BGRA2BGR)
+        grab.how = how
+        return img, size
+    grab.how = None
     return grab
 
 
@@ -89,7 +151,7 @@ class OverlayWatcher:
         if not game_in_front():
             self.status = "waiting for the game window"
             return None
-        crop, size = self.grab()
+        crop, size = self.grab(game_rect())
         self.screen = f"{size[0]}x{size[1]}"
         self.tries += 1
         snap = self.reader.read(self.place(crop, size))
