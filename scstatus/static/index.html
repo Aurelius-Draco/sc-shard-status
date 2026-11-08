@@ -2366,7 +2366,7 @@ const VR = (() => {
     return { id: c.id, day: c.day, t: c.time, dur: c.dur, score: c.score, h: c.overlay ? c.health : "none", overlay: c.overlay, live: c.live, liveStart: c.start,
       acc: c.accepted, done: c.completed, failed: c.failed, moments: c.moments, shards, rating: c.rating, note: c.note || "",
       auec: { s: c.auec_start != null ? Number(c.auec_start).toLocaleString("en-AU") : "", e: c.auec_end != null ? Number(c.auec_end).toLocaleString("en-AU") : "" },
-      cont: groupContracts(c.contracts || []), bps: (c.blueprints || []).map(b => b.name), bpsFull: c.blueprints || [], lic: c.journal || [],
+      cont: groupContracts(c.contracts || []), bps: (c.blueprints || []).map(b => b.name), bpsFull: c.blueprints || [], lic: (c.journal || []).map(j => j.replace(/\s+Earned\b/i, "")), licRaw: c.journal || [],
       probs: (c.problems || []).map(p => [p.ts ? tmc(p.ts) : "", generic(p.title || ""), p.rule_id]), lost: (c.lost || []).map(l => [l.ship, l.reason]),
       short: !c.live && (c.minutes || 0) < 20, sameDay: c.same_day ? (today ? c.same_day.replace("that day", "today") : c.same_day) : "" };
   }
@@ -2421,7 +2421,7 @@ const VR = (() => {
       ${box("Ships lost", s.lost.length ? `<ul class="ss-rows">${s.lost.map(l => `<li><span>${esc(l[0])}</span><span></span><span class="ss-res is-abandoned">${esc(l[1])}</span></li>`).join("")}</ul>` : none("None."))}
      </div><div style="display:flex;flex-direction:column;gap:14px">
       ${box(`Blueprints · ${s.bps.length}`, s.bps.length ? `<div class="bp-grid" style="grid-template-columns:1fr">${s.bpsFull.map(b => blueprintCard({ id: b.id, n: b.name, g: b.group, d: s.day }, {})).join("")}</div><a href="#" data-go-bp style="font-size:13px">See them all in Blueprints →</a>` : none("None this time."))}
-      ${box("Licences and journal", s.lic.length ? s.lic.map(l => `<span style="font-size:14px">${IC(P.lic).replace("<svg", '<svg width="15" height="15" style="stroke:var(--gold);vertical-align:-2px;margin-right:6px"')}${esc(l)}${/earned/i.test(l) ? "" : " earned"}</span>`).join("") : none("None."))}
+      ${box("Licences and journal", s.lic.length ? (s.licRaw || s.lic).map(l => `<span style="font-size:14px">${IC(P.lic).replace("<svg", '<svg width="15" height="15" style="stroke:var(--gold);vertical-align:-2px;margin-right:6px"')}${/\sEarned\b/i.test(l) ? esc(l.replace(/\s+Earned\b/i, "")) + " earned" : esc(l)}</span>`).join("") : none("None."))}
       ${box(`Moments marked · ${s.moments}`, s.moments ? `<span style="font-size:14px">${s.moments} marked. They're in What's gone wrong? for this session.</span>` : none("None."))}
       ${box("Your rating", `<div class="ss-rating"><button type="button" class="vr-btn is-sm is-good" data-rate="good" aria-pressed="${rate === "good"}">${IC(P.good).replace("<svg", '<svg width="15" height="15" style="stroke:currentColor"')}Good</button><button type="button" class="vr-btn is-sm is-bad" data-rate="bad" aria-pressed="${rate === "bad"}">${IC(P.bad).replace("<svg", '<svg width="15" height="15" style="stroke:currentColor"')}Bad</button></div>
         <textarea class="vr-inp" data-note rows="2" maxlength="200" placeholder="A short note for future you" aria-label="Note" style="height:auto;padding:8px 12px;resize:vertical">${esc(noteTxt)}</textarea>`)}
