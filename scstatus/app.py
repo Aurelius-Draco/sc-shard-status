@@ -8,11 +8,11 @@ import time
 from pathlib import Path
 
 from .overlay import node_of
-from . import community, report, score
+from . import community, played, report, score
 from .config import DATA, say
 from .diagnose import diagnose
 from .issues import Library
-from .logparse import LogTail, parse_file, region_name
+from .logparse import SUMMARY_FMT, LogTail, parse_file, region_name
 from .names import Names
 from .store import Store
 
@@ -197,11 +197,24 @@ class App:
         from . import errors
         while not stop.wait(15):
             try:
+                self.check_blueprints()
+                self._import_after_relaunch()
                 if self.cfg.get("community_board") or self.cfg.get("share_readings") or self.groups.mine():
                     self.groups.tick()
                 self.errors.tick()
             except Exception as e:
                 errors.capture("extras", e)
+
+    def _import_after_relaunch(self):
+        """The game moves the last Game.log into logbackups when it starts again; read it in for History."""
+        s = self.session
+        key = (s.name, s.start) if s else None
+        if getattr(self, "_import_key", None) is None:
+            self._import_key = key
+            return
+        if key != self._import_key:
+            self._import_key = key
+            threading.Thread(target=self.import_backups, daemon=True).start()
 
     # -- Mark this moment: a timestamp (and where you were) for "What's gone wrong?" to look at later
     def mark(self, source="button"):
@@ -211,6 +224,10 @@ class App:
         m = {"ts": time.time(), "source": source, "shard_id": snap.get("shard_id") or (s.shard_id if s else None),
              "server": snap.get("server_name"), "location": snap.get("location") or _last_loc(s)}
         self._save_marks(self._kept_marks() + [m])
+        try:
+            self.store.add_mark_time(m["ts"])
+        except Exception:
+            pass
         if source == "hotkey":
             a = self.alerts
             a.recent.appendleft({"ts": m["ts"], "key": "mark", "title": "Moment marked", "body": "Look at it later with What's gone wrong?"})
@@ -376,21 +393,28 @@ class App:
             return
         files = sorted(folder.glob("*.log"), key=lambda p: p.stat().st_mtime)
         new = 0
-        # 1.4 adds ships retrieved to each session's summary, so read every file once more
-        again = self.store.meta("summary_v") != "2"
+        # Each format adds to a session's summary, so every file is read once more (3: blueprints, journal entries,
+        # ships lost, rep and the problems the library sees, for the session reports)
+        again = self.store.meta("summary_v") != str(SUMMARY_FMT)
         for i, p in enumerate(files):
             self.import_status = f"reading past sessions ({i + 1}/{len(files)})"
             size = p.stat().st_size
             if self.store.session_known(p.name, size) and not again:
                 continue
             try:
-                self.store.save_session(parse_file(p).summary(), size)
+                sess = parse_file(p)
+                summ = sess.summary()
+                if sess.start:
+                    snaps = self.store.snapshots_between(sess.start, sess.end or sess.start)
+                    summ["problems"] = played.problems_of(p, self.library, sess, snaps)
+                self.store.save_session(summ, size)
                 new += 1
             except Exception as e:
                 say(f"Couldn't read {p.name} ({e}).")
         self.import_status = f"{len(files)} past sessions" + (f" ({new} new)" if new and not again else "")
         if again:
-            self.store.set_meta("summary_v", "2")
+            self.store.set_meta("summary_v", str(SUMMARY_FMT))
+        self._imported_at = time.time()
 
     # -- what the dashboard shows
     def now(self):
@@ -434,6 +458,7 @@ class App:
             "update": self.updater.info(), "patch": self.patch_state(), "notice": self.notice_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
             "marks": self.marks_shown(), "hotkey": self.hotkey.status,
+            "queue": self.queue_state(), "news": list(self.news)[-5:],
             "readings_paused": bool(self.watcher and self.watcher.status.startswith("overlay off")),
             "groups": {"open": self.groups.open, "mine": self.groups.mine(), "interest": self.groups.interest_rows()[:10],
                        "offer": self.groups.pirate_offer()},
@@ -666,6 +691,150 @@ class App:
         return {"sessions": self.store.sessions(), "shards": self.store.shard_history(),
                 "hourly": self.store.hourly(), "import_status": self.import_status,
                 "ships_retrieved": self.ships_retrieved()}
+
+    def queue_state(self):
+        """Waiting in the login queue: position and the game's own estimate. Gone once you're in."""
+        s = self.session
+        q = s.queue if s else None
+        if not q or q.get("ts") is None or time.time() - q["ts"] > 600 or (s.end and s.end - q["ts"] > 600):
+            return None
+        return {"position": q["position"], "eta_s": q["eta_s"], "ts": q["ts"], "queue": q.get("queue")}
+
+    # -- blueprints you've earned, and your want list
+    @property
+    def want(self):
+        if getattr(self, "_want", None) is None:
+            self._want = played.WantList(self.store)
+        return self._want
+
+    def blueprints(self):
+        earned = played.blueprints(self.store.session_data(), self.session)
+        return {"earned": earned, "want": self.want.get(), "groups": played.GROUPS, "total": len(earned),
+                "import_status": self.import_status}
+
+    def want_add(self, name):
+        earned = [b["name"] for b in played.blueprints(self.store.session_data(), self.session)]
+        return {"want": self.want.add(name, earned)}
+
+    def want_remove(self, name):
+        return {"want": self.want.remove(name)}
+
+    def check_blueprints(self):
+        """A wanted blueprint received this session comes off the want list, with a toast (and an alert if on)."""
+        s = self.session
+        if s is None:
+            return []
+        seen = getattr(self, "_bp_seen", None)
+        if seen is None or seen[0] is not s:
+            # Don't celebrate what was already in the log when the app started
+            self._bp_seen = (s, len(s.blueprints))
+            return []
+        new = s.blueprints[seen[1]:]
+        self._bp_seen = (s, len(s.blueprints))
+        hit = self.want.received([b["name"] for b in new]) if new else []
+        for name in hit:
+            group = played.GROUPS[played.group_of(name)]
+            msg = f"{name} earned. It was on your want list, so it's moved to {group}."
+            self.news.append({"ts": time.time(), "kind": "blueprint", "name": name, "text": msg})
+            if self.alerts.mode:
+                self.alerts.fire(f"blueprint:{name}", "Blueprint earned", msg, force=True)
+        return hit
+
+    @property
+    def news(self):
+        if getattr(self, "_news", None) is None:
+            self._news = collections.deque(maxlen=20)
+        return self._news
+
+    # -- your sessions: one card per time you played
+    def _live_card(self):
+        s = self.session
+        if s is None or not s.start:
+            return None
+        key = (s.name, s.start)
+        cache = getattr(self, "_live_cache", None)
+        now = time.time()
+        if cache and cache[0] == key and now - cache[1] < 60:
+            probs = cache[2]
+        else:
+            snaps = self.store.snapshots_between(s.start, now)
+            probs = played.problems_of(self.game_dir / "Game.log", self.library, s, snaps)
+            self._live_cache = (key, now, probs)
+        summ = s.summary()
+        running = self.game_running()
+        end = now if running else (s.end or s.start)
+        snaps = self.store.snapshots_between(s.start, end)
+        return summ, snaps, probs, running
+
+    def game_running(self):
+        """The game has written to Game.log in the last 2 minutes and hasn't shut down."""
+        s = self.session
+        if s is None or not s.end or s.clean_exit or s.crash:
+            return False
+        try:
+            return time.time() - (self.game_dir / "Game.log").stat().st_mtime < 120
+        except OSError:
+            return False
+
+    def _marks_between(self, a, b):
+        ts = set(self.store.mark_times(a, b))
+        ts |= {m["ts"] for m in self.marks(self.MARK_NOTE_KEEP_S) if a <= m.get("ts", 0) <= b}
+        return sorted(ts)
+
+    def sessions_cards(self, page=0, per=9):
+        """Newest first, 9 a page. This session (Game.log) first, then logbackups."""
+        notes = self.store.session_notes()
+        rows = []
+        live = self._live_card()
+        if live:
+            summ, snaps, probs, running = live
+            rows.append(("live", summ, snaps, probs, running))
+        past = [x for x in self.store.session_data() if x.get("start") and x.get("joins")]
+        if live:
+            past = [x for x in past if played.session_id(x) != played.session_id(live[0])]
+        total = len(rows) + len(past)
+        pages = max(1, -(-total // per))
+        page = max(0, min(int(page or 0), pages - 1))
+        out = []
+        for i, x in enumerate(rows + [("past", p, None, None, False) for p in past]):
+            if i < page * per or i >= (page + 1) * per:
+                continue
+            kind, summ, snaps, probs, running = x
+            sid = played.session_id(summ)
+            end = time.time() if running else (summ.get("end") or summ.get("start"))
+            if snaps is None:
+                snaps = self.store.snapshots_between(summ["start"], end)
+            out.append(played.card(summ, snaps, notes.get(sid), self._marks_between(summ["start"], end), probs,
+                                   live=running))
+        # 1st and 2nd today: two sessions on one day are two cards
+        days = {}
+        for c in out:
+            days.setdefault(c["date"], []).append(c)
+        for day, cs in days.items():
+            if len(cs) > 1:
+                for n, c in enumerate(sorted(cs, key=lambda c: c["start"] or 0), 1):
+                    c["same_day"] = {1: "1st", 2: "2nd", 3: "3rd"}.get(n, f"{n}th") + " that day"
+        return {"sessions": out, "page": page, "pages": pages, "total": total, "import_status": self.import_status}
+
+    def session_report(self, sid):
+        for c in self.sessions_cards(0, per=10 ** 6)["sessions"]:
+            if c["id"] == str(sid):
+                return c
+        raise ValueError("That session isn't there any more.")
+
+    def session_note(self, sid, **kw):
+        out = {}
+        if "rating" in kw:
+            out["rating"] = kw["rating"] if kw["rating"] in ("good", "bad") else None
+        if "note" in kw:
+            out["note"] = str(kw["note"] or "")[:200]
+        for k in ("auec_start", "auec_end"):
+            if k in kw:
+                v = re.sub(r"[^0-9]", "", str(kw[k] or ""))
+                out[k] = int(v) if v and len(v) <= 13 else None
+        if not str(sid).isdigit():
+            raise ValueError("That session isn't there any more.")
+        return self.store.set_session_note(str(sid), **out)
 
     def ships_retrieved(self):
         """Ships you called from an ASOP terminal on this patch, most first: past sessions plus this one."""

@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS reviews (
   id TEXT PRIMARY KEY, created REAL, sig TEXT, status TEXT, data TEXT
 );
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
+CREATE TABLE IF NOT EXISTS session_notes (
+  id TEXT PRIMARY KEY, rating TEXT, note TEXT, auec_start INT, auec_end INT, updated REAL
+);
+CREATE TABLE IF NOT EXISTS mark_times (ts REAL PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS review_answers (
   id TEXT PRIMARY KEY, status TEXT, answer TEXT, rule_id TEXT, answered REAL
 );
@@ -134,6 +138,51 @@ class Store:
                              s["region"], s["minutes"], s["load_s"], s["joins"], s["bad_disconnects"],
                              s["errors"], int(s["clean_exit"]), json.dumps(s, default=str)))
             self.db.commit()
+
+    def session_data(self, limit=500):
+        """Past sessions' full summaries, newest first."""
+        with self.lock:
+            rows = self.db.execute("SELECT data FROM sessions ORDER BY start DESC LIMIT ?", (limit,)).fetchall()
+        out = []
+        for r in rows:
+            try:
+                out.append(json.loads(r["data"] or "{}"))
+            except ValueError:
+                continue
+        return out
+
+    # -- what the player adds to a session: good or bad, a note, aUEC at the start and end (kept on this PC)
+    def session_notes(self):
+        with self.lock:
+            rows = self.db.execute("SELECT * FROM session_notes").fetchall()
+        return {r["id"]: dict(r) for r in rows}
+
+    def set_session_note(self, sid, **kw):
+        cur = self.session_notes().get(sid, {"id": sid, "rating": None, "note": "", "auec_start": None, "auec_end": None})
+        cur.update({k: v for k, v in kw.items() if k in ("rating", "note", "auec_start", "auec_end")})
+        with self.lock:
+            self.db.execute("INSERT OR REPLACE INTO session_notes VALUES (?,?,?,?,?,?)",
+                            (sid, cur["rating"], cur["note"], cur["auec_start"], cur["auec_end"], time.time()))
+            self.db.commit()
+        return cur
+
+    # -- when you pressed Mark this moment (times only, for counting moments in a session; the marks themselves
+    # are kept a day, or a month with a note)
+    def add_mark_time(self, ts):
+        with self.lock:
+            self.db.execute("INSERT OR IGNORE INTO mark_times VALUES (?)", (ts,))
+            self.db.commit()
+
+    def mark_times(self, since, until):
+        with self.lock:
+            rows = self.db.execute("SELECT ts FROM mark_times WHERE ts >= ? AND ts <= ?", (since, until)).fetchall()
+        return [r["ts"] for r in rows]
+
+    def snapshots_between(self, since, until, limit=20000):
+        with self.lock:
+            rows = self.db.execute("SELECT data FROM snapshots WHERE ts >= ? AND ts <= ? ORDER BY ts LIMIT ?",
+                                   (since, until, limit)).fetchall()
+        return [json.loads(r["data"]) for r in rows]
 
     def ships_retrieved(self, build):
         """Ship retrievals counted in past sessions on one build: {ship class: times}."""

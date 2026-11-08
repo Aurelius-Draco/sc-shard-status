@@ -97,6 +97,14 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.now())
                 if path == "/api/history":
                     return self._send(200, app.history())
+                if path == "/api/news":
+                    return self._send(200, {"news": list(app.news)[-5:]})
+                if path == "/api/blueprints":
+                    return self._send(200, app.blueprints())
+                if path == "/api/sessions":
+                    return self._send(200, app.sessions_cards(qs.get("page", 0)))
+                if path == "/api/session":
+                    return self._send(200, app.session_report(qs.get("id", "")))
                 if path == "/api/pc":
                     return self._send(200, app.pc())
                 if path == "/api/timeline":
@@ -198,6 +206,13 @@ def handle_post(app, path, body):
     if path == "/api/mark":
         m = app.mark("button")
         return {"message": "Moment marked. Keep playing; \"What's gone wrong?\" will look at it.", "mark": m}
+    if path == "/api/blueprints/want":
+        return app.want_add(body.get("name"))
+    if path == "/api/blueprints/unwant":
+        return app.want_remove(body.get("name"))
+    if path == "/api/session/note":
+        kw = {k: body[k] for k in ("rating", "note", "auec_start", "auec_end") if k in body}
+        return {"note": app.session_note(body.get("id"), **kw)}
     if path == "/api/mark/note":
         return {"mark": app.mark_note(body.get("ts"), body.get("what"))}
     if path == "/api/groups/post":
