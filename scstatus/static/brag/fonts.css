@@ -1,0 +1,11 @@
+/* Verse Shards: bundled fonts for the brag cards and the 1.5.2 pieces.
+   Barlow and Barlow Semi Condensed, SIL Open Font License 1.1 (same files the site's share cards already bundle).
+   The app's own stack puts Bahnschrift first on Windows; the brag card always uses these so the PNG looks the same on every PC. */
+@font-face { font-family: "VS Barlow"; font-weight: 400; font-style: normal; font-display: block; src: url("fonts/barlow-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "VS Barlow"; font-weight: 500; font-style: normal; font-display: block; src: url("fonts/barlow-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "VS Barlow"; font-weight: 600; font-style: normal; font-display: block; src: url("fonts/barlow-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "VS Barlow"; font-weight: 700; font-style: normal; font-display: block; src: url("fonts/barlow-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "VS Barlow Cond"; font-weight: 500; font-style: normal; font-display: block; src: url("fonts/barlow-semi-condensed-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "VS Barlow Cond"; font-weight: 600; font-style: normal; font-display: block; src: url("fonts/barlow-semi-condensed-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "VS Barlow Cond"; font-weight: 700; font-style: normal; font-display: block; src: url("fonts/barlow-semi-condensed-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "VS Barlow Cond"; font-weight: 800; font-style: normal; font-display: block; src: url("fonts/barlow-semi-condensed-latin-800-normal.woff2") format("woff2"); }

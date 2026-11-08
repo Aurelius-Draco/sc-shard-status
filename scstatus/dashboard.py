@@ -19,6 +19,16 @@ from .config import TEST_LABEL, VERSION, say
 
 STATIC = Path(__file__).resolve().parent / "static"
 
+# Brag cards (1.5.2): the bundled fonts, Fankit pictures, the card's CSS and the vendored html-to-image, served from
+# static/brag. A fixed list of names, so nothing else on disk can be asked for; anything not on it is a 404.
+_BRAG_FONTS = [f"fonts/barlow-latin-{w}-normal.woff2" for w in (400, 500, 600, 700)] + \
+              [f"fonts/barlow-semi-condensed-latin-{w}-normal.woff2" for w in (500, 600, 700, 800)]
+_BRAG_PICS = [f"img/SC_{n}.jpg" for n in ("01", "10", "13", "14", "25", "32", "33", "34", "36")]
+BRAG_FILES = dict(
+    [(n, "font/woff2") for n in _BRAG_FONTS] + [(n, "image/jpeg") for n in _BRAG_PICS] +
+    [("img/mbtc-white.png", "image/png"), ("brag-card.css", "text/css"), ("fonts.css", "text/css"),
+     ("html-to-image.js", "text/javascript")])
+
 
 class _Server(ThreadingHTTPServer):
     # On Windows SO_REUSEADDR lets a second copy bind a port that's already in use; ask for the port to ourselves
@@ -80,6 +90,12 @@ def start_server(app, open_browser=False):
                 if not f.is_file():         # e.g. a screenshot Ray hasn't added yet: the page shows a placeholder
                     return self._send(404, b"", "text/plain")
                 return self._send(200, f.read_bytes(), {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[m.group(1)])
+            if path.startswith("/brag/"):
+                ctype = BRAG_FILES.get(path[len("/brag/"):])
+                f = STATIC / "brag" / path[len("/brag/"):] if ctype else None
+                if not f or not f.is_file():
+                    return self._send(404, b"", "text/plain")
+                return self._send(200, f.read_bytes(), ctype)
             if path == "/favicon.ico":
                 ico = STATIC.parent / "assets" / "status.ico"
                 return self._send(200, ico.read_bytes(), "image/x-icon") if ico.exists() else self._send(404, {})
@@ -109,6 +125,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.feedback_shots())
                 if path == "/api/news":
                     return self._send(200, {"news": list(app.news)[-5:]})
+                if path == "/api/brag":
+                    return self._send(200, app.brag())
                 if path == "/api/logbook":
                     return self._send(200, app.logbook())
                 if path == "/api/contracts":

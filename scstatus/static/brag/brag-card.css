@@ -1,0 +1,274 @@
+/* =====================================================================================================
+   Verse Shards for PC 1.5.2: brag cards ("Flight log" family). Claude Design round, 8 Nov 2026.
+   The app draws this into a PNG on the player's PC (html-to-image or an offscreen window capture).
+   Nothing is uploaded. Needs fonts.css (bundled Barlow) loaded first.
+
+   One DOM for every kind and size:
+     article.bc.bc--{sq|land|story}.bc--{dark|light}.bc--{pic|sys|plain}[data-kind][data-wm="bl|br|tl"]
+       .bc-in
+         figure.bc-pic      picture window (Fankit, unaltered, watermark corner kept clear) / system art / plain
+         header.bc-head     kind chip, title, sub line
+         div.bc-fig         the headline figure (ring, big number, licence pass, blueprint count)
+         ul.bc-stats        2 to 6 stat tiles (or .bc-bars for the blueprint groups)
+         div.bc-extra       chips, best session, featured blueprint, jurisdictions
+         footer.bc-foot     Verse Shards mark, verseshards.com, small print
+   Sizes: square 1080 x 1080, landscape 1200 x 630, story 1080 x 1920. Render at 1x; these are the exact feed sizes.
+   No animation: it is a still image. The maker screen's preview uses the same CSS, scaled with transform.
+   ===================================================================================================== */
+
+.bc, .bc *, .bc *::before, .bc *::after { box-sizing: border-box; }
+.bc {
+  /* dark card (default) */
+  --ink: #eef1f4; --muted: #c3cad3; --dim: #8f99a6;
+  --gold: #ffd166; --amber: #f2a93b; --teal: #4cc4b0; --steel: #a9c0d8; --rust: #ec7a5e;
+  --glass: #0b0f14;
+  --glass-hi: rgba(255, 209, 102, .07);
+  --tile: rgba(255, 255, 255, .045); --tile-line: rgba(255, 209, 102, .22); --tile-top: rgba(255, 209, 102, .55);
+  --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .14);
+  --trk: rgba(255, 255, 255, .1);
+  --edge-grad: linear-gradient(135deg, #ffd166 0%, #f2a93b 16%, rgba(242, 169, 59, .28) 38%, rgba(255, 255, 255, .08) 58%, rgba(255, 209, 102, .55) 82%, #ffe7a8 100%);
+  --foil: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .55) 45%, rgba(181, 245, 233, .35) 50%, rgba(255, 209, 102, .5) 55%, transparent 70%);
+  --scrim: rgba(7, 9, 12, .86);
+  --bp: #163a63; --bp-line: #9fd0ff; --bp-ink: #e7f3ff;
+
+  --edge: 6px; --rad: 40px; --pad: 44px;
+  --t-kind: 22px; --t-title: 84px; --t-sub: 28px; --t-stat: 54px; --t-label: 19px; --t-chip: 21px; --t-fine: 14px; --t-brand: 24px; --ring: 210px;
+
+  position: relative; display: block; overflow: hidden; margin: 0;
+  padding: var(--edge); border-radius: var(--rad);
+  background: var(--edge-grad);
+  font-family: "VS Barlow", "Barlow", sans-serif; color: var(--ink);
+  font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+/* the foil glint across the gold edge (still; it is an image) */
+.bc::before { content: ""; position: absolute; inset: 0; background: var(--foil); mix-blend-mode: overlay; pointer-events: none; }
+
+.bc--light {
+  --ink: #13171c; --muted: #46505b; --dim: #5d6773;
+  --gold: #8c5000; --amber: #8c5000; --teal: #0a6b5f; --steel: #2c5a84; --rust: #a23a22;
+  --glass: #f7f8fa;
+  --glass-hi: rgba(242, 169, 59, .14);
+  --tile: #ffffff; --tile-line: rgba(140, 80, 0, .22); --tile-top: rgba(140, 80, 0, .7);
+  --chip: #ffffff; --chip-line: rgba(19, 30, 45, .16);
+  --trk: rgba(19, 30, 45, .1);
+  --edge-grad: linear-gradient(135deg, #8c5000 0%, #c98a1b 16%, rgba(242, 169, 59, .45) 38%, rgba(140, 80, 0, .12) 58%, #e3a73a 82%, #8c5000 100%);
+  --foil: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .7) 47%, rgba(255, 236, 190, .6) 53%, transparent 70%);
+}
+
+.bc-in {
+  position: relative; display: grid; width: 100%; height: 100%; overflow: hidden;
+  border-radius: calc(var(--rad) - var(--edge));
+  background:
+    radial-gradient(90% 60% at 100% 100%, var(--glass-hi), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, .025), transparent 30%),
+    var(--glass);
+}
+/* faint drafting grid behind the body, the same grid as the blueprint mark */
+.bc-in::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(var(--trk) 1px, transparent 1px), linear-gradient(90deg, var(--trk) 1px, transparent 1px);
+  background-size: 48px 48px; opacity: .35;
+  -webkit-mask-image: linear-gradient(180deg, transparent 45%, #000 100%); mask-image: linear-gradient(180deg, transparent 45%, #000 100%); }
+.bc-in > * { position: relative; z-index: 1; min-width: 0; }
+
+/* ---------- picture window ---------- */
+.bc-pic { grid-area: pic; margin: 0; position: relative; overflow: hidden; background: #05070a; }
+.bc-pic > img.bc-shot { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
+.bc-pic::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+.bc-mbtc { position: absolute; top: 26px; width: 76px; height: 76px; z-index: 2; }
+.bc[data-wm="bl"] .bc-mbtc, .bc[data-wm="tl"] .bc-mbtc { right: 26px; }
+.bc[data-wm="br"] .bc-mbtc { left: 26px; }
+.bc[data-wm="tl"] .bc-mbtc { top: auto; bottom: 26px; }
+/* hairline gold rule where the picture meets the glass */
+.bc-pic::before { content: ""; position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--amber) 50%, var(--gold) 80%, transparent); opacity: .9; }
+
+/* system look: our own drawing of a star system, not a game render */
+.bc--sys .bc-pic { background: radial-gradient(60% 90% at 50% 120%, rgba(242, 169, 59, .22), transparent 60%), radial-gradient(120% 100% at 50% 0, #121a26, #06080c); }
+.bc--sys .bc-pic svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bc--light.bc--sys .bc-pic { background: radial-gradient(60% 90% at 50% 120%, rgba(242, 169, 59, .28), transparent 60%), radial-gradient(120% 100% at 50% 0, #1b2533, #0a0e14); }
+/* plain look: no picture row at all */
+.bc--plain .bc-pic { display: none; }
+
+/* ---------- head ---------- */
+.bc-head { grid-area: head; display: flex; flex-direction: column; gap: 10px; }
+.bc-kind { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; height: calc(var(--t-kind) * 1.9); padding: 0 calc(var(--t-kind) * .8) 0 calc(var(--t-kind) * .6);
+  border-radius: 99px; border: 1.5px solid var(--tile-top); background: rgba(10, 13, 17, .72);
+  font: 700 var(--t-kind)/1 "VS Barlow Cond", sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #ffd166; }
+.bc--light .bc-kind { background: rgba(255, 255, 255, .9); color: #8c5000; }
+.bc-kind svg { width: calc(var(--t-kind) * 1.15); height: calc(var(--t-kind) * 1.15); flex: none; }
+.bc-title { margin: 0; font: 800 var(--t-title)/.95 "VS Barlow Cond", sans-serif; letter-spacing: .005em; overflow-wrap: anywhere; }
+.bc-sub { margin: 0; font: 600 var(--t-sub)/1.25 "VS Barlow", sans-serif; color: var(--muted); }
+.bc-sub b { color: var(--ink); font-weight: 700; }
+.bc-handle { font-family: "VS Barlow Cond", sans-serif; font-weight: 700; color: var(--gold); }
+
+/* ---------- headline figure ---------- */
+.bc-fig { grid-area: fig; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.bc-ring { position: relative; width: var(--ring); height: var(--ring); }
+.bc-ring svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+.bc-ring .trk { stroke: var(--trk); }
+.bc-ring .arc { stroke: var(--hc, var(--teal)); stroke-linecap: round; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--hc, var(--teal)) 55%, transparent)); }
+.bc-ring .tick { stroke: var(--tile-top); }
+.bc-ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 calc(var(--ring) * .38)/1 "VS Barlow Cond", sans-serif; }
+.bc-ring-word { font: 700 calc(var(--ring) * .1)/1 "VS Barlow Cond", sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--hc, var(--teal)); }
+.bc-ring-cap { font: 600 calc(var(--ring) * .075)/1.2 "VS Barlow", sans-serif; color: var(--muted); text-align: center; }
+.bc--light .bc-ring .arc { filter: none; }
+
+.bc-big { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+.bc-big b { font: 800 calc(var(--ring) * .5)/.9 "VS Barlow Cond", sans-serif; color: var(--ink); white-space: nowrap; }
+.bc-big b small { font-size: .42em; font-weight: 700; color: var(--muted); margin: 0 .12em 0 .04em; }
+
+.bc-delta { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; background: color-mix(in srgb, var(--teal) 16%, transparent); color: var(--teal);
+  font: 700 calc(var(--ring) * .085)/1.2 "VS Barlow", sans-serif; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+.bc-delta svg { width: 1em; height: 1em; }
+
+/* the licence pass, drawn big */
+.bc-pass { width: calc(var(--ring) * 1.25); height: auto; filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .45)); transform: rotate(-4deg); }
+.bc--light .bc-pass { filter: drop-shadow(0 14px 22px rgba(20, 32, 48, .25)); }
+.bc-bpmark { width: calc(var(--ring) * .5); height: calc(var(--ring) * .5); }
+
+/* ---------- stat tiles ---------- */
+.bc-stats { grid-area: stats; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-content: center; }
+.bc-stats li { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 16px 20px 16px; border-radius: 16px; overflow: hidden;
+  background: var(--tile); border: 1.5px solid var(--tile-line); }
+.bc-stats li::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 2px; background: linear-gradient(90deg, var(--tile-top), transparent); }
+.bc-stats b { font: 800 var(--t-stat)/.95 "VS Barlow Cond", sans-serif; white-space: nowrap; }
+.bc-stats b small { font-size: .5em; font-weight: 700; color: var(--muted); margin-left: .12em; }
+.bc-stats span { font: 700 var(--t-label)/1.15 "VS Barlow Cond", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.bc-stats li.is-gold b { color: var(--gold); }
+.bc-stats li.is-teal b { color: var(--teal); }
+
+/* blueprint groups as bars (blueprint card) */
+.bc-bars { grid-area: stats; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: calc(var(--t-label) * .7); }
+.bc-bars li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; align-items: baseline; }
+.bc-bars span { font: 700 var(--t-label)/1.1 "VS Barlow Cond", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.bc-bars b { font: 800 calc(var(--t-stat) * .62)/1 "VS Barlow Cond", sans-serif; color: var(--ink); }
+.bc-bars i { grid-column: 1 / -1; height: calc(var(--t-label) * .6); border-radius: 99px; background: var(--trk); overflow: hidden; }
+.bc-bars i::before { content: ""; display: block; height: 100%; width: var(--w); border-radius: inherit; background: linear-gradient(90deg, var(--amber), var(--gold)); }
+
+/* ---------- extra row ---------- */
+.bc-extra { grid-area: extra; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; align-content: center; }
+.bc-extra-h { width: 100%; font: 700 var(--t-label)/1 "VS Barlow Cond", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.bc-chip { display: inline-flex; align-items: center; gap: 10px; height: calc(var(--t-chip) * 2.1); padding: 0 calc(var(--t-chip) * .75) 0 calc(var(--t-chip) * .4); border-radius: 12px;
+  background: var(--chip); border: 1.5px solid var(--chip-line); font: 600 var(--t-chip)/1 "VS Barlow", sans-serif; white-space: nowrap; }
+.bc-chip.is-gold { border-color: var(--tile-top); }
+.bc-chip.is-plain { padding-left: calc(var(--t-chip) * .75); }
+.bc-chip svg { width: calc(var(--t-chip) * 1.55); height: calc(var(--t-chip) * 1.55); flex: none; }
+.bc-dots { display: flex; gap: 8px; align-items: center; }
+.bc-dots i { width: calc(var(--t-chip) * .8); height: calc(var(--t-chip) * .8); border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 30%, transparent); }
+.bc-line { font: 600 var(--t-chip)/1.3 "VS Barlow", sans-serif; color: var(--muted); }
+.bc-line b { color: var(--ink); }
+/* one featured blueprint, the same card family as the app's Blueprints tab */
+.bc-feature { display: flex; align-items: center; gap: 16px; padding: 3px; border-radius: 16px; background: linear-gradient(135deg, #ffd166, rgba(242, 169, 59, .25) 40%, rgba(255, 255, 255, .06) 62%, rgba(255, 209, 102, .6)); }
+.bc-feature > div { display: flex; align-items: center; gap: 16px; padding: 12px 22px 12px 14px; border-radius: 13px; background: linear-gradient(160deg, rgba(255, 255, 255, .07), transparent 45%), #0e1217; color: #eef1f4; }
+.bc--light .bc-feature > div { background: linear-gradient(160deg, #fffdf7, #ffffff); color: #13171c; }
+.bc-feature svg { width: calc(var(--t-chip) * 2.6); height: calc(var(--t-chip) * 2.6); flex: none; }
+.bc-feature small { display: block; font: 700 calc(var(--t-label) * .9)/1.2 "VS Barlow Cond", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.bc-feature strong { display: block; font: 800 calc(var(--t-chip) * 1.45)/1.05 "VS Barlow Cond", sans-serif; }
+.bc-feature em { display: block; font: 500 var(--t-label)/1.3 "VS Barlow", sans-serif; font-style: normal; color: var(--muted); }
+.bc-pips { display: inline-flex; gap: 6px; }
+.bc-pips i { width: calc(var(--t-chip) * 1.1); height: calc(var(--t-chip) * .5); border-radius: 3px; background: var(--trk); }
+.bc-pips i.on { background: var(--gold); }
+
+/* ---------- footer ---------- */
+.bc-foot { grid-area: foot; display: flex; align-items: center; gap: 16px; border-top: 1.5px solid var(--tile-line); }
+.bc-brand { display: flex; align-items: center; gap: 12px; flex: none; }
+.bc-brand svg { width: calc(var(--t-brand) * 1.9); height: calc(var(--t-brand) * 1.9); flex: none; }
+.bc-brand b { display: block; font: 800 var(--t-brand)/1 "VS Barlow Cond", sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.bc-brand span { display: block; font: 700 calc(var(--t-brand) * .82)/1.2 "VS Barlow Cond", sans-serif; color: var(--amber); margin-top: 3px; }
+.bc--dark .bc-brand span { color: #f2a93b; }
+.bc-fine { margin: 0 0 0 auto; max-width: 52%; font: 500 var(--t-fine)/1.35 "VS Barlow", sans-serif; color: var(--dim); text-align: right; }
+
+/* =====================================================================================================
+   SQUARE 1080 x 1080 (feeds)
+   ===================================================================================================== */
+.bc--sq { width: 1080px; height: 1080px; }
+.bc--sq .bc-in { grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: 540px minmax(0, 1fr) auto 96px;
+  grid-template-areas: "pic pic" "fig stats" "extra extra" "foot foot"; column-gap: 28px; padding: 0 var(--pad); }
+.bc--sq .bc-pic { margin: 0 calc(var(--pad) * -1); }
+.bc--sq .bc-head { grid-area: pic; align-self: end; z-index: 3; padding: 0 0 30px; max-width: 74%; }
+.bc--sq[data-wm="bl"] .bc-head, .bc--sq[data-wm="tl"] .bc-head { justify-self: end; align-items: flex-end; text-align: right; }
+.bc--sq[data-wm="bl"] .bc-head .bc-kind, .bc--sq[data-wm="tl"] .bc-head .bc-kind { align-self: flex-end; }
+/* scrim on the side the words sit, away from the watermark */
+.bc--sq .bc-pic::after { background: linear-gradient(0deg, var(--scrim) 0%, rgba(7, 9, 12, .55) 32%, transparent 62%); }
+.bc--sq[data-wm="bl"] .bc-pic::after, .bc--sq[data-wm="tl"] .bc-pic::after { background: linear-gradient(0deg, rgba(7, 9, 12, .7), transparent 50%), linear-gradient(270deg, rgba(7, 9, 12, .78) 0%, rgba(7, 9, 12, .3) 50%, transparent 72%); }
+.bc--sq[data-wm="br"] .bc-pic::after { background: linear-gradient(0deg, rgba(7, 9, 12, .7), transparent 50%), linear-gradient(90deg, rgba(7, 9, 12, .78) 0%, rgba(7, 9, 12, .3) 50%, transparent 72%); }
+.bc--sq .bc-head .bc-title, .bc--sq .bc-head .bc-sub { color: #fff; text-shadow: 0 2px 18px rgba(0, 0, 0, .6); }
+.bc--sq .bc-head .bc-sub { color: #dfe4ea; }
+.bc--sq .bc-fig { padding: 26px 0 8px; }
+.bc--sq .bc-stats { padding: 26px 0 8px; }
+.bc--sq .bc-extra { padding: 14px 0 20px; }
+.bc--sq .bc-foot { margin: 0; }
+/* plain square: no picture, so the head sits at the top */
+.bc--sq.bc--plain .bc-in { grid-template-rows: auto minmax(0, 1fr) auto 96px; grid-template-areas: "head head" "fig stats" "extra extra" "foot foot"; padding-top: 52px; }
+.bc--sq.bc--plain .bc-head { grid-area: head; align-self: start; justify-self: start; align-items: flex-start; text-align: left; max-width: none; padding: 0; }
+.bc--sq.bc--plain .bc-head .bc-kind { align-self: flex-start; }
+.bc--sq.bc--plain .bc-head .bc-title { color: var(--ink); text-shadow: none; font-size: 108px; }
+.bc--sq.bc--plain .bc-head .bc-sub { color: var(--muted); text-shadow: none; }
+.bc--sq.bc--plain { --ring: 250px; --t-stat: 64px; }
+
+/* =====================================================================================================
+   LANDSCAPE 1200 x 630 (Facebook and X link size)
+   ===================================================================================================== */
+.bc--land { width: 1200px; height: 630px; --edge: 5px; --rad: 30px; --pad: 36px;
+  --t-kind: 15px; --t-title: 58px; --t-sub: 20px; --t-stat: 38px; --t-label: 13.5px; --t-chip: 15px; --t-fine: 11px; --t-brand: 17px; --ring: 150px; }
+.bc--land .bc-in { grid-template-columns: 440px 160px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto 70px;
+  grid-template-areas: "pic head head" "pic fig stats" "pic extra extra" "pic foot foot"; column-gap: 26px; }
+.bc--land[data-wm="br"] .bc-in { grid-template-columns: 160px minmax(0, 1fr) 440px; grid-template-areas: "head head pic" "fig stats pic" "extra extra pic" "foot foot pic"; }
+.bc--land .bc-in > :not(.bc-pic) { margin-right: var(--pad); }
+.bc--land[data-wm="br"] .bc-in > :not(.bc-pic) { margin-right: 0; margin-left: var(--pad); }
+.bc--land .bc-head { padding-top: 30px; gap: 7px; }
+.bc--land .bc-pic > img.bc-shot { object-position: left bottom; }
+.bc--land[data-wm="br"] .bc-pic > img.bc-shot { object-position: right bottom; }
+.bc--land .bc-pic::before { left: auto; top: 0; width: 2px; height: auto; right: 0; background: linear-gradient(180deg, transparent, var(--gold) 20%, var(--amber) 50%, var(--gold) 80%, transparent); }
+.bc--land[data-wm="br"] .bc-pic::before { right: auto; left: 0; }
+.bc--land .bc-pic::after { background: linear-gradient(270deg, rgba(7, 9, 12, .45), transparent 30%); }
+.bc--land[data-wm="br"] .bc-pic::after { background: linear-gradient(90deg, rgba(7, 9, 12, .45), transparent 30%); }
+.bc--land .bc-mbtc { width: 58px; height: 58px; top: 20px; }
+.bc--land[data-wm="bl"] .bc-mbtc { right: 20px; } .bc--land[data-wm="br"] .bc-mbtc { left: 20px; }
+.bc--land .bc-stats { gap: 10px; padding: 14px 0 6px; }
+.bc--land .bc-stats li { padding: 10px 14px; border-radius: 12px; gap: 4px; }
+.bc--land .bc-fig { padding-top: 8px; }
+.bc--land .bc-extra { padding: 8px 0 12px; gap: 8px; }
+.bc--land .bc-chip { border-radius: 9px; }
+.bc--land .bc-foot { gap: 12px; }
+.bc--land .bc-fine { max-width: 58%; }
+.bc--land.bc--plain .bc-in, .bc--land.bc--plain[data-wm] .bc-in { grid-template-columns: 210px minmax(0, 1fr); grid-template-areas: "head head" "fig stats" "extra extra" "foot foot"; padding-left: var(--pad); }
+.bc--land.bc--plain .bc-in > :not(.bc-pic) { margin: 0 var(--pad) 0 0; }
+.bc--land.bc--plain { --ring: 180px; --t-title: 64px; }
+
+/* =====================================================================================================
+   STORY 1080 x 1920 (Instagram and Facebook stories). Top 250 px and bottom 300 px stay free of key words:
+   the apps lay their own bars over those. The picture sits in the top band.
+   ===================================================================================================== */
+.bc--story { width: 1080px; height: 1920px; --rad: 48px; --pad: 64px;
+  --t-kind: 24px; --t-title: 120px; --t-sub: 34px; --t-stat: 70px; --t-label: 22px; --t-chip: 26px; --t-fine: 18px; --t-brand: 30px; --ring: 300px; }
+.bc--story .bc-in { grid-template-columns: minmax(0, 1fr); grid-template-rows: 480px auto minmax(0, 1fr) auto auto 270px;
+  grid-template-areas: "pic" "head" "fig" "stats" "extra" "foot"; padding: 0 var(--pad); }
+.bc--story .bc-pic { margin: 0 calc(var(--pad) * -1); }
+.bc--story .bc-pic::after { background: linear-gradient(0deg, var(--glass) 0%, transparent 26%); }
+.bc--story .bc-head { padding-top: 34px; gap: 14px; }
+.bc--story .bc-fig { padding: 20px 0; }
+.bc--story .bc-stats { gap: 20px; padding-bottom: 24px; }
+.bc--story .bc-stats li { padding: 20px 26px; border-radius: 20px; gap: 10px; }
+.bc--story .bc-stats.is-six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bc--story .bc-extra { gap: 14px; padding-bottom: 24px; }
+.bc--story .bc-chip { border-radius: 14px; }
+/* the footer sits above the 300 px the story apps cover, as the safe-area guides say */
+.bc--story .bc-foot { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 18px; padding-top: 30px; }
+.bc--story .bc-fine { margin: 0; max-width: none; text-align: left; }
+.bc--story.bc--plain .bc-in { grid-template-rows: 250px auto minmax(0, 1fr) auto auto 270px; grid-template-areas: "." "head" "fig" "stats" "extra" "foot"; }
+.bc--story.bc--plain { --t-title: 150px; }
+
+/* per-kind tuning */
+.bc-big > span:not(.bc-delta) { font: 700 calc(var(--ring) * .1)/1.1 "VS Barlow Cond", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+.bc-big b small { margin: 0 .28em 0 .06em; }
+.bc-big b small:last-child { margin-right: 0; }
+.bc--story[data-kind="licence"] .bc-pass { width: calc(var(--ring) * 2.3); }
+.bc--story[data-kind="pilot"] { --ring: 230px; }
+.bc--story[data-kind="pilot"] .bc-stats li { padding: 16px 24px; }
+.bc--sq[data-kind="licence"] .bc-pass, .bc--land[data-kind="licence"] .bc-pass { width: calc(var(--ring) * 1.4); }
+.bc--land[data-kind="week"] { --ring: 104px; }
+.bc--land[data-kind="week"] .bc-in { grid-template-columns: 190px minmax(0, 1fr) 440px; }
+.bc--story[data-kind="pilot"] { --ring: 210px; }
+.bc--story[data-kind="pilot"] .bc-in { grid-template-rows: 400px auto minmax(0, 1fr) auto auto 250px; }
+.bc--story.bc--plain[data-kind="pilot"] .bc-in { grid-template-rows: 220px auto minmax(0, 1fr) auto auto 250px; }

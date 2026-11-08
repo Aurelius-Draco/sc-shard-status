@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Verse Shards for PC</title>
 <meta name="app" content="SC Shard Status v__VERSION__">
+<link rel="stylesheet" href="brag/fonts.css"><link rel="stylesheet" href="brag/brag-card.css">
 <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
 :root {
@@ -2834,7 +2835,7 @@ const VR = (() => {
       .concat((st.licences || []).length ? [`<button type="button" class="bp-gchip lc-jump" data-lcjump>Licences <b>${st.licences.length}</b></button>`] : []).join("");
     const secs = GROUPS.map((g, i) => { const list = shown.filter(b => b.g === i); if (!list.length) return "";
       return `<section class="bp-sec" aria-labelledby="bpg-${i}"><div class="bp-sec-h"><h3 id="bpg-${i}">${esc(g)}</h3><span>${list.length}</span></div><div class="bp-grid" role="list">${list.map((b, k) => blueprintCard(b, { state: b.fresh ? "new" : "rest", seen: st.seen.has(b.id), i: k })).join("")}</div></section>`; }).join("");
-    return `<div class="bp-top"><div class="bp-total">${total}<small>${total === 1 ? "blueprint" : "blueprints"} earned</small></div><span style="flex:1"></span><input class="vr-inp" type="search" data-bpq value="${esc(st.q)}" placeholder="Search your blueprints" aria-label="Search your blueprints"></div>
+    return `<div class="bp-top"><div class="bp-total">${total}<small>${total === 1 ? "blueprint" : "blueprints"} earned</small></div><span style="flex:1"></span><span data-brag-spot="blueprints"></span><input class="vr-inp" type="search" data-bpq value="${esc(st.q)}" placeholder="Search your blueprints" aria-label="Search your blueprints"></div>
       <div class="bp-groups" role="group" aria-label="Groups">${chips}</div>
       ${wantBox}
       ${secs || `<div class="vr-empty"><b>Nothing matches “${esc(st.q)}”</b><button class="vr-btn is-sm" type="button" data-bpclear>Clear search</button></div>`}
@@ -2882,7 +2883,8 @@ const VR = (() => {
   function blueprintDetail(b) {
     return `<div class="bp-det-head">${MARK()}<div><div class="vr-label" style="color:var(--amber)">Blueprint</div><h2 id="dlg-h">${esc(b.n)}</h2></div></div>
       <dl class="vr-dl"><dt>Group</dt><dd>${esc(GROUPS[b.g])}</dd><dt>Received</dt><dd>${esc(b.d)}${b.times > 1 ? ` <span class="vr-sub">(and ${b.times - 1} more ${b.times === 2 ? "time" : "times"} since)</span>` : ""}</dd><dt>From</dt><dd>${b.c ? esc(b.c) : `<span class="vr-sub">Not known. The log didn't show a contract finishing just before.</span>`}</dd></dl>
-      <span class="vr-sub">From the line “Received Blueprint: ${esc(b.n)}” in your game log.</span>`;
+      <span class="vr-sub">From the line “Received Blueprint: ${esc(b.n)}” in your game log.</span>
+      <div style="display:flex;gap:8px" data-brag-spot="blueprint" data-bp-id="${esc(b.id)}"></div>`;
   }
   const fromApi = b => ({ id: b.id, n: b.name, g: b.group, d: b.ts ? day(b.ts) : "", c: b.contract, times: b.times, fresh: b.fresh });
 
@@ -2972,7 +2974,7 @@ ${hits}</svg></div>` : ""}${sum ? `<div class="inj-sum">${sum}</div>` : ""}`;
     return `<div class="ss-rep-head" style="--hc:${({ good: "var(--teal)", ok: "var(--steel)", poor: "var(--gold)", bad: "var(--rust)" })[s.h] || "#6b7684"}">${sc ? RING(s.score) : `<span class="ss-noscore" style="width:92px;height:92px">–</span>`}
       <div style="flex:1;min-width:220px"><div class="vr-label" style="color:var(--amber)">Session report${s.live ? " · live" : ""}</div><h2 id="dlg-h" style="margin:2px 0 4px;font:800 28px/1.1 var(--cond)">${esc(s.day)}</h2>
       <div class="vr-sub">${esc(s.t)}${s.dur ? `, ${esc(s.dur)}` : ""} · ${sc ? `<b style="color:var(--text)">${W[s.h]}</b>, ${s.score} / 100` : "No health score: the app wasn't reading the overlay this session"}</div>
-      <div class="vr-sub" style="margin-top:4px">${s.shards.length ? esc(s.shards.join(" · ")) : "Shard not recorded"}</div></div></div>
+      <div class="vr-sub" style="margin-top:4px">${s.shards.length ? esc(s.shards.join(" · ")) : "Shard not recorded"}</div></div><span data-brag-spot="session" data-ss-id="${esc(s.id)}" style="align-self:flex-start"></span></div>
      <div class="ss-rep-grid"><div style="display:flex;flex-direction:column;gap:14px">
       ${box(`Contracts · ${s.done} of ${s.acc} completed${s.failed ? `, ${s.failed} failed` : ""}`, s.cont.length ? `<ul class="ss-rows">${s.cont.map(c => `<li><span>${esc(c[0])}</span><span class="rep">${esc(c[2] || "")}</span><span class="ss-res is-${esc(c[1] === "withdrawn" ? "abandoned" : c[1])}">${esc(c[1])}</span></li>`).join("")}</ul>
         ${s.cont.some(c => c[2] === "rep by rank") ? `<span class="vr-sub">“Rep by rank” means the game lists a ladder (500 / 1,000 / 2,000 Rep and up), so the amount depends on your rank.</span>` : ""}` : none("No contracts this session."))}
@@ -3845,6 +3847,373 @@ async function openWizard(all) {
   };
   update();
 }
+
+/* ---------- Brag cards (1.5.2, Claude Design round 8 Nov) ----------
+   The player makes a picture of something they're proud of and posts it wherever they like. The card is drawn on this
+   PC from the app's own numbers (html-to-image, bundled), then saved or copied. Nothing is uploaded, ever.
+   Never on a card: money, other players, server or raw shard ids (the shard's name only), the handle unless switched on. */
+const BRAG_URL = n => "brag/" + n;
+/* Brag card drawings, copied verbatim from the design round (port/html/brag and port/html/ui). */
+const BC_SVG = {
+  k_session: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3.5 2\"/></svg>",
+  k_week: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 6h16v14H4zM4 10h16M8 3v5M16 3v5M8 14h2M12 14h2M16 14h2\"/></svg>",
+  k_blueprints: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 4h12l4 4v12H4zM8 4v16M4 9h16M4 14h16\"/></svg>",
+  k_licence: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z\"/></svg>",
+  k_pilot: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4.5-6 8-6s7 2 8 6\"/></svg>",
+  ringHead: "<svg viewBox=\"0 0 100 100\"><line class=\"tick\" x1=\"99.50\" y1=\"50.00\" x2=\"97.50\" y2=\"50.00\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"98.89\" y1=\"57.74\" x2=\"96.92\" y2=\"57.43\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"97.08\" y1=\"65.30\" x2=\"95.18\" y2=\"64.68\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"94.10\" y1=\"72.47\" x2=\"92.32\" y2=\"71.56\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"90.05\" y1=\"79.10\" x2=\"88.43\" y2=\"77.92\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"85.00\" y1=\"85.00\" x2=\"83.59\" y2=\"83.59\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"79.10\" y1=\"90.05\" x2=\"77.92\" y2=\"88.43\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"72.47\" y1=\"94.10\" x2=\"71.56\" y2=\"92.32\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"65.30\" y1=\"97.08\" x2=\"64.68\" y2=\"95.18\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"57.74\" y1=\"98.89\" x2=\"57.43\" y2=\"96.92\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"50.00\" y1=\"99.50\" x2=\"50.00\" y2=\"97.50\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"42.26\" y1=\"98.89\" x2=\"42.57\" y2=\"96.92\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"34.70\" y1=\"97.08\" x2=\"35.32\" y2=\"95.18\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"27.53\" y1=\"94.10\" x2=\"28.44\" y2=\"92.32\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"20.90\" y1=\"90.05\" x2=\"22.08\" y2=\"88.43\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"15.00\" y1=\"85.00\" x2=\"16.41\" y2=\"83.59\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"9.95\" y1=\"79.10\" x2=\"11.57\" y2=\"77.92\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"5.90\" y1=\"72.47\" x2=\"7.68\" y2=\"71.56\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"2.92\" y1=\"65.30\" x2=\"4.82\" y2=\"64.68\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"1.11\" y1=\"57.74\" x2=\"3.08\" y2=\"57.43\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"0.50\" y1=\"50.00\" x2=\"2.50\" y2=\"50.00\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"1.11\" y1=\"42.26\" x2=\"3.08\" y2=\"42.57\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"2.92\" y1=\"34.70\" x2=\"4.82\" y2=\"35.32\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"5.90\" y1=\"27.53\" x2=\"7.68\" y2=\"28.44\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"9.95\" y1=\"20.90\" x2=\"11.57\" y2=\"22.08\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"15.00\" y1=\"15.00\" x2=\"16.41\" y2=\"16.41\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"20.90\" y1=\"9.95\" x2=\"22.08\" y2=\"11.57\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"27.53\" y1=\"5.90\" x2=\"28.44\" y2=\"7.68\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"34.70\" y1=\"2.92\" x2=\"35.32\" y2=\"4.82\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"42.26\" y1=\"1.11\" x2=\"42.57\" y2=\"3.08\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"50.00\" y1=\"0.50\" x2=\"50.00\" y2=\"2.50\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"57.74\" y1=\"1.11\" x2=\"57.43\" y2=\"3.08\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"65.30\" y1=\"2.92\" x2=\"64.68\" y2=\"4.82\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"72.47\" y1=\"5.90\" x2=\"71.56\" y2=\"7.68\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"79.10\" y1=\"9.95\" x2=\"77.92\" y2=\"11.57\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"85.00\" y1=\"15.00\" x2=\"83.59\" y2=\"16.41\" stroke-width=\"1.2\"/><line class=\"tick\" x1=\"90.05\" y1=\"20.90\" x2=\"88.43\" y2=\"22.08\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"94.10\" y1=\"27.53\" x2=\"92.32\" y2=\"28.44\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"97.08\" y1=\"34.70\" x2=\"95.18\" y2=\"35.32\" stroke-width=\"0.5\"/><line class=\"tick\" x1=\"98.89\" y1=\"42.26\" x2=\"96.92\" y2=\"42.57\" stroke-width=\"0.5\"/>",
+  chipBp: "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\">\n<rect x=\"2\" y=\"2\" width=\"28\" height=\"28\" rx=\"5\" fill=\"#163a63\"/>\n<path d=\"M2 9.5h28M2 16h28M2 22.5h28M9.5 2v28M16 2v28M22.5 2v28\" stroke=\"#9fd0ff\" stroke-opacity=\".16\" stroke-width=\".8\"/>\n<rect x=\"2\" y=\"2\" width=\"28\" height=\"28\" rx=\"5\" fill=\"none\" stroke=\"#9fd0ff\" stroke-width=\"1.3\"/>\n<path d=\"M15 9.5l5.6 3.2v6.6L15 22.5l-5.6-3.2v-6.6z\" fill=\"none\" stroke=\"#e7f3ff\" stroke-width=\"1.7\" stroke-linejoin=\"round\"/>\n<circle cx=\"15\" cy=\"16\" r=\"2.3\" fill=\"none\" stroke=\"#e7f3ff\" stroke-width=\"1.5\"/>\n<path d=\"M22 2h3a5 5 0 0 1 5 5v3z\" fill=\"#ffd166\"/>\n</svg>",
+  chipLic: "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\">\n<defs><linearGradient id=\"lmBand\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#ffd166\"/><stop offset=\"1\" stop-color=\"#e0901f\"/></linearGradient>\n<linearGradient id=\"lmBody\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1a2b3d\"/><stop offset=\"1\" stop-color=\"#0f1a26\"/></linearGradient></defs>\n<rect x=\"3\" y=\"4.5\" width=\"26\" height=\"23\" rx=\"3.5\" fill=\"url(#lmBody)\"/>\n<path d=\"M3 8a3.5 3.5 0 0 1 3.5-3.5h19A3.5 3.5 0 0 1 29 8v4H3z\" fill=\"url(#lmBand)\"/>\n<rect x=\"12.5\" y=\"6.8\" width=\"7\" height=\"2.1\" rx=\"1.05\" fill=\"#0f1a26\"/>\n<path d=\"M22 12l3-7.5M25.5 12l3-7.5\" stroke=\"#fff3cf\" stroke-opacity=\".55\" stroke-width=\"1.1\"/>\n<circle cx=\"10.5\" cy=\"19.5\" r=\"3.7\" fill=\"none\" stroke=\"#ffd166\" stroke-width=\"1.5\"/>\n<path d=\"M10.5 17.2l.72 1.46 1.6.23-1.16 1.13.27 1.6-1.43-.75-1.43.75.27-1.6-1.16-1.13 1.6-.23z\" fill=\"#ffd166\"/>\n<path d=\"M17 18h7.5M17 21.5h5\" stroke=\"#e7f3ff\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n<rect x=\"3\" y=\"4.5\" width=\"26\" height=\"23\" rx=\"3.5\" fill=\"none\" stroke=\"#ffd166\" stroke-width=\"1.3\"/>\n</svg>",
+  brandDark: "<svg viewBox=\"0 0 30 30\" fill=\"none\" stroke=\"#f2a93b\" stroke-width=\"2.2\" aria-hidden=\"true\"><circle cx=\"15\" cy=\"15\" r=\"12\"/><path d=\"M5 17h5l3-7 4 12 3-7h5\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/></svg>",
+  brandLight: "<svg viewBox=\"0 0 30 30\" fill=\"none\" stroke=\"#8c5000\" stroke-width=\"2.2\" aria-hidden=\"true\"><circle cx=\"15\" cy=\"15\" r=\"12\"/><path d=\"M5 17h5l3-7 4 12 3-7h5\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/></svg>",
+  up: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 19V6M6 12l6-6 6 6\"/></svg>",
+  bpmark: "<svg class=\"bc-bpmark\" viewBox=\"0 0 32 32\" aria-hidden=\"true\">\n<rect x=\"2\" y=\"2\" width=\"28\" height=\"28\" rx=\"5\" fill=\"#163a63\"/>\n<path d=\"M2 9.5h28M2 16h28M2 22.5h28M9.5 2v28M16 2v28M22.5 2v28\" stroke=\"#9fd0ff\" stroke-opacity=\".16\" stroke-width=\".8\"/>\n<rect x=\"2\" y=\"2\" width=\"28\" height=\"28\" rx=\"5\" fill=\"none\" stroke=\"#9fd0ff\" stroke-width=\"1.3\"/>\n<path d=\"M15 9.5l5.6 3.2v6.6L15 22.5l-5.6-3.2v-6.6z\" fill=\"none\" stroke=\"#e7f3ff\" stroke-width=\"1.7\" stroke-linejoin=\"round\"/>\n<circle cx=\"15\" cy=\"16\" r=\"2.3\" fill=\"none\" stroke=\"#e7f3ff\" stroke-width=\"1.5\"/>\n<path d=\"M22 2h3a5 5 0 0 1 5 5v3z\" fill=\"#ffd166\"/>\n</svg>",
+  pass: "<svg class=\"bc-pass\" viewBox=\"0 0 300 200\" aria-hidden=\"true\">\n<defs><linearGradient id=\"bpBody\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1c2e42\"/><stop offset=\"1\" stop-color=\"#0c1520\"/></linearGradient>\n<linearGradient id=\"bpBand\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#ffd166\"/><stop offset=\".55\" stop-color=\"#f2a93b\"/><stop offset=\"1\" stop-color=\"#ffe2a0\"/></linearGradient>\n<linearGradient id=\"bpFoil\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#b5f5e9\" stop-opacity=\"0\"/><stop offset=\".45\" stop-color=\"#b5f5e9\" stop-opacity=\".35\"/><stop offset=\".55\" stop-color=\"#ffd166\" stop-opacity=\".45\"/><stop offset=\"1\" stop-color=\"#ffd166\" stop-opacity=\"0\"/></linearGradient>\n<clipPath id=\"bpClip\"><rect x=\"4\" y=\"4\" width=\"292\" height=\"192\" rx=\"18\"/></clipPath></defs>\n<g clip-path=\"url(#bpClip)\">\n<rect x=\"4\" y=\"4\" width=\"292\" height=\"192\" fill=\"url(#bpBody)\"/>\n<path d=\"M4 64H296\" stroke=\"#9fd0ff\" stroke-opacity=\".08\"/><path d=\"M4 100H296M4 136H296M4 172H296M60 4V196M120 4V196M180 4V196M240 4V196\" stroke=\"#9fd0ff\" stroke-opacity=\".06\"/>\n<rect x=\"4\" y=\"4\" width=\"292\" height=\"52\" fill=\"url(#bpBand)\"/>\n<path d=\"M226 56l30-52M246 56l30-52M266 56l30-52\" stroke=\"#fff6d8\" stroke-opacity=\".5\" stroke-width=\"5\"/>\n<rect x=\"128\" y=\"16\" width=\"44\" height=\"12\" rx=\"6\" fill=\"#0c1520\"/>\n<text x=\"22\" y=\"47\" font-family=\"VS Barlow Cond, Barlow Semi Condensed, sans-serif\" font-weight=\"800\" font-size=\"15\" letter-spacing=\"3\" fill=\"#1a1103\">TRACKER LICENSE</text>\n<path d=\"M200 4L120 196H160L240 4z\" fill=\"url(#bpFoil)\"/>\n</g>\n<circle cx=\"66\" cy=\"124\" r=\"34\" fill=\"none\" stroke=\"#ffd166\" stroke-width=\"4\"/>\n<circle cx=\"66\" cy=\"124\" r=\"26\" fill=\"none\" stroke=\"#ffd166\" stroke-opacity=\".45\" stroke-width=\"1.5\" stroke-dasharray=\"3 3\"/>\n<path d=\"M66 106l5.3 10.8 11.9 1.7-8.6 8.4 2 11.8L66 133.1l-10.6 5.6 2-11.8-8.6-8.4 11.9-1.7z\" fill=\"#ffd166\"/>\n<path d=\"M124 100h120M124 120h86\" stroke=\"#e7f3ff\" stroke-width=\"7\" stroke-linecap=\"round\"/>\n<text x=\"124\" y=\"153\" font-family=\"VS Barlow Cond, Barlow Semi Condensed, sans-serif\" font-weight=\"700\" font-size=\"13\" letter-spacing=\"2\" fill=\"#9fb0c2\">RISK TIER</text>\n<rect x=\"196\" y=\"146\" width=\"12\" height=\"7\" rx=\"2\" fill=\"#ffd166\"/><rect x=\"212\" y=\"146\" width=\"12\" height=\"7\" rx=\"2\" fill=\"#ffd166\"/><rect x=\"228\" y=\"146\" width=\"12\" height=\"7\" rx=\"2\" fill=\"#ffd166\"/><rect x=\"244\" y=\"146\" width=\"12\" height=\"7\" rx=\"2\" fill=\"rgba(231,243,255,.18)\"/><rect x=\"260\" y=\"146\" width=\"12\" height=\"7\" rx=\"2\" fill=\"rgba(231,243,255,.18)\"/>\n<rect x=\"4\" y=\"4\" width=\"292\" height=\"192\" rx=\"18\" fill=\"none\" stroke=\"#ffd166\" stroke-width=\"3\"/>\n</svg>",
+  sysSession: "<svg viewBox=\"0 0 1080 600\" preserveAspectRatio=\"xMidYMid slice\" aria-hidden=\"true\"><defs><radialGradient id=\"sysStar\"><stop offset=\"0\" stop-color=\"#ffe9b0\" stop-opacity=\".9\"/><stop offset=\".4\" stop-color=\"#f2a93b\" stop-opacity=\".35\"/><stop offset=\"1\" stop-color=\"#f2a93b\" stop-opacity=\"0\"/></radialGradient></defs>\n<circle cx=\"178.1\" cy=\"372.5\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.54\"/><circle cx=\"233.3\" cy=\"428.0\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.36\"/><circle cx=\"569.8\" cy=\"425.7\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.47\"/><circle cx=\"632.2\" cy=\"37.4\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.80\"/><circle cx=\"749.4\" cy=\"235.9\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.62\"/><circle cx=\"36.8\" cy=\"177.6\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.67\"/><circle cx=\"700.7\" cy=\"506.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"882.9\" cy=\"67.4\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.52\"/><circle cx=\"596.2\" cy=\"185.2\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"718.3\" cy=\"253.8\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.29\"/><circle cx=\"213.2\" cy=\"363.8\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.84\"/><circle cx=\"76.6\" cy=\"302.5\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.75\"/><circle cx=\"217.2\" cy=\"498.5\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.50\"/><circle cx=\"394.4\" cy=\"243.7\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.44\"/><circle cx=\"523.2\" cy=\"143.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.35\"/><circle cx=\"773.3\" cy=\"530.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.54\"/><circle cx=\"594.5\" cy=\"404.0\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.59\"/><circle cx=\"344.1\" cy=\"529.2\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.36\"/><circle cx=\"183.7\" cy=\"188.0\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.46\"/><circle cx=\"645.0\" cy=\"165.6\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.35\"/><circle cx=\"997.0\" cy=\"94.0\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.47\"/><circle cx=\"738.0\" cy=\"365.0\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.49\"/><circle cx=\"1068.2\" cy=\"519.2\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.26\"/><circle cx=\"374.3\" cy=\"273.3\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.81\"/><circle cx=\"265.5\" cy=\"303.4\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.73\"/><circle cx=\"835.8\" cy=\"260.9\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.28\"/><circle cx=\"278.6\" cy=\"156.5\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.40\"/><circle cx=\"426.1\" cy=\"470.0\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.84\"/><circle cx=\"805.5\" cy=\"258.6\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.33\"/><circle cx=\"702.3\" cy=\"492.2\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.27\"/><circle cx=\"229.1\" cy=\"452.7\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.78\"/><circle cx=\"649.5\" cy=\"230.1\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.79\"/><circle cx=\"515.0\" cy=\"74.9\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.42\"/><circle cx=\"829.7\" cy=\"5.5\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.82\"/><circle cx=\"25.4\" cy=\"320.6\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.76\"/><circle cx=\"631.1\" cy=\"138.9\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.70\"/><circle cx=\"877.1\" cy=\"74.8\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.31\"/><circle cx=\"101.5\" cy=\"13.7\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.72\"/><circle cx=\"77.6\" cy=\"64.3\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.33\"/><circle cx=\"581.8\" cy=\"175.1\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.78\"/><circle cx=\"670.9\" cy=\"98.1\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.37\"/><circle cx=\"803.7\" cy=\"408.8\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.68\"/><circle cx=\"943.8\" cy=\"418.1\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.48\"/><circle cx=\"933.6\" cy=\"214.9\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.36\"/><circle cx=\"768.4\" cy=\"136.6\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.44\"/><circle cx=\"45.3\" cy=\"210.0\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.69\"/><circle cx=\"1069.7\" cy=\"441.5\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.54\"/><circle cx=\"618.8\" cy=\"294.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.55\"/><circle cx=\"793.3\" cy=\"522.2\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.42\"/><circle cx=\"674.7\" cy=\"409.2\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.29\"/><circle cx=\"879.9\" cy=\"527.5\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.29\"/><circle cx=\"710.6\" cy=\"226.9\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.64\"/><circle cx=\"676.7\" cy=\"436.1\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.55\"/><circle cx=\"1022.8\" cy=\"367.1\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.53\"/><circle cx=\"554.0\" cy=\"472.9\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.39\"/><circle cx=\"52.7\" cy=\"234.3\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.42\"/><circle cx=\"636.6\" cy=\"218.5\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.52\"/><circle cx=\"255.4\" cy=\"208.1\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.39\"/><circle cx=\"987.8\" cy=\"353.3\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.54\"/><circle cx=\"531.2\" cy=\"387.3\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.72\"/><circle cx=\"677.0\" cy=\"409.6\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.67\"/><circle cx=\"737.6\" cy=\"132.5\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.48\"/><circle cx=\"663.9\" cy=\"445.4\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.35\"/><circle cx=\"218.2\" cy=\"472.9\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.30\"/><circle cx=\"189.3\" cy=\"282.1\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.82\"/><circle cx=\"801.7\" cy=\"249.7\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.84\"/><circle cx=\"179.8\" cy=\"234.0\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.47\"/><circle cx=\"628.2\" cy=\"102.0\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.82\"/><circle cx=\"347.9\" cy=\"137.3\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.79\"/><circle cx=\"547.6\" cy=\"128.7\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.68\"/><circle cx=\"169.7\" cy=\"212.0\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.51\"/><circle cx=\"666.5\" cy=\"151.5\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.65\"/><circle cx=\"671.4\" cy=\"53.4\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.27\"/><circle cx=\"875.3\" cy=\"504.8\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.26\"/><circle cx=\"541.3\" cy=\"21.2\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.51\"/><circle cx=\"485.6\" cy=\"535.0\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"1050.7\" cy=\"102.8\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.79\"/><circle cx=\"399.6\" cy=\"72.9\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.57\"/><circle cx=\"53.1\" cy=\"101.3\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.78\"/><circle cx=\"263.9\" cy=\"310.4\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.81\"/><circle cx=\"954.2\" cy=\"9.5\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.29\"/><circle cx=\"470.7\" cy=\"449.7\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"537.1\" cy=\"284.3\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.62\"/><circle cx=\"508.8\" cy=\"432.1\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"165.7\" cy=\"155.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.78\"/><circle cx=\"76.7\" cy=\"36.5\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.31\"/><circle cx=\"894.6\" cy=\"194.5\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.29\"/><circle cx=\"40.1\" cy=\"267.3\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"112.4\" cy=\"502.7\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.40\"/><circle cx=\"214.9\" cy=\"104.5\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.50\"/><circle cx=\"350.6\" cy=\"118.3\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.27\"/><circle cx=\"380.5\" cy=\"287.6\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.26\"/><circle cx=\"398.0\" cy=\"258.4\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.73\"/><circle cx=\"978.9\" cy=\"366.9\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.66\"/><circle cx=\"699.7\" cy=\"332.6\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.80\"/><circle cx=\"1047.8\" cy=\"210.7\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.81\"/><circle cx=\"857.4\" cy=\"6.1\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.35\"/><circle cx=\"286.4\" cy=\"13.5\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.64\"/><circle cx=\"174.4\" cy=\"502.6\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.55\"/><circle cx=\"445.6\" cy=\"122.2\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.58\"/><circle cx=\"837.6\" cy=\"399.6\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.80\"/><circle cx=\"259.1\" cy=\"323.7\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.57\"/><circle cx=\"880.2\" cy=\"195.6\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.85\"/><circle cx=\"984.6\" cy=\"515.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.84\"/><circle cx=\"799.3\" cy=\"400.5\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.81\"/><circle cx=\"564.9\" cy=\"483.3\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.43\"/><circle cx=\"174.0\" cy=\"357.6\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.63\"/><circle cx=\"832.5\" cy=\"405.7\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.40\"/><circle cx=\"464.5\" cy=\"204.1\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.54\"/><circle cx=\"43.7\" cy=\"463.7\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.27\"/><circle cx=\"888.7\" cy=\"316.7\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.69\"/><circle cx=\"789.3\" cy=\"536.5\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"35.4\" cy=\"419.9\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.43\"/><circle cx=\"899.0\" cy=\"247.2\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.39\"/><circle cx=\"792.9\" cy=\"438.7\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.65\"/><circle cx=\"29.3\" cy=\"494.9\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.55\"/><circle cx=\"498.4\" cy=\"210.3\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.61\"/><circle cx=\"748.5\" cy=\"467.2\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.47\"/><circle cx=\"270.4\" cy=\"422.2\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.81\"/><circle cx=\"214.7\" cy=\"457.8\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.70\"/><circle cx=\"268.6\" cy=\"70.1\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.31\"/><circle cx=\"666.4\" cy=\"348.8\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.37\"/><circle cx=\"537.4\" cy=\"385.0\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.27\"/><circle cx=\"972.5\" cy=\"497.6\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.47\"/><circle cx=\"208.7\" cy=\"76.2\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.41\"/><circle cx=\"890.9\" cy=\"32.6\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.64\"/><circle cx=\"22.8\" cy=\"391.4\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.67\"/><circle cx=\"527.0\" cy=\"290.3\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.47\"/><circle cx=\"687.1\" cy=\"343.3\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.34\"/><circle cx=\"434.0\" cy=\"239.6\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.68\"/><circle cx=\"633.1\" cy=\"237.1\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.26\"/><circle cx=\"694.6\" cy=\"245.7\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.71\"/><circle cx=\"974.4\" cy=\"404.5\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.54\"/><circle cx=\"178.3\" cy=\"431.5\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.67\"/><circle cx=\"323.2\" cy=\"520.9\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.36\"/><circle cx=\"163.8\" cy=\"337.1\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.38\"/><circle cx=\"120.7\" cy=\"288.6\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.63\"/><circle cx=\"132.1\" cy=\"66.9\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.57\"/><circle cx=\"91.8\" cy=\"131.0\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.59\"/><circle cx=\"264.3\" cy=\"233.2\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.67\"/><circle cx=\"877.5\" cy=\"215.8\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.73\"/><circle cx=\"742.0\" cy=\"477.6\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.27\"/><circle cx=\"538.3\" cy=\"481.4\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.54\"/><circle cx=\"41.0\" cy=\"345.9\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.72\"/><circle cx=\"777.3\" cy=\"286.5\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.42\"/><circle cx=\"400.8\" cy=\"265.1\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.48\"/><circle cx=\"865.3\" cy=\"28.8\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.60\"/><circle cx=\"525.7\" cy=\"443.1\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.70\"/><circle cx=\"161.3\" cy=\"166.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.41\"/><circle cx=\"731.4\" cy=\"489.5\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.47\"/><circle cx=\"934.4\" cy=\"229.6\" r=\"0.6\" fill=\"#d6e2f0\" fill-opacity=\"0.63\"/><circle cx=\"511.5\" cy=\"300.5\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.69\"/><circle cx=\"50.5\" cy=\"338.1\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.45\"/><circle cx=\"201.5\" cy=\"493.2\" r=\"1.3\" fill=\"#d6e2f0\" fill-opacity=\"0.55\"/><circle cx=\"175.7\" cy=\"117.5\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.77\"/><circle cx=\"363.8\" cy=\"360.2\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.76\"/><circle cx=\"1041.2\" cy=\"134.3\" r=\"1\" fill=\"#d6e2f0\" fill-opacity=\"0.57\"/><circle cx=\"405.4\" cy=\"151.3\" r=\"1.8\" fill=\"#d6e2f0\" fill-opacity=\"0.79\"/><circle cx=\"196.1\" cy=\"199.1\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.45\"/><circle cx=\"962.7\" cy=\"457.0\" r=\"0.8\" fill=\"#d6e2f0\" fill-opacity=\"0.42\"/><ellipse cx=\"540.0\" cy=\"612.0\" rx=\"180\" ry=\"61.2\" fill=\"none\" stroke=\"#9fd0ff\" stroke-opacity=\"0.280\" stroke-width=\"1.4\" /><ellipse cx=\"540.0\" cy=\"612.0\" rx=\"300\" ry=\"102.00000000000001\" fill=\"none\" stroke=\"#9fd0ff\" stroke-opacity=\"0.245\" stroke-width=\"1.4\" /><ellipse cx=\"540.0\" cy=\"612.0\" rx=\"430\" ry=\"146.20000000000002\" fill=\"none\" stroke=\"#9fd0ff\" stroke-opacity=\"0.210\" stroke-width=\"1.4\" /><ellipse cx=\"540.0\" cy=\"612.0\" rx=\"580\" ry=\"197.20000000000002\" fill=\"none\" stroke=\"#9fd0ff\" stroke-opacity=\"0.175\" stroke-width=\"1.4\" stroke-dasharray=\"4 7\"/><ellipse cx=\"540.0\" cy=\"612.0\" rx=\"760\" ry=\"258.40000000000003\" fill=\"none\" stroke=\"#9fd0ff\" stroke-opacity=\"0.140\" stroke-width=\"1.4\" /><path d=\"M381.0 525.5 Q 480.0 282.0 419.4 419.3\" fill=\"none\" stroke=\"#ffd166\" stroke-width=\"2.4\" stroke-dasharray=\"2 9\" stroke-linecap=\"round\" stroke-opacity=\".85\"/><circle cx=\"376.9\" cy=\"586.1\" r=\"9\" fill=\"#a9c0d8\" fill-opacity=\"0.7\"/><circle cx=\"381.0\" cy=\"525.5\" r=\"14\" fill=\"#ffd166\" fill-opacity=\"0.95\"/><circle cx=\"381.0\" cy=\"525.5\" r=\"24\" fill=\"none\" stroke=\"#ffd166\" stroke-opacity=\".5\" stroke-width=\"1.5\"/><ellipse cx=\"381.0\" cy=\"525.5\" rx=\"26.6\" ry=\"7.7\" fill=\"none\" stroke=\"#f2a93b\" stroke-width=\"2\" transform=\"rotate(-14 381.0 525.5)\"/><circle cx=\"755.0\" cy=\"485.4\" r=\"11\" fill=\"#a9c0d8\" fill-opacity=\"0.7\"/><circle cx=\"419.4\" cy=\"419.1\" r=\"20\" fill=\"#ffd166\" fill-opacity=\"0.95\"/><circle cx=\"419.4\" cy=\"419.1\" r=\"30\" fill=\"none\" stroke=\"#ffd166\" stroke-opacity=\".5\" stroke-width=\"1.5\"/><ellipse cx=\"419.4\" cy=\"419.1\" rx=\"38.0\" ry=\"11.0\" fill=\"none\" stroke=\"#f2a93b\" stroke-width=\"2\" transform=\"rotate(-14 419.4 419.1)\"/><circle cx=\"1138.9\" cy=\"452.9\" r=\"8\" fill=\"#a9c0d8\" fill-opacity=\"0.7\"/><circle cx=\"540.0\" cy=\"612.0\" r=\"120\" fill=\"url(#sysStar)\"/><circle cx=\"540.0\" cy=\"612.0\" r=\"46\" fill=\"#fff2d1\"/></svg>",
+  uiLock: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 11h12v10H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3\"/></svg>",
+  uiSave: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4v11M7 10l5 5 5-5M5 20h14\"/></svg>",
+  uiCopy: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 8h11v12H8zM5 16V4h11\"/></svg>",
+  uiCopied: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12l5 5 9-10\"/></svg>",
+  uiLocalCopied: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12l5 5 9-10\"/></svg>",
+  brag: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM3 15l5-4 4 3 3-2 6 4M15.5 6.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z\"/></svg>"
+};
+const BRAG = (() => {
+  const SIZES = { sq: [1080, 1080], land: [1200, 630], story: [1080, 1920] };
+  // The Fankit pictures bundled with the app, with the corner their watermark sits in (from the site's PICKS list)
+  const PICS = { SC_01: ["bl", "Fighters over cloud tops"], SC_10: ["bl", "A ship against the sun"], SC_13: ["bl", "Ship over a snowy planet"],
+    SC_14: ["bl", "Dogfight above a planet"], SC_25: ["br", "Capital ship over a planet"], SC_32: ["br", "A wreck in an alien forest"],
+    SC_33: ["br", "Ship landed on a salt flat"], SC_34: ["br", "Fighter in a hangar"], SC_36: ["br", "Ship over orange clouds"] };
+  const KPICS = { session: ["SC_14", "SC_01", "SC_25", "SC_13"], week: ["SC_36", "SC_10", "SC_25", "SC_33"], blueprints: ["SC_34", "SC_32", "SC_14", "SC_13"],
+    licence: ["SC_01", "SC_10", "SC_36", "SC_34"], pilot: ["SC_33", "SC_25", "SC_14", "SC_36"] };
+  const KIND = { session: "Session report", week: "My week", blueprints: "Blueprints", licence: "Licence earned", pilot: "Pilot" };
+  const SEG = { session: "Session", week: "Week", blueprints: "Blueprints", licence: "Licence", pilot: "Pilot" };
+  const HC = { dark: { good: "#4cc4b0", ok: "#a9c0d8", poor: "#ffd166", bad: "#ec7a5e" }, light: { good: "#0a6b5f", ok: "#2c5a84", poor: "#9a6b00", bad: "#a23a22" } };
+  const WORD = { good: "Healthy", ok: "OK", poor: "Struggling", bad: "Bad" };
+  const TIER = { VLRT: [1, "Very low risk tier"], LRT: [2, "Low risk tier"], MRT: [3, "Medium risk tier"], HRT: [4, "High risk tier"], VHRT: [5, "Very high risk tier"], ERT: [5, "Extreme risk tier"] };
+  const CHIPS = { sq: 8, land: 5, story: 10 };
+  const FONTS = [["VS Barlow", 400, "barlow-latin-400-normal"], ["VS Barlow", 500, "barlow-latin-500-normal"], ["VS Barlow", 600, "barlow-latin-600-normal"], ["VS Barlow", 700, "barlow-latin-700-normal"],
+    ["VS Barlow Cond", 500, "barlow-semi-condensed-latin-500-normal"], ["VS Barlow Cond", 600, "barlow-semi-condensed-latin-600-normal"],
+    ["VS Barlow Cond", 700, "barlow-semi-condensed-latin-700-normal"], ["VS Barlow Cond", 800, "barlow-semi-condensed-latin-800-normal"]];
+  const pl = (n, one, many) => n === 1 ? one : many;
+  const hm = m => { m = Math.round(m || 0); return m >= 60 ? `${Math.floor(m / 60)}<small>h</small>${m % 60}<small>min</small>` : `${m}<small>min</small>`; };
+  const hmText = m => { m = Math.round(m || 0); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
+  const dayOf = ts => { const d = new Date(ts * 1000); return d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", ""); };
+  const tierOf = name => { const m = /\(([A-Z]{2,4})\)\s*$/.exec(name || ""); return m && TIER[m[1]] ? [m[1]].concat(TIER[m[1]]) : null; };
+  const ring = score => `${BC_SVG.ringHead}<circle class="trk" cx="50" cy="50" r="44" fill="none" stroke-width="7"/><circle class="arc" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-dasharray="276.46" stroke-dashoffset="${(276.46 * (1 - Math.max(0, Math.min(100, score)) / 100)).toFixed(2)}"/></svg>`;
+  // The licence pass with this licence's name on the band and its risk tier in the pips
+  function pass(name) {
+    const t = tierOf(name), band = esc(String(name || "").replace(/\s*\([^)]*\)\s*$/, "").toUpperCase());
+    let s = BC_SVG.pass.replace(">TRACKER LICENSE</text>", `${band.length > 22 ? ` textLength="${Math.min(250, band.length * 11)}" lengthAdjust="spacingAndGlyphs"` : ""}>${band}</text>`);
+    const pips = s.slice(s.indexOf('<rect x="196" y="146"'), s.indexOf('<rect x="4" y="4" width="292" height="192" rx="18" fill="none"'));
+    const label = s.slice(s.indexOf('<text x="124" y="153"'), s.indexOf("RISK TIER</text>") + 16);
+    if (!t) return s.replace(pips, "").replace(label, "");
+    return s.replace(pips, [196, 212, 228, 244, 260].map((x, i) => `<rect x="${x}" y="146" width="12" height="7" rx="2" fill="${i < t[1] ? "#ffd166" : "rgba(231,243,255,.18)"}"/>`).join("") + "\n");
+  }
+
+  // ---------------- the numbers, from the app's own APIs ----------------
+  let D = null;
+  async function load(o) {
+    const g = p => api(p).catch(() => null);
+    const [ss, bp, lb, hs, pr, br] = await Promise.all([g("/api/sessions?page=0"), g("/api/blueprints"), g("/api/logbook"), g("/api/history"), g("/api/profile"), g("/api/brag")]);
+    let sess = null;
+    if (o.kind === "session" && o.id) sess = await g(`/api/session?id=${encodeURIComponent(o.id)}`);
+    if (!sess && ss && ss.sessions) sess = ss.sessions.find(c => !c.live) || ss.sessions[0] || null;
+    const groups = (bp && bp.groups) || ["Armour", "FPS weapons", "Magazines and batteries", "Ship weapons", "Other"];
+    const earned = (bp && bp.earned) || [], lics = (bp && bp.licences) || [];
+    const hist = (hs && hs.sessions) || [], cons = hist.flatMap(x => x.contracts || []);
+    const p = (pr && pr.profile) || {};
+    D = { sess, week: ss && ss.week, best: br && br.best, groups, earned, lics, lb: lb || {},
+      minutes: hist.reduce((n, x) => n + (x.minutes || 0), 0), sessions: hist.length, done: cons.filter(c => c.result === "complete").length,
+      handle: (p.handle || "").trim(), org: (p.org || "").trim(), main: (p.main || "").trim() };
+    return D;
+  }
+  const has = { session: d => !!d.sess, week: d => !!(d.week && d.week.this && d.week.this.sessions), blueprints: d => d.earned.length > 0, licence: d => d.lics.length > 0, pilot: () => true };
+
+  // Stat tiles each kind can show: [id, label in the maker, tile html, tile class, shown by default]
+  function stats(kind, st) {
+    const d = D, out = [];
+    const t = (id, name, b, span, cls, on, note) => out.push({ id, name, b, span, cls: cls || "", on: !!on, note });
+    if (kind === "session" && d.sess) {
+      const c = d.sess, bps = (c.blueprints || []).length, lic = (c.journal || []).length, sh = (c.shards || [])[0];
+      if (c.accepted) t("contracts", "Contracts done", `${c.completed || 0}<small>/${c.accepted}</small>`, "Contracts done", "is-teal", true);
+      t("blueprints", "Blueprints", bps, pl(bps, "Blueprint", "Blueprints"), "is-gold", bps > 0);
+      t("licences", pl(lic, "Licence", "Licences"), lic, pl(lic, "Licence", "Licences"), "is-gold", lic > 0);
+      t("quantum", "Quantum jumps", c.quantum || 0, "Quantum jumps", "", (c.quantum || 0) > 0);
+      if (c.minutes) t("length", "Session length", hm(c.minutes), "Session length", "", false, c.score != null && c.overlay ? "on the title already" : "");
+      if (sh && sh.shard) t("shard", "Shard", esc(sh.shard), "Shard", "", false);
+    }
+    if (kind === "week" && d.week) {
+      const a = d.week.this;
+      t("sessions", "Sessions", a.sessions, pl(a.sessions, "Session", "Sessions"), "", true);
+      t("contracts", "Contracts done", a.contracts, "Contracts done", "is-teal", a.contracts > 0);
+      t("blueprints", "Blueprints", a.blueprints, pl(a.blueprints, "Blueprint", "Blueprints"), "is-gold", a.blueprints > 0);
+      t("licences", "Licences", a.licences, pl(a.licences, "Licence", "Licences"), "is-gold", a.licences > 0);
+      if (a.score != null) t("average", "Average health", a.score, "Average health", "", false);
+      if (a.best) t("best", "Best session", a.best.score, "Best session", "is-teal", false);
+    }
+    if (kind === "licence") {
+      const l = pickLic(st), tr = tierOf(l && l.name);
+      if (tr) t("tier", "Risk tier", tr[0], tr[2], "is-gold", true);
+      t("count", "Licences and permits", d.lics.length, "Licences and permits", "", true);
+      t("blueprints", "Blueprints", d.earned.length, "Blueprints", "is-gold", false);
+    }
+    if (kind === "pilot") {
+      const jur = (d.lb.jurisdictions || []).length;
+      t("played", "Hours played", `${Math.round(d.minutes / 60)}<small>h</small>`, "Played", "", true);
+      t("contracts", "Contracts done", d.done, "Contracts done", "is-teal", true);
+      t("quantum", "Quantum jumps", d.lb.quantum || 0, "Quantum jumps", "", true);
+      t("blueprints", "Blueprints", d.earned.length, "Blueprints", "is-gold", true);
+      t("licences", "Licences", d.lics.length, pl(d.lics.length, "Licence", "Licences"), "is-gold", true);
+      t("jurisdictions", "Jurisdictions", jur, pl(jur, "Jurisdiction", "Jurisdictions"), "", true);
+      t("sessions", "Sessions", d.sessions, pl(d.sessions, "Session", "Sessions"), "", false);
+    }
+    if (kind === "blueprints") d.groups.forEach((g, i) => { const n = d.earned.filter(b => b.group === i).length; if (n) t("g" + i, g, n, g, "", true); });
+    return out;
+  }
+  const cap = (kind, size) => kind === "blueprints" ? 5 : size === "story" ? 6 : 4;
+  const pickLic = st => D.lics.find(l => l.id === st.lic) || D.lics.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
+  const pickBp = st => D.earned.find(b => b.id === st.bp) || D.earned.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
+  function defaults(st) {
+    const all = stats(st.kind, st), n = cap(st.kind, st.size);
+    st.touched = false;
+    if (st.kind === "blueprints") { st.pick = all.map(s => s.id); return; }
+    // what the design shows: 4 tiles (2 for a licence), 6 on a story pilot card; things worth showing first, zeros last
+    const score = s => s.on ? 0 : s.b === 0 ? 2 : 1;
+    const want = st.kind === "pilot" ? n : st.kind === "licence" ? all.filter(s => s.on).length : 4;
+    st.pick = all.slice().sort((a, b) => score(a) - score(b)).slice(0, Math.min(want, n)).map(s => s.id);
+    const order = all.map(s => s.id); st.pick.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  }
+
+  // ---------------- the card: one DOM for every kind and size (port/html/brag) ----------------
+  function card(st, src) {
+    src = src || (n => BRAG_URL(n));
+    const d = D, k = st.kind, theme = st.theme, pic = st.pics[k] || KPICS[k][0], wm = PICS[pic][0];
+    const hc = h => HC[theme][h] || HC[theme].good;
+    const handleOn = st.handle && d.handle;
+    const all = stats(k, st), chosen = st.pick.map(id => all.find(s => s.id === id)).filter(Boolean);
+    let title = "", sub = "", fig = "", tiles = "", extra = "";
+    const chips = (h, list, cls, icon) => { if (!list.length) return ""; const n = CHIPS[st.size], more = list.length > n ? list.length - (n - 1) : 0;
+      return `<span class="bc-extra-h">${h}</span>` + (more ? list.slice(0, n - 1) : list).map(x => `<span class="bc-chip ${typeof cls === "function" ? cls(x) : cls}">${typeof icon === "function" ? icon(x) : icon || ""}${esc(x.n || x)}</span>`).join("") + (more ? `<span class="bc-chip is-plain">+${more} more</span>` : ""); };
+    const tileList = () => chosen.length ? `<ul class="bc-stats${chosen.length > 4 ? " is-six" : ""}">${chosen.map(s => `<li class="${s.cls}"><b>${s.b}</b><span>${esc(s.span)}</span></li>`).join("")}</ul>` : `<ul class="bc-stats"></ul>`;
+    if (k === "session") {
+      const c = d.sess, sh = (c.shards || [])[0], sc = c.overlay && c.score != null;
+      title = esc(c.day || ""); sub = `<b>${esc(hmText(c.minutes))}</b>${sh && sh.shard ? ` on ${esc(sh.shard)}` : ""}`;
+      fig = sc ? `<div class="bc-fig" style="--hc:${hc(c.health)}"><div class="bc-ring ">${ring(c.score)}<b>${c.score}</b></div><span class="bc-ring-word">${WORD[c.health] || ""}</span></div>`
+        : `<div class="bc-fig"><div class="bc-big"><b>${hm(c.minutes)}</b><span>Played</span></div></div>`;
+      tiles = tileList();
+      const got = (c.blueprints || []).map(b => ({ n: b.name, t: "bp" })).concat((c.journal || []).map(j => ({ n: j.replace(/\s+Earned\b/i, ""), t: "lic" })));
+      extra = got.length ? chips("Received this session", got, "is-gold", x => x.t === "bp" ? BC_SVG.chipBp : BC_SVG.chipLic)
+        : chips(`${(c.jurisdictions || []).length} ${pl((c.jurisdictions || []).length, "jurisdiction", "jurisdictions")} this session`, c.jurisdictions || [], "is-plain");
+    }
+    if (k === "week") {
+      const a = d.week.this, b = d.week.last, to = new Date((a.to || Date.now() / 1000) * 1000), from = a.from ? new Date(a.from * 1000) : new Date(to.getTime() - 6 * 86400000);
+      const dm = x => x.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+      title = from.getMonth() === to.getMonth() ? `${from.getDate()} to ${dm(to)}` : `${dm(from)} to ${dm(to)}`;     // as Your week says it
+      sub = b && b.sessions ? "Against the 7 days before" : "The last 7 days";
+      const more = b && b.sessions && a.minutes > b.minutes ? `<span class="bc-delta">${BC_SVG.up}${esc(hmText(a.minutes - b.minutes))} more</span>` : "";
+      fig = `<div class="bc-fig"><div class="bc-big"><b>${hm(a.minutes)}</b><span>Played</span>${more}</div></div>`;
+      tiles = tileList();
+      extra = a.score != null ? `<span class="bc-extra-h">Health, session by session</span>${(a.dots || []).some(h => HC[theme][h]) ? `<span class="bc-dots">${a.dots.filter(h => HC[theme][h]).map(h => `<i style="--c:${hc(h)}"></i>`).join("")}</span>` : ""}<span class="bc-line">Average <b>${a.score}</b>${a.best ? `, best <b>${a.best.score}</b> on ${esc(a.best.day)}` : ""}</span>`
+        : `<span class="bc-line"><b>${a.contracts}</b> of ${a.accepted} contracts done</span>`;
+    }
+    if (k === "blueprints") {
+      const n = d.earned.length, b = pickBp(st), newest = d.earned.slice().sort((x, y) => (y.ts || 0) - (x.ts || 0))[0];
+      title = `${n} ${pl(n, "blueprint", "blueprints")}`; sub = "Earned in game, counted from my logs";
+      fig = `<div class="bc-fig">${BC_SVG.bpmark}<div class="bc-big"><b>${n}</b><span>Earned</span></div></div>`;
+      const rows = chosen.map(s => ({ g: s.span, n: s.b })).sort((x, y) => y.n - x.n), top = Math.max(1, ...rows.map(r => r.n));
+      tiles = `<ul class="bc-bars">${rows.map(r => `<li><span>${esc(r.g)}</span><b>${r.n}</b><i style="--w:${Math.round(r.n / top * 100)}%"></i></li>`).join("")}</ul>`;
+      extra = b ? `<div class="bc-feature"><div>${BC_SVG.chipBp}<span><small>${b === newest ? "Just earned" : `Earned ${esc(b.ts ? dayOf(b.ts) : "")}`}</small><strong>${esc(b.name)}</strong>${b.contract ? `<em>from a ${esc(b.contract)} contract</em>` : ""}</span></div></div>` : "";
+    }
+    if (k === "licence") {
+      const l = pickLic(st);
+      title = esc(l.name); sub = l.ts ? `Earned <b>${esc(dayOf(l.ts))}</b>` : "Earned in game";
+      fig = `<div class="bc-fig">${pass(l.name)}</div>`;
+      tiles = tileList();
+      extra = l.contract ? `<span class="bc-line">From a <b>${esc(l.contract)}</b> contract</span>` : `<span class="bc-line">Logged in my game journal</span>`;
+    }
+    if (k === "pilot") {
+      title = handleOn ? `<span class="bc-handle">${esc(d.handle)}</span>` : "Pilot logbook";
+      const flies = d.main ? `Flies the <b>${esc(d.main)}</b>` : "Counted from my game logs";
+      sub = (handleOn && d.org ? esc(d.org) + " · " : "") + flies;
+      fig = d.best ? `<div class="bc-fig" style="--hc:${hc(d.best.health)}"><div class="bc-ring ">${ring(d.best.score)}<b>${d.best.score}</b></div><span class="bc-ring-word">Best session</span></div>`
+        : `<div class="bc-fig"><div class="bc-big"><b>${Math.round(d.minutes / 60)}<small>h</small></b><span>Played</span></div></div>`;
+      tiles = tileList();
+      const j = (d.lb.jurisdictions || []).map(x => x.name);
+      extra = chips(`${j.length} ${pl(j.length, "jurisdiction", "jurisdictions")} visited`, j, "is-plain");
+    }
+    if (handleOn && k !== "pilot") sub = `<span class="bc-handle">${esc(d.handle)}</span> · ${sub}`;
+    const look = st.look, picture = look === "pic" ? `<figure class="bc-pic"><img class="bc-shot" src="${src(`img/${pic}.jpg`)}" alt=""><img class="bc-mbtc" src="${src("img/mbtc-white.png")}" alt="Made by the Community"></figure>`
+      : look === "sys" ? `<figure class="bc-pic">${BC_SVG.sysSession}</figure>` : `<figure class="bc-pic"></figure>`;
+    const fine = "Unofficial fan-made card. Not affiliated with Cloud Imperium Games." + (look === "pic" ? " Star Citizen® is a registered trademark of Cloud Imperium Rights LLC." : "");
+    return `<article class="bc bc--${st.size} bc--${theme} bc--${look}" data-kind="${k}" data-wm="${wm}" aria-label="Verse Shards brag card: ${KIND[k]}">
+  <div class="bc-in">
+    ${picture}
+    <header class="bc-head"><span class="bc-kind">${BC_SVG["k_" + k]}${KIND[k]}</span><h1 class="bc-title">${title}</h1><p class="bc-sub">${sub}</p></header>
+    ${fig}
+    ${tiles}
+    <div class="bc-extra">${extra}</div>
+    <footer class="bc-foot"><div class="bc-brand">${theme === "light" ? BC_SVG.brandLight : BC_SVG.brandDark}<div><b>Verse Shards</b><span>verseshards.com</span></div></div><p class="bc-fine">${fine}</p></footer>
+  </div>
+</article>`;
+  }
+
+  // ---------------- drawing it to a PNG, on this PC ----------------
+  let lib = null, fontCss = null;
+  const cache = {};
+  function loadLib() {
+    if (!lib) lib = new Promise((ok, no) => {
+      if (window.htmlToImage) return ok(window.htmlToImage);
+      const s = document.createElement("script"); s.src = BRAG_URL("html-to-image.js");
+      s.onload = () => window.htmlToImage ? ok(window.htmlToImage) : no(new Error("The card drawer didn't load."));
+      s.onerror = () => { lib = null; no(new Error("The card drawer didn't load.")); };
+      document.head.appendChild(s);
+    });
+    return lib;
+  }
+  // A bundled file as a data address, so the drawing carries it inside (fetched from this app, never from the internet)
+  function dataUrl(name) {
+    if (!cache[name]) cache[name] = fetch(BRAG_URL(name)).then(r => { if (!r.ok) throw new Error(name); return r.blob(); })
+      .then(b => new Promise((ok, no) => { const f = new FileReader(); f.onload = () => ok(f.result); f.onerror = no; f.readAsDataURL(b); }))
+      .catch(e => { delete cache[name]; throw e; });
+    return cache[name];
+  }
+  async function fonts() {
+    if (!fontCss) fontCss = Promise.all(FONTS.map(async ([fam, w, f]) => `@font-face { font-family: "${fam}"; font-weight: ${w}; font-style: normal; src: url("${await dataUrl(`fonts/${f}.woff2`)}") format("woff2"); }`))
+      .then(x => x.join("\n")).catch(e => { fontCss = null; throw e; });
+    return fontCss;
+  }
+  async function draw(st) {
+    const [w, h] = SIZES[st.size], pic = st.pics[st.kind] || KPICS[st.kind][0];
+    const [h2i, css] = await Promise.all([loadLib(), fonts()]);
+    const srcs = {};
+    if (st.look === "pic") { srcs[`img/${pic}.jpg`] = await dataUrl(`img/${pic}.jpg`); srcs["img/mbtc-white.png"] = await dataUrl("img/mbtc-white.png"); }
+    const box = document.createElement("div");
+    box.setAttribute("aria-hidden", "true");
+    box.style.cssText = `position:fixed;left:${-(w + 400)}px;top:0;width:${w}px;height:${h}px;pointer-events:none;contain:layout paint`;
+    box.innerHTML = card(st, n => srcs[n] || BRAG_URL(n));
+    document.body.appendChild(box);
+    try {
+      await Promise.all(FONTS.map(([fam, wt]) => document.fonts.load(`${wt} 20px "${fam}"`).catch(() => null)));
+      await document.fonts.ready;
+      await Promise.all([...box.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => null) : null));
+      const node = box.firstElementChild;
+      const blob = await h2i.toBlob(node, { width: w, height: h, canvasWidth: w, canvasHeight: h, pixelRatio: 1, cacheBust: false, fontEmbedCSS: css });
+      if (!blob) throw new Error("The card didn't draw.");
+      return blob;
+    } finally { box.remove(); }
+  }
+
+  // ---------------- the maker ----------------
+  let st = null, dlgEl = null, ro = null;
+  const SIZE_UI = [["sq", "Square", "Most feeds", "width:22px;height:22px"], ["land", "Landscape", "Facebook, X links", "width:30px;height:16px;margin:3px 0"], ["story", "Story", "Instagram, Facebook", "width:13px;height:22px"]];
+  function side() {
+    const all = stats(st.kind, st), n = cap(st.kind, st.size), picked = st.pick.length;
+    const kinds = Object.keys(KIND).map(k => `<label><input type="radio" name="bm-k" value="${k}"${st.kind === k ? " checked" : ""}${has[k](D) ? "" : " disabled"}><span>${BC_SVG["k_" + k]}${SEG[k]}</span></label>`).join("");
+    const sizes = SIZE_UI.map(([v, t, s, i]) => `<label><input type="radio" name="bm-s" value="${v}"${st.size === v ? " checked" : ""}><span><i style="${i}"></i>${t}<small>${s}</small></span></label>`).join("");
+    const looks = [["pic", "Picture"], ["sys", "System"], ["plain", "Plain"]].map(([v, t]) => `<label><input type="radio" name="bm-l" value="${v}"${st.look === v ? " checked" : ""}><span>${t}</span></label>`).join("")
+      + [["dark", "Dark"], ["light", "Light"]].map(([v, t]) => `<label><input type="radio" name="bm-c" value="${v}"${st.theme === v ? " checked" : ""}><span>${t}</span></label>`).join("");
+    const cur = st.pics[st.kind] || KPICS[st.kind][0];
+    const pics = st.look === "pic" ? `<div class="bm-pics">${KPICS[st.kind].map(p => `<label><input type="radio" name="bm-p" value="${p}"${cur === p ? " checked" : ""}><img src="${BRAG_URL(`img/${p}.jpg`)}" alt="${esc(PICS[p][1])}"></label>`).join("")}</div>` : "";
+    const checks = all.map(s => { const on = st.pick.includes(s.id), off = !on && picked >= n;
+      return `<label class="bm-check ${off ? "is-off" : ""}"><input type="checkbox" value="${s.id}"${on ? " checked" : ""}${off ? " disabled" : ""}>${esc(s.name)}${s.note ? `<small>${esc(s.note)}</small>` : ""}</label>`; }).join("");
+    const lics = st.kind === "licence" && D.lics.length > 1 ? `<fieldset class="bm-f"><legend class="vr-label">Licence</legend><select class="vr-inp" data-bm-lic aria-label="Which licence">${D.lics.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).map(l => `<option value="${esc(l.id)}"${pickLic(st) === l ? " selected" : ""}>${esc(l.name)}</option>`).join("")}</select></fieldset>`
+      : st.kind === "blueprints" && D.earned.length > 1 ? `<fieldset class="bm-f"><legend class="vr-label">Featured blueprint</legend><select class="vr-inp" data-bm-bp aria-label="Which blueprint">${D.earned.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).map(b => `<option value="${esc(b.id)}"${pickBp(st) === b ? " selected" : ""}>${esc(b.name)}</option>`).join("")}</select></fieldset>` : "";
+    const canCopy = !!(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write);
+    return `<fieldset class="bm-f"><legend class="vr-label">Card</legend><div class="bm-seg" role="radiogroup">${kinds}</div></fieldset>
+  ${lics}
+  <fieldset class="bm-f"><legend class="vr-label">Size</legend><div class="bm-sizes">${sizes}</div></fieldset>
+  <fieldset class="bm-f"><legend class="vr-label">Look</legend><div class="bm-seg">${looks}</div>${pics}</fieldset>
+  <fieldset class="bm-f"><legend class="vr-label">On the card <span class="bm-count">${picked} of ${Math.min(n, all.length)} chosen</span></legend><div class="bm-checks">${checks}</div></fieldset>
+  <label class="bm-tog"><input type="checkbox" data-bm-handle${st.handle && D.handle ? " checked" : ""}${D.handle ? "" : " disabled"}><span class="sw"></span><span>Show my handle<small>${D.handle ? "Off unless you switch it on" : "Add your handle in My pilot first"}</small></span></label>
+  <div class="bm-acts"><button type="button" class="vr-btn is-primary" data-bm-save>${BC_SVG.uiSave}Save image</button><button type="button" class="vr-btn${st.copied ? " is-done" : ""}" data-bm-copy${canCopy ? "" : ` disabled title="This browser can't copy pictures. Use Save image instead."`}>${st.copied ? BC_SVG.uiCopied + "Copied" : BC_SVG.uiCopy + "Copy image"}</button></div>`;
+  }
+  const localNote = () => st.copied ? `<div class="bm-local" style="border-color:var(--teal)">${BC_SVG.uiLocalCopied}<span><b>Copied.</b> Paste it into Discord, a group chat or a post.</span></div>`
+    : st.err ? `<div class="bm-local" style="border-color:var(--rust)">${BC_SVG.uiLock}<span><b>${esc(st.err)}</b> Nothing was uploaded.</span></div>`
+    : `<div class="bm-local">${BC_SVG.uiLock}<span><b>Made on this PC.</b> Nothing is uploaded. Save it or copy it, then post it wherever you like.</span></div>`;
+  function fit() {
+    if (!dlgEl) return;
+    const stage = dlgEl.querySelector(".bm-stage"), frame = dlgEl.querySelector(".bm-frame"), sc = dlgEl.querySelector(".bm-scale"); if (!stage || !frame) return;
+    const [w, h] = SIZES[st.size], s = Math.min((stage.clientWidth - 44) / w, 0.6, 640 / h);
+    frame.style.width = `${Math.round(w * s)}px`; frame.style.height = `${Math.round(h * s)}px`; sc.style.transform = `scale(${+s.toFixed(4)})`;
+  }
+  function paint(sideToo = true) {
+    if (!dlgEl || !dlgEl.isConnected) return;
+    const [w, h] = SIZES[st.size];
+    dlgEl.querySelector(".bm-scale").innerHTML = card(st);
+    dlgEl.querySelector(".bm-size").textContent = `${w} × ${h} PNG`;
+    dlgEl.querySelector("[data-bm-local]").innerHTML = localNote();
+    if (sideToo) dlgEl.querySelector(".bm-side").innerHTML = side();
+    fit();
+  }
+  function change(fn) { st.copied = false; st.err = ""; fn(); paint(); }
+  async function open(o = {}) {
+    try { await load(o); } catch (e) { toast(e.message, true); return; }
+    let kind = o.kind && has[o.kind](D) ? o.kind : ["session", "pilot"].find(k => has[k](D));
+    st = { kind, size: "sq", look: "pic", theme: "dark", pics: {}, handle: false, pick: [], lic: o.kind === "licence" ? o.id : null, bp: o.kind === "blueprint" || o.kind === "blueprints" ? o.id : null, touched: false };
+    defaults(st);
+    const d = VR.dlg(`<div class="bm-hdr"><div style="flex:1"><div class="vr-label" style="color:var(--amber)">Brag card</div><h2 id="dlg-h">Make a card to share</h2></div></div>
+<div class="bm">
+ <div style="display:flex;flex-direction:column;gap:10px;min-width:0"><div class="bm-stage"><div class="bm-frame"><div class="bm-scale"></div></div><span class="bm-size"></span></div>
+ <div data-bm-local></div>
+ </div>
+ <div class="bm-side"></div></div>`, true);
+    dlgEl = d;
+    paint();
+    if (ro) ro.disconnect();
+    if (window.ResizeObserver) { ro = new ResizeObserver(fit); ro.observe(d.querySelector(".bm-stage")); }
+    d.addEventListener("change", e => {
+      const t = e.target;
+      if (t.name === "bm-k") change(() => { st.kind = t.value; defaults(st); });
+      else if (t.name === "bm-s") change(() => { st.size = t.value; if (!st.touched) defaults(st); else st.pick = st.pick.slice(0, cap(st.kind, st.size)); });
+      else if (t.name === "bm-l") change(() => { st.look = t.value; });
+      else if (t.name === "bm-c") change(() => { st.theme = t.value; });
+      else if (t.name === "bm-p") change(() => { st.pics[st.kind] = t.value; });
+      else if (t.matches("[data-bm-handle]")) change(() => { st.handle = t.checked; });
+      else if (t.matches("[data-bm-lic]")) change(() => { st.lic = t.value; defaults(st); });
+      else if (t.matches("[data-bm-bp]")) change(() => { st.bp = t.value; });
+      else if (t.type === "checkbox") change(() => { st.touched = true; st.pick = t.checked ? st.pick.concat(t.value) : st.pick.filter(x => x !== t.value);
+        const order = stats(st.kind, st).map(s => s.id); st.pick.sort((a, b) => order.indexOf(a) - order.indexOf(b)); });
+    });
+    d.addEventListener("click", async e => {
+      const t = e.target.closest("button"); if (!t) return;
+      if (t.matches("[data-bm-save]")) {
+        busy(true);
+        try { const blob = await draw(st); const a = document.createElement("a"), u = URL.createObjectURL(blob);
+          a.href = u; a.download = `verse-shards-${st.kind}-${st.size}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+        catch (x) { st.err = "Couldn't draw the card."; paint(false); toast(`Couldn't draw the card: ${x.message}`, true); }
+        busy(false);
+      }
+      if (t.matches("[data-bm-copy]")) {
+        busy(true);
+        try {
+          // The promise form keeps the click's permission while the card draws
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": draw(st) })]);
+          st.copied = true; st.err = ""; paint();
+        } catch (x) { st.err = /denied|not allowed|permission/i.test(String(x && x.message)) ? "Your browser didn't allow copying a picture. Use Save image instead." : "Couldn't copy the card. Use Save image instead."; paint(); }
+        busy(false);
+      }
+    });
+  }
+  function busy(on) { if (!dlgEl) return; dlgEl.querySelectorAll("[data-bm-save], [data-bm-copy]").forEach(b => { if (on) { b.dataset.was = b.disabled ? "1" : ""; b.disabled = true; } else b.disabled = b.dataset.was === "1"; }); }
+
+  // ---------------- the Brag buttons: wherever a page leaves a [data-brag-spot] ----------------
+  const LABEL = { session: "Brag about this session", week: "Brag", blueprints: "Brag about your collection", blueprint: "Brag about this one", licence: "Brag about this one", pilot: "Make a pilot card" };
+  function spots() {
+    document.querySelectorAll("[data-brag-spot]:empty").forEach(s => {
+      const k = s.dataset.bragSpot; if (!LABEL[k]) return;
+      const id = s.dataset.ssId || s.dataset.bpId || s.dataset.licId || "";
+      s.innerHTML = `<button type="button" class="vr-btn is-sm brag-btn" data-brag="${esc(k)}" data-brag-id="${esc(id)}">${BC_SVG.brag}${LABEL[k]}</button>`;
+    });
+  }
+  let queued = false;
+  new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; spots(); }); } }).observe(document.body, { childList: true, subtree: true });
+  document.addEventListener("click", e => {
+    const b = e.target.closest && e.target.closest("[data-brag]"); if (!b) return;
+    const k = b.dataset.brag, id = b.dataset.bragId || null;
+    open({ kind: k === "blueprint" ? "blueprints" : k, id });
+  });
+  return { open, card, draw, load, defaults, stats, SIZES, get state() { return st; } };
+})();
+
 
 show(tab);
 api("/api/now").then(d => { header(d); if (d.setup_needed) openWizard(); }).catch(() => {});

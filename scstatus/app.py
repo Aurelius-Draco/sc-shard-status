@@ -740,6 +740,13 @@ class App:
     def logbook(self):
         return played.logbook(self.store.session_data(), self.session)
 
+    def brag(self):
+        """For the Pilot brag card: the best session score of all. Only what the session cards already show."""
+        cards = [c for c in self.sessions_cards(0, per=10 ** 6)["sessions"] if c.get("start")]
+        scored = [c for c in cards if c.get("score") is not None]
+        best = max(scored, key=lambda c: (c["score"], c["start"]), default=None)
+        return {"best": {"score": best["score"], "health": best["health"], "word": best["word"], "day": best["day"]} if best else None}
+
     def contracts(self):
         return {"kinds": played.contract_stats(self.store.session_data(), self.session),
                 "import_status": self.import_status}
