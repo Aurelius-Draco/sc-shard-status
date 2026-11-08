@@ -561,6 +561,10 @@ details.why[open] > summary { margin-bottom: var(--s2); }
 .pc-id h2 { margin: 0; font: 700 2.25rem/1.05 var(--f-head); letter-spacing: .005em; } .pc-sub { color: var(--muted); }
 .pc-id .pc-name { font: 600 1.125rem/1.2 var(--f-body); color: var(--text); }
 /* 8 Nov (Ray): the pilot card button up top, beside the card, where it can't be missed */
+.btn.brag-cta { gap: 8px; height: auto; min-height: 40px; padding: 8px 16px; font: 700 .9375rem/1.1 var(--f-head, var(--font)); letter-spacing: .02em; background: var(--amber); border-color: var(--amber); color: var(--on-amber); box-shadow: 0 0 0 0 rgba(242,169,59,0), 0 6px 18px rgba(242,169,59,.18); cursor: pointer; }
+.btn.brag-cta svg { width: 18px; height: 18px; flex: none; stroke: currentColor; }
+.btn.brag-cta:hover { filter: brightness(1.08); box-shadow: 0 0 22px rgba(242,169,59,.35); color: var(--on-amber); }
+.btn.brag-cta:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .pc-brag { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; padding: var(--s3) var(--s4); border: 1px solid var(--amber-line); border-radius: var(--r); background: linear-gradient(90deg, var(--amber-bg), transparent 70%); }
 .pc-brag p { margin: 0; flex: 1 1 18rem; color: var(--muted); } .pc-brag .btn { gap: 8px; display: inline-flex; align-items: center; } .pc-brag .btn svg { width: 1.25rem; height: 1.25rem; }
 /* verified on RSI */
@@ -585,13 +589,28 @@ details.why[open] > summary { margin-bottom: var(--s2); }
 .pf-sugg { display: flex; flex-wrap: wrap; gap: 6px; }
 .pf-sugg button { border: 1px dashed var(--line2); background: transparent; color: var(--text); border-radius: 99px; padding: 6px 12px; font: 500 .9375rem var(--f-body); cursor: pointer; }
 .pf-sugg button:hover, .pf-sugg button:focus-visible { border-color: var(--amber); color: var(--amber); }
+.sec.redo { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; padding: var(--s4) var(--s5); border: 1px solid var(--line2); border-radius: var(--r); background: var(--panel); }
+.sec.redo h3 { margin: 0 0 4px; font: 700 1.125rem/1.2 var(--f-head); color: var(--text); text-transform: none; letter-spacing: .01em; } .sec.redo p { margin: 0; max-width: 62ch; }
+.pf-fav { position: relative; }
+.pf-favsugg { display: none; position: absolute; z-index: 30; left: 0; right: 0; top: 100%; margin-top: 4px; flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 4px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--panel); box-shadow: 0 12px 32px rgba(0,0,0,.45); max-height: 22rem; overflow-y: auto; }
+.pf-favsugg.on { display: flex; }
+.pf-favsugg button { display: grid; gap: 1px; text-align: left; border: 0; border-radius: calc(var(--r) - 2px); padding: 8px 10px; min-height: 44px; font: 600 .9375rem/1.25 var(--f-body); }
+.pf-favsugg button small { font: 400 .8125rem/1.25 var(--f-body); color: var(--muted); }
+.pf-favsugg button:hover, .pf-favsugg button.at, .pf-favsugg button:focus-visible { background: var(--well); color: var(--amber); }
+.pf-picmsg { margin: 2px 0 0; min-height: 0; font: 400 .875rem/1.35 var(--f-body); color: var(--muted); } .pf-picmsg:empty { display: none; } .pf-picmsg.bad { color: var(--st-bad); }
 .wq .pf { margin-top: var(--s3); padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r); background: var(--well); }
 .pc-bio { margin: 0; font-size: 1.0625rem; max-width: 70ch; }
 .pc-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--s5); }
 @media (max-width: 860px) { .pc-grid { grid-template-columns: 1fr; } .pc-top { grid-template-columns: auto minmax(0, 1fr); } .pc-top .btn { grid-column: 1 / -1; justify-self: start; } }
 .pc-main { display: grid; gap: var(--s2); } .pc-main b { font-size: 1.25rem; }
-.pc-main .shot { aspect-ratio: 16 / 7; border: 1px solid var(--line2); border-radius: var(--r); display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--well) 0 12px, var(--panel) 12px 24px); }
-.pc-main .shot span { font: 600 1rem var(--f-head); letter-spacing: .04em; color: var(--muted); }
+.pc-main .shot { position: relative; margin: 0; aspect-ratio: 16 / 7; border: 1px solid var(--line2); border-radius: var(--r); display: grid; place-items: center; overflow: hidden; isolation: isolate;
+  background: radial-gradient(60% 70% at 50% 58%, rgba(242,169,59,.22), transparent 70%), linear-gradient(180deg, #11161d, #0b0e12); }
+.pc-main .shot::before { content: ""; position: absolute; inset: 0; z-index: -1; background-image: linear-gradient(rgba(201,209,219,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(201,209,219,.06) 1px, transparent 1px); background-size: 28px 28px; -webkit-mask-image: radial-gradient(70% 80% at 50% 50%, #000, transparent); mask-image: radial-gradient(70% 80% at 50% 50%, #000, transparent); }
+.pc-main .shot.has-pic img { position: static; inset: auto; width: 92%; height: 84%; object-fit: contain; }
+.pc-main .shot figcaption { position: absolute; right: 8px; bottom: 6px; font: 400 .75rem var(--f-body); color: var(--muted); opacity: .85; }
+.pc-main .shot.is-name { align-content: center; gap: 6px; padding: var(--s4); text-align: center; }
+.pc-main .shot .sn { font: 700 clamp(1.75rem, 4vw, 2.75rem)/1.05 var(--f-head); font-stretch: semi-condensed; letter-spacing: .02em; color: var(--text); text-transform: uppercase; text-shadow: 0 0 18px rgba(242,169,59,.55), 0 0 2px rgba(242,169,59,.9); }
+.pc-main .shot .sl { font: 400 .875rem var(--f-body); color: var(--muted); }
 .pc-side { display: grid; gap: var(--s4); align-content: start; } .pc-side > div { display: grid; gap: 6px; }
 .pc-note { margin: 0; }
 .pc-h { margin: var(--s3) 0 0; }
@@ -3592,6 +3611,44 @@ const TICK = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" s
 const isVerified = p => !!(p && p.verified && p.handle && String(p.verified.handle || "").toLowerCase() === String(p.handle).toLowerCase());
 const verDay = p => new Date(p.verified.at * 1000).toLocaleDateString("en-AU", {day: "numeric", month: "short", year: "numeric"});
 const picBox = (p, cls = "") => `<div class="pc-pic ${cls}">${p.pic ? `<img src="${esc(p.pic)}" alt="">` : (p.handle ? `<span>${esc((p.handle).replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase())}</span>` : PILOT_ICON)}</div>`;
+// Places by the names players use (1.5.2 fix): Orison, not Stanton2_Orison. Each place has its common name (shown and
+// saved) and its other names (the game's internal name among them), so typing either finds it. Common places first.
+function placeCommon(v, L) {
+  const t = String(v || "").trim(), low = t.toLowerCase(); if (!t) return "";
+  const hit = (L.places || []).find(x => x.name.toLowerCase() === low || (x.also || []).some(a => a.toLowerCase() === low));
+  return hit ? hit.name : t;
+}
+function placeMatches(q, L, n = 8) {
+  const t = String(q || "").trim().toLowerCase(), all = L.places || [];
+  if (!t) return all.filter(x => x.tier === 0).slice(0, n).map(x => ({x, via: ""}));
+  const words = t.split(/\s+/), out = [];
+  for (const x of all) {
+    const names = [x.name].concat(x.also || []), low = names.map(a => a.toLowerCase());
+    const i = low.findIndex(a => words.every(w => a.includes(w))); if (i < 0) continue;
+    const a = low[i], start = a.startsWith(t), word = start || new RegExp("(^|[^a-z0-9])" + t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(a);
+    const score = i === 0 ? (start ? 0 : word ? 1 : 3) : (start || word ? 2 : 4);
+    out.push({x, via: i === 0 ? "" : names[i], k: [score < 3 ? 0 : 1, x.tier, score, x.name.toLowerCase()]});
+  }
+  out.sort((a, b) => { for (let j = 0; j < 4; j++) if (a.k[j] !== b.k[j]) return a.k[j] < b.k[j] ? -1 : 1; return 0; });
+  return out.slice(0, n);
+}
+// A picked picture made small on this PC before it's saved: longest side 512 px, WebP (JPEG if WebP can't be made).
+function pilotShrink(file) {
+  return new Promise((ok, bad) => {
+    if (!/^image\//.test(file.type || "")) return bad(new Error("That file isn't a picture. Pick a PNG, JPEG, WebP or GIF."));
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const k = Math.min(1, 512 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+      const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      const g = c.getContext("2d"); g.fillStyle = "#0b0e12"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      let d = c.toDataURL("image/webp", 0.85); if (!d.startsWith("data:image/webp")) d = c.toDataURL("image/jpeg", 0.85);
+      d.length > 1_100_000 ? bad(new Error("That picture is still too big after making it smaller. Pick another one.")) : ok(d);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); bad(new Error("That picture couldn't be opened. Pick a PNG, JPEG, WebP or GIF.")); };
+    img.src = url;
+  });
+}
 // The fields themselves. `found` is the handle Game.log shows, used when the card has none yet.
 function pilotFields(p, L, found) {
   const h = p.handle || found || "";
@@ -3599,9 +3656,9 @@ function pilotFields(p, L, found) {
     <div class="pe-row"><label>RSI handle <span class="hint">${!p.handle && found ? "from Game.log, change it if it's wrong" : "the name you log in to the game with"}</span><input class="inp" name="handle" maxlength="30" autocomplete="off" spellcheck="false" value="${esc(h)}"></label>
       <label>Display name <span class="hint">optional, how you like to be called</span><input class="inp" name="name" maxlength="30" value="${esc(p.name || "")}"></label>
       <label>Org <span class="hint">optional</span><input class="inp" name="org" maxlength="40" value="${esc(p.org || "")}"></label></div>
-    <div class="pe-row"><div class="fld">Picture <span class="hint">optional, stays on this PC</span><div class="pf-pic">${picBox(p)}<input class="inp" type="file" name="pic" accept="image/*">${p.pic ? `<button type="button" class="btn sm ghost" data-pf-nopic>Take it off</button>` : ""}</div></div>
-      <label>Favourite place <span class="hint">start typing, e.g. Orison</span><input class="inp" name="fav" list="pfPlaces" maxlength="60" autocomplete="off" value="${esc(p.fav || "")}" placeholder="Search the places in the game">
-        <datalist id="pfPlaces">${(L.places || []).map(x => `<option value="${esc(x.name)}">${esc(x.label || "")}</option>`).join("")}</datalist></label></div>
+    <div class="pe-row"><div class="fld">Picture <span class="hint">optional, stays on this PC. Big pictures are made smaller for you.</span><div class="pf-pic">${picBox(p)}<input class="inp" type="file" name="pic" accept="image/png,image/jpeg,image/webp,image/gif">${p.pic ? `<button type="button" class="btn sm ghost" data-pf-nopic>Take it off</button>` : ""}</div><p class="pf-picmsg" data-pf-picmsg role="status" aria-live="polite"></p></div>
+      <div class="fld pf-fav">Favourite place <span class="hint">start typing, e.g. Orison, Grim HEX or Checkmate</span><input class="inp" name="fav" data-pf-fav type="search" maxlength="60" autocomplete="off" spellcheck="false" value="${esc(placeCommon(p.fav, L))}" placeholder="Search the places in the game" aria-label="Favourite place" aria-autocomplete="list" aria-controls="pfFavList">
+        <div class="pf-sugg pf-favsugg" id="pfFavList" data-pf-favsugg role="listbox" aria-label="Places"></div></div></div>
     <div class="fld pf-ships">Ships I fly <span class="hint">type to find one, tap to add. Tap a ship you've added to make it your main, tap your main again to take it off.</span>
       <div class="pf-chosen" data-pf-chosen></div>
       <input class="inp" data-pf-ship type="search" autocomplete="off" placeholder="e.g. Cutlass, Hercules, Carrack" aria-label="Find a ship">
@@ -3639,11 +3696,48 @@ function wirePilot(root, draft, L) {
   f.querySelectorAll("[data-pf-act]").forEach(b => b.onclick = () => { const a = b.dataset.pfAct, on = !draft.acts.includes(a);
     draft.acts = on ? draft.acts.concat(a) : draft.acts.filter(x => x !== a); b.setAttribute("aria-pressed", on); });
   const box = f.querySelector(".pf-pic .pc-pic");
-  f.querySelector("[name=pic]").onchange = e => { const file = e.target.files[0]; if (!file) return; const rd = new FileReader();
-    rd.onload = () => { draft.pic = rd.result; box.innerHTML = `<img src="${esc(rd.result)}" alt="">`; }; rd.readAsDataURL(file); };
-  const nopic = f.querySelector("[data-pf-nopic]"); if (nopic) nopic.onclick = () => { draft.pic = ""; box.innerHTML = PILOT_ICON; nopic.remove(); };
+  const picMsg = f.querySelector("[data-pf-picmsg]"), picIn = f.querySelector("[name=pic]");
+  picIn.onchange = async e => { const file = e.target.files[0]; if (!file) return;
+    picMsg.className = "pf-picmsg"; picMsg.textContent = "Making it the right size…";
+    try {
+      const d = await pilotShrink(file); draft.pic = d; box.innerHTML = `<img src="${esc(d)}" alt="">`;
+      picMsg.textContent = "";
+    } catch (err) {
+      picIn.value = ""; picMsg.className = "pf-picmsg bad";
+      picMsg.textContent = `${err.message} The rest of your card saves without it.`;
+    }
+  };
+  const nopic = f.querySelector("[data-pf-nopic]"); if (nopic) nopic.onclick = () => { draft.pic = ""; box.innerHTML = PILOT_ICON; nopic.remove(); picMsg.textContent = ""; };
+  // Favourite place: a ranked type-ahead (the game's common names first), not the browser's long list
+  const fav = f.querySelector("[data-pf-fav]"), favList = f.querySelector("[data-pf-favsugg]");
+  let favAt = -1;
+  const drawFav = () => {
+    const rows = placeMatches(fav.value, L); favAt = -1;
+    favList.innerHTML = rows.map((r, i) => `<button type="button" role="option" id="pfFav${i}" data-pf-fav-pick="${esc(r.x.name)}"><b>${esc(r.x.name)}</b><small>${esc(r.x.label || "")}${r.via ? ` · also called ${esc(r.via)}` : ""}</small></button>`).join("");
+    favList.classList.toggle("on", rows.length > 0);
+  };
+  const pickFav = n => { fav.value = n; favList.innerHTML = ""; favList.classList.remove("on"); };
+  fav.oninput = drawFav; fav.onfocus = drawFav;
+  fav.onblur = () => setTimeout(() => { favList.classList.remove("on"); fav.value = placeCommon(fav.value, L); }, 180);
+  fav.onkeydown = e => {
+    const opts = [...favList.querySelectorAll("[data-pf-fav-pick]")];
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { if (!opts.length) return; e.preventDefault();
+      favAt = (favAt + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
+      opts.forEach((o, i) => o.classList.toggle("at", i === favAt)); fav.setAttribute("aria-activedescendant", opts[favAt].id); }
+    else if (e.key === "Enter") { e.preventDefault(); const o = opts[favAt] || (fav.value.trim() ? opts[0] : null); if (o) pickFav(o.dataset.pfFavPick); }
+    else if (e.key === "Escape") { favList.classList.remove("on"); }
+  };
+  favList.onmousedown = e => e.preventDefault();
+  favList.onclick = e => { const b = e.target.closest("[data-pf-fav-pick]"); if (b) pickFav(b.dataset.pfFavPick); };
   drawChosen();
-  return () => { ["handle", "name", "org", "fav"].forEach(k => draft[k] = (f.querySelector(`[name=${k}]`).value || "").trim()); return draft; };
+  return () => { ["handle", "name", "org", "fav"].forEach(k => draft[k] = (f.querySelector(`[name=${k}]`).value || "").trim()); draft.fav = placeCommon(draft.fav, L); return draft; };
+}
+// The main ship panel (1.5.2 fix): the ship's Fankit picture when the Fankit has that ship, otherwise its name, lit
+// up. Never an empty box. The picture stays as CIG made it; the glow and grid are the panel's own layers behind it.
+function shipPanel(main, L) {
+  const pic = main && ((L.ship_pics || {})[main] || Object.entries(L.ship_pics || {}).find(([k]) => k.toLowerCase() === String(main).toLowerCase())?.[1]);
+  if (pic) return `<figure class="shot has-pic"><img src="${esc(pic)}" alt="${esc(main)}" loading="lazy"><figcaption>Ship render from the Star Citizen Fankit</figcaption></figure>`;
+  return `<div class="shot is-name"><span class="sn">${esc(main || "No main ship yet")}</span><span class="sl">${main ? "Your main ship" : "Pick one in Edit profile: tap a ship you fly to make it your main"}</span></div>`;
 }
 const PILOT_ACTS = ["Mining", "Salvage", "Cargo hauling", "Bounty hunting", "Mercenary", "Combat / PvP", "Exploration", "Medical / rescue", "Racing", "Missions (any)", "Piracy", "Just flying together"];
 // /api/profile (NEW in v3): GET {profile: {...} | null}, POST {profile} saves it in the app's data folder. Never sent anywhere.
@@ -3666,7 +3760,7 @@ async function renderPC() {
   const fed = nowData ? (sharing(nowData) || {}).fed_week : 0;
   const chip = t => `<span class="dchip">${esc(t)}</span>`;
   // 8 Nov (Ray): the pilot card button, prominent, at the top beside the card
-  const bragStrip = `<div class="pc-brag"><button class="btn" type="button" data-brag="pilot">${BC_SVG.brag}Make a pilot card</button><p>A picture of your pilot logbook to post where your mates are. Made on this PC, nothing uploaded.</p></div>`;
+  const bragStrip = `<div class="pc-brag"><button class="btn brag-cta" type="button" data-brag="pilot">${BC_SVG.brag}Make a pilot card</button><p>A picture of your pilot logbook to post where your mates are. Made on this PC, nothing uploaded.</p></div>`;
   const view = empty ? `<section class="sec pilot">${bragStrip}<div class="frame pcard pempty">
       <div class="pc-top">${picBox(p)}
         <div class="pc-id"><span class="eyebrow">Pilot</span><h2>Set up your pilot card</h2><div class="pc-sub">Handle, ships, what you fly for. It stays on this PC and is never sent anywhere.</div></div>
@@ -3682,11 +3776,11 @@ async function renderPC() {
       ${p.bio ? `<p class="pc-bio">${esc(p.bio)}</p>` : ""}
       <div class="pc-grid">
         <div class="pc-main"><span class="eyebrow">Main ship</span><b>${esc(p.main || "Not picked yet")}</b>
-          <div class="shot"><span>${esc(p.main || "Your ship")}</span></div></div>
+          ${shipPanel(p.main, L)}</div>
         <div class="pc-side">
           <div><span class="eyebrow">Also flies</span><div class="dchips">${(p.ships || []).filter(s => s !== p.main).map(chip).join("") || `<span class="sub">Nothing else yet</span>`}</div></div>
           <div><span class="eyebrow">In the 'verse</span><div class="dchips">${(p.acts || []).map(chip).join("") || `<span class="sub">Pick what you do</span>`}</div></div>
-          ${p.fav ? `<div><span class="eyebrow">Favourite place</span><b>${esc(p.fav)}</b></div>` : ""}
+          ${p.fav ? `<div><span class="eyebrow">Favourite place</span><b>${esc(placeCommon(p.fav, L))}</b></div>` : ""}
         </div></div>
       <p class="sub pc-note">Your profile stays on this PC. It's never sent anywhere.</p></div>` + logbook() + `</section>`;
   // 1.5.2 extras round: the logbook head with a spot for the pilot card, the existing tiles, then three groups
@@ -3737,7 +3831,7 @@ async function renderPC() {
     </dl></div></section>
   <section class="sec"><h3>Your frame rate by location <span>from overlay readings this run</span></h3>
     ${d.by_location.length ? `<div class="frame tscroll"><table><thead><tr><th>Location</th><th class="num">Your fps</th><th class="num">Readings</th></tr></thead><tbody>
-      ${d.by_location.map(r => `<tr><td><code>${esc(r.location)}</code></td><td class="num">${r.client_fps}</td><td class="num">${r.readings}</td></tr>`).join("")}</tbody></table></div>`
+      ${d.by_location.map(r => `<tr><td>${esc(r.location)}</td><td class="num">${r.client_fps}</td><td class="num">${r.readings}</td></tr>`).join("")}</tbody></table></div>`
       : `<div class="empty"><h3>No readings yet</h3><p>Turn on <code>r_displayinfo 3</code> in game.</p></div>`}
     ${d.vram_total_mb ? `<p class="sub">Video memory in use: ${d.vram_used_mb} of ${d.vram_total_mb} MB.</p>` : ""}
   </section>`;
@@ -3836,7 +3930,7 @@ async function renderSetup() {
   ${S0.share ? "" : `<div class="sec sgshare"><span class="txl"><i></i></span><p><b>Your shard could be on the board.</b> Sharing sends one short summary every 5 minutes, never your handle. You see exactly what went, every time.</p><a class="btn sm" href="#commCard" data-jump="commCard">Review sharing</a></div>`}
   <nav class="sgnav" aria-label="Set up sections">${[["sgGame", "Game folder"], ["sgSwitch", "Console switches"], ["sgOverlay", "Overlay"], ["sgQr", "QR code"], ["sgShots", "Screenshots"], ["sgRead", "Readings"], ["commCard", "Sharing"], ["markCard", "Mark this moment"], ["alertCard", "Alerts"], ["updCard", "Updates"], ["libCard", "Library"], ["errCard", "Error reports"]].map(([id, t]) => `<a href="#${id}" data-jump="${id}">${t}</a>`).join("")}</nav>
   ${u.game_found === false ? `<div class="sec notice rust"><p><b>Game folder not found yet,</b> so the USER.cfg buttons are off until it is. See the Game folder box below.</p></div>` : ""}
-  <section class="sec"><button class="btn ghost" data-protected="true" id="redoWiz">Go through the set-up questions again</button></section>
+  <section class="sec redo"><div><h3>Run Set up again</h3><p class="sub">Every Set up question from the start: game folder, sharing, alerts, updates and your pilot card. Your answers now are kept until you change them.</p></div><button class="btn" data-protected="true" id="redoWiz">Run Set up again</button></section>
   <section class="sec"><h3>Turn on the game's information <span>two console settings from CIG, on only when you want them</span></h3>
     <p class="intro">The app reads what the game itself puts on screen and in Game.log. Two settings give it (and the Issue Council) far more to work with.
     Open the console in game with the <kbd>~</kbd> key (the key left of 1, under Esc), type the command and press Enter. To have them on every time, use the USER.cfg buttons.</p></section>
@@ -4173,7 +4267,7 @@ async function openWizard(all) {
   w.className = "wiz"; w.id = "wiz"; w.setAttribute("role", "dialog"); w.setAttribute("aria-modal", "true"); w.setAttribute("aria-labelledby", "wzTitle");
   const many = qs.length === 1 ? "1 new question" : `${qs.length} ${isNew ? "new " : ""}questions`;
   w.innerHTML = `<div class="box"><header><h2 id="wzTitle">${onlyPilot ? "New in this version: your pilot card" : isNew ? `This version brings ${many}` : `Before you start: ${qs.length} quick questions`}</h2>
-    <p>${onlyPilot ? "Your earlier answers are kept. This one's optional: fill it in or skip it, and it won't ask again. You can change it any time on My pilot." : `${isNew ? "Your earlier answers are kept. " : ""}Each one needs an answer, so nothing gets missed. You can change any of them later on the Set up tab.`}</p></header>
+    <p>${onlyPilot ? "You've done Set up before. This version adds one step: your pilot card. Your other answers are kept, and you can run the whole Set up again any time from the Set up tab." : `${isNew ? "Your earlier answers are kept. " : ""}Each one needs an answer, so nothing gets missed. You can change any of them later on the Set up tab.`}</p></header>
     ${qs.map(([k, eb, h, p, a], i) => `<section class="wq" id="wq-${k}"><span class="qn">${i + 1} of ${qs.length} · ${eb}</span><h3>${h}</h3><p>${p}</p>${a}</section>`).join("")}
     <footer><span class="sub" id="wzLeft"></span><span class="grow"></span><button class="btn big" data-protected="true" id="wzDone" disabled>Save and start</button></footer></div>`;
   document.body.appendChild(w);
@@ -4200,9 +4294,21 @@ async function openWizard(all) {
     const choices = {...A, game: A.game === "other" ? $("wzPath").value.trim() : A.game};
     $("wzDone").disabled = true;
     try {
-      if (A.pilot === "done" && readPilot) await api("/api/profile", {profile: readPilot()});   // the card first, so a bad handle stops here
+      // The pilot card never holds up the rest of Set up: if it won't save (a picture, say), try it without the picture,
+      // and if that won't either, finish Set up and say so
+      let note = "";
+      if (A.pilot === "done" && readPilot) {
+        const card = readPilot();
+        try { await api("/api/profile", {profile: card}); }
+        catch (e) {
+          if (card.pic) {
+            try { await api("/api/profile", {profile: {...card, pic: ""}}); note = ` Your pilot card is saved without the picture (${e.message.replace(/\.$/, "")}). Add one on My pilot.`; }
+            catch (e2) { note = ` Your pilot card didn't save (${e2.message.replace(/\.$/, "")}). Fill it in on My pilot.`; }
+          } else note = ` Your pilot card didn't save (${e.message.replace(/\.$/, "")}). Fill it in on My pilot.`;
+        }
+      }
       const r = await api("/api/setup", {choices});
-      toast(r.message); w.remove(); document.body.style.overflow = ""; show(tab);
+      toast(r.message + note, !!note); w.remove(); document.body.style.overflow = ""; show(tab);
     } catch (e) { toast(e.message, true); $("wzDone").disabled = false; }
   };
   update();
@@ -4600,12 +4706,14 @@ const BRAG = (() => {
   function busy(on) { if (!dlgEl) return; dlgEl.querySelectorAll("[data-bm-save], [data-bm-copy]").forEach(b => { if (on) { b.dataset.was = b.disabled ? "1" : ""; b.disabled = true; } else b.disabled = b.dataset.was === "1"; }); }
 
   // ---------------- the Brag buttons: wherever a page leaves a [data-brag-spot] ----------------
-  const LABEL = { session: "Brag about this session", week: "Brag", blueprints: "Brag about your collection", blueprint: "Brag about this one", licence: "Brag about this one", pilot: "Make a pilot card" };
+  // 8 Nov (Ray: "brag button needs to be more prominent"): every spot is the amber main button, saying what it does
+  const LABEL = { session: "Make a brag card", week: "Make a brag card", blueprints: "Make a brag card", blueprint: "Make a brag card", licence: "Make a brag card", pilot: "Make a pilot card" };
+  const HINT = { session: "A picture of this session to post for your mates", week: "A picture of your week to post for your mates", blueprints: "A picture of your blueprint collection", blueprint: "A picture of this blueprint", licence: "A picture of this licence" };
   function spots() {
     document.querySelectorAll("[data-brag-spot]:empty").forEach(s => {
       const k = s.dataset.bragSpot; if (!LABEL[k]) return;
       const id = s.dataset.ssId || s.dataset.bpId || s.dataset.licId || "";
-      s.innerHTML = `<button type="button" class="vr-btn is-sm brag-btn" data-brag="${esc(k)}" data-brag-id="${esc(id)}">${BC_SVG.brag}${LABEL[k]}</button>`;
+      s.innerHTML = `<button type="button" class="btn brag-cta" data-brag="${esc(k)}" data-brag-id="${esc(id)}" title="${esc(HINT[k] || "")}">${BC_SVG.brag}${LABEL[k]}</button>`;
     });
   }
   let queued = false;

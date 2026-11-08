@@ -206,6 +206,8 @@ def start_server(app, open_browser=False):
                             break
                         left -= len(chunk)
                     self.close_connection = True
+                    if self.path == "/api/profile":
+                        return self._send(413, {"error": "That picture is too big to save. Pick a smaller one."})
                     return self._send(413, {"error": "That's too big."})
                 body = json.loads(self.rfile.read(n) or b"{}")
             except Exception:

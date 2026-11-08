@@ -101,7 +101,7 @@ def test_pick_lists_are_real_data():
         assert s in L["ships"]
     names = [x["name"] for x in L["places"]]
     assert len(names) > 500 and "Orison" in names and "Area18" in names
-    assert all(set(x) == {"name", "label"} and x["name"] for x in L["places"])
+    assert all(set(x) == {"name", "label", "also", "tier"} and x["name"] for x in L["places"])
 
 
 def test_setup_asks_for_the_pilot_card_once():
@@ -117,7 +117,7 @@ def test_pilot_card_button_is_up_top_with_its_line():
 
 
 def test_only_log_lines_and_codes_are_mono_on_my_pilot():
-    for sel in (".pc-id h2", ".pc-main .shot span", ".shot span"):
+    for sel in (".pc-id h2", ".pc-main .shot .sn", ".pc-main .shot .sl"):
         rule = re.search(re.escape(sel) + r" \{([^}]*)\}", HTML).group(1)
         assert "--mono" not in rule, sel
 

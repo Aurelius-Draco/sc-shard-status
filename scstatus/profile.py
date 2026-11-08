@@ -23,6 +23,34 @@ EXT = {"png": "png", "jpeg": "jpg", "webp": "webp", "gif": "gif"}
 MIME = {v: k for k, v in EXT.items()}
 
 
+PIC_SIDE = 512                  # a picture is kept at up to 512 px on its longest side
+
+
+def shrink(data, side=PIC_SIDE, quality=85):
+    """A picture made smaller on this PC: longest side `side` px, saved as JPEG. The page shrinks pictures before it
+    sends them; this catches any that still arrive too big. None when it can't be read (OpenCV is part of the app)."""
+    try:
+        import cv2
+        import numpy as np
+    except Exception:
+        return None
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
+    if img is None:
+        return None
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif img.shape[2] == 4:                       # see-through parts go on the app's dark background
+        a = img[:, :, 3:4].astype("float32") / 255.0
+        bg = np.empty_like(img[:, :, :3]); bg[:] = (0x12, 0x0e, 0x0b)
+        img = (img[:, :, :3] * a + bg * (1 - a)).astype("uint8")
+    h, w = img.shape[:2]
+    k = side / max(h, w)
+    if k < 1:
+        img = cv2.resize(img, (max(1, round(w * k)), max(1, round(h * k))), interpolation=cv2.INTER_AREA)
+    ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    return bytes(buf) if ok else None
+
+
 def _text(v, n):
     return " ".join(v.split())[:n] if isinstance(v, str) else ""
 
@@ -49,6 +77,9 @@ def clean(p):
     out["main"] = p.get("main") if p.get("main") in out["ships"] else (out["ships"][0] if out["ships"] else "")
     if not out["handle"]:
         raise ValueError("Add your RSI handle first.")
+    if out["fav"]:                                # saved as the name players use (Orison, not Stanton2_Orison)
+        from .pilotlists import common_name
+        out["fav"] = common_name(out["fav"]) or out["fav"]
     pic = p.get("pic")
     picture = None
     if isinstance(pic, str) and pic:
@@ -59,9 +90,12 @@ def clean(p):
             data = base64.b64decode(re.sub(r"\s", "", m.group(2)), validate=True)
         except ValueError:
             raise ValueError("That picture couldn't be read.")
+        ext = EXT[m.group(1)]
         if len(data) > PIC_MAX:
-            raise ValueError("That picture is too big. Try one under about 900 KB.")
-        picture = (data, EXT[m.group(1)])
+            data, ext = shrink(data), "jpg"
+            if not data or len(data) > PIC_MAX:
+                raise ValueError("That picture is too big and couldn't be made smaller. Pick another one, a PNG or JPEG works best.")
+        picture = (data, ext)
     return out, picture
 
 

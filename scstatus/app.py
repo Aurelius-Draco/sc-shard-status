@@ -920,9 +920,18 @@ class App:
                     break
         with self.lock:
             snaps = [x for x in self.snaps if x.get("client_fps") is not None]
-        by_loc = {}
+        # By place, in the names players use (Orison, Seraphim Station): the game's codes for one place (Stanton2_Orison
+        # and a misread of it, say) come together under one name
+        from .pilotlists import place_name
+        by_loc, named = {}, {}
         for x in snaps:
-            by_loc.setdefault(x.get("location") or "unknown", []).append(x["client_fps"])
+            code = x.get("location") or ""
+            if code not in named:
+                try:
+                    named[code] = place_name(code, self.places) if code else "Not known"
+                except Exception:
+                    named[code] = code or "Not known"
+            by_loc.setdefault(named[code], []).append(x["client_fps"])
         import statistics as st
         locs = sorted(({"location": k, "client_fps": round(st.median(v)), "readings": len(v)}
                        for k, v in by_loc.items()), key=lambda r: -r["readings"])[:15]
