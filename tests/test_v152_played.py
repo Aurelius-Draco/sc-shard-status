@@ -158,3 +158,40 @@ def test_the_pirate_question_only_follows_a_ship_lost_in_combat():
     assert g.pirate_offer(now) is None                       # you self-destructed: nobody to report
     s.vehicles_lost.append({"ts": now - 20, "ship": "DRAK_Cutlass_Black", "reason": "Combat"})
     assert g.pirate_offer(now)["ship"] == "DRAK Cutlass Black"
+
+
+def test_licences_contract_kinds_stats_and_your_week():
+    mid = "0d902cfe-0627-4dd2-a27c-320499269dbc"
+    s = _feed([
+        _note("13:30:00.000", "Contract Accepted: Tracker License Certification <EM4>[50 Rep]</EM4>", mid),
+        _note("13:41:00.000", "Contract Complete: Tracker License Certification <EM4>[50 Rep]</EM4>", mid),
+        _note("13:41:05.000", "Journal Entry Added: Tracker License Earned (MRT)"),
+        _note("13:50:00.000", "Journal Entry Added: Jurisdiction: Made Up Industries"),
+    ])
+    lic = played.licences([], s)
+    assert [(l["name"], l["contract"]) for l in lic] == [("Tracker License (MRT)", "Tracker License Certification")]
+    assert played.card(s.summary())["journal"] == ["Tracker License Earned (MRT)"]          # a jurisdiction isn't a licence
+    k = played.contract_kind
+    assert k("Verified Bounty: Made Up | VLRT (Solo Craft, Minimal Support)") == "Verified Bounty (VLRT)"
+    assert k("Reclusive Bounty: Made Up | High Risk") == "Reclusive Bounty (High Risk)"
+    assert k("Neutralize UEE Threat: Madeup Person") == "Neutralize UEE Threat"
+    assert k('New Defense Contract: Made "Nick" Up') == "New Defense Contract"
+    assert k("Mercenary: Retake Outpost") == "Mercenary: Retake Outpost" and k("Data Transfer") == "Data Transfer"
+    summ = {"contracts": [
+        {"name": "a", "title": "Verified Bounty: A B | HRT", "accepted": 1, "ended": 601, "result": "complete", "rep": "rep by rank"},
+        {"name": "b", "title": "Verified Bounty: C D | HRT", "accepted": 1, "ended": 1201, "result": "complete", "rep": "rep by rank"},
+        {"name": "c", "title": "Verified Bounty: E F | HRT", "accepted": 0, "ended": 300, "result": "failed", "rep": "rep by rank"},
+        {"name": "d", "title": "Data Transfer", "accepted": 0, "ended": 900, "result": "complete", "rep": "100 Rep"}],
+        "blueprints": [{"name": "Aves Arms", "ts": 905, "contract": "Data Transfer"}]}
+    st = {r["kind"]: r for r in played.contract_stats([summ])}
+    assert st["Verified Bounty (HRT)"]["completed"] == 2 and st["Verified Bounty (HRT)"]["success"] == 67
+    assert st["Verified Bounty (HRT)"]["typical_min"] == 20
+    assert st["Data Transfer"]["blueprints"] == [{"name": "Aves Arms", "times": 1}] and st["Data Transfer"]["rep"] == ["100 Rep"]
+    now = time.time()
+    cards = [{"id": "1", "start": now - 3600, "minutes": 90, "completed": 5, "accepted": 6, "blueprints": [1], "journal": [],
+              "problems": [1, 2], "score": 80, "day": "Sun 8 Nov", "word": "Healthy"},
+             {"id": "2", "start": now - 8 * 86400, "minutes": 60, "completed": 2, "accepted": 2, "blueprints": [], "journal": [],
+              "problems": [], "score": None, "day": "Sat 31 Oct", "word": "No score"}]
+    w = played.week(cards, now)
+    assert (w["this"]["sessions"], w["this"]["minutes"], w["this"]["contracts"], w["this"]["score"]) == (1, 90, 5, 80)
+    assert w["this"]["best"]["id"] == "1" and w["last"]["score"] is None and w["last"]["contracts"] == 2

@@ -2335,7 +2335,7 @@ const VR = (() => {
     const wantBox = `<section class="bp-want" aria-labelledby="bp-want-h"><div class="bp-sec-h"><h3 id="bp-want-h" style="margin:0;font:700 14px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--amber)">Want list</h3><span>${st.want.length ? `${st.want.length} wanted · they move to earned when you get them` : "Nothing on it yet"}</span></div>
         ${st.want.length ? `<div class="bp-grid" role="list">${st.want.map(n => blueprintCard({ n }, { state: "wanted" })).join("")}</div>` : ""}
         <form data-wantform><input class="vr-inp" name="w" maxlength="60" placeholder="Add a blueprint you want, e.g. F55 LMG" aria-label="Blueprint you want"><button class="vr-btn" type="submit">Add</button></form></section>`;
-    if (!total) return `<div class="vr-empty">${MARK()}<b>No blueprints yet</b><span class="vr-sub">No blueprints yet. They show here as you earn them in game.</span></div>${wantBox}${note()}`;
+    if (!total) return `<div class="vr-empty">${MARK()}<b>No blueprints yet</b><span class="vr-sub">No blueprints yet. They show here as you earn them in game.</span></div>${wantBox}${licencesSec(st)}${note()}`;
     const shown = earned.filter(b => (!q || b.n.toLowerCase().includes(q)) && (st.g === null || b.g === st.g));
     const chips = [`<button type="button" class="bp-gchip" data-g="" aria-pressed="${st.g === null}">All<b>${total}</b></button>`]
       .concat(GROUPS.map((g, i) => `<button type="button" class="bp-gchip" data-g="${i}" aria-pressed="${st.g === i}">${esc(g)}<b>${earned.filter(b => b.g === i).length}</b></button>`)).join("");
@@ -2345,7 +2345,28 @@ const VR = (() => {
       <div class="bp-groups" role="group" aria-label="Groups">${chips}</div>
       ${wantBox}
       ${secs || `<div class="vr-empty"><b>Nothing matches “${esc(st.q)}”</b><button class="vr-btn is-sm" type="button" data-bpclear>Clear search</button></div>`}
+      ${licencesSec(st)}
       ${note()}`;
+  }
+  // Licences, permits and other journal entries the game writes when you earn them. Same card family as blueprints,
+  // with a licence mark (a pass with a gold band) instead of the drafting sheet. Port addition, not in the 8 Nov round.
+  const LIC = (cls = "bp-mark") => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">
+<rect x="2" y="5" width="28" height="22" rx="4" fill="#1c2a1f" stroke="#ffd166" stroke-width="1.3"/>
+<rect x="2" y="9" width="28" height="4" fill="#f2a93b" opacity=".85"/>
+<circle cx="10" cy="20" r="3.4" fill="none" stroke="#e7f3ff" stroke-width="1.5"/>
+<path d="M16 18.5h9M16 22h6" stroke="#e7f3ff" stroke-width="1.5" stroke-linecap="round"/>
+</svg>`;
+  function licencesSec(st) {
+    const q = st.q.trim().toLowerCase(), all = st.licences || [], list = all.filter(l => !q || l.n.toLowerCase().includes(q));
+    if (!all.length || (q && !list.length)) return "";
+    return `<section class="bp-sec" aria-labelledby="bpl-h"><div class="bp-sec-h"><h3 id="bpl-h">Licences and permits</h3><span>${list.length}</span></div>
+      <div class="bp-grid" role="list">${list.map((l, k) => `<button type="button" class="bp-card${l.fresh ? " is-new" : ""}${l.fresh && st.seen.has("lic:" + l.id) ? " is-seen" : ""}" data-lic="${esc(l.id)}" role="listitem" style="--i:${k}" aria-label="${esc(l.n)}, earned ${esc(l.d)}">
+        <span class="bp-in">${LIC()}<span class="bp-name">${esc(l.n)}</span>${l.fresh ? `<span class="vr-chip bp-new">New</span>` : ""}<span class="bp-sheen" aria-hidden="true"></span></span></button>`).join("")}</div></section>`;
+  }
+  function licenceDetail(l) {
+    return `<div class="bp-det-head">${LIC()}<div><div class="vr-label" style="color:var(--amber)">Licence or permit</div><h2 id="dlg-h">${esc(l.n)}</h2></div></div>
+      <dl class="vr-dl"><dt>Earned</dt><dd>${esc(l.d)}${l.times > 1 ? ` <span class="vr-sub">(the game logged it ${l.times} times)</span>` : ""}</dd><dt>From</dt><dd>${l.c ? esc(l.c) : `<span class="vr-sub">Not known. The log didn't show a contract finishing just before.</span>`}</dd></dl>
+      <span class="vr-sub">From the line “Journal Entry Added: ${esc(l.raw || l.n)}” in your game log.</span>`;
   }
   function blueprintDetail(b) {
     return `<div class="bp-det-head">${MARK()}<div><div class="vr-label" style="color:var(--amber)">Blueprint</div><h2 id="dlg-h">${esc(b.n)}</h2></div></div>
@@ -2448,7 +2469,7 @@ const VR = (() => {
   document.addEventListener("pointerout", e => { const c = e.target.closest && e.target.closest(".vr .bp-card"); if (c && !c.contains(e.relatedTarget)) { c.style.setProperty("--x", 0); c.style.setProperty("--y", 0); } });
   setInterval(() => document.querySelectorAll(".vr [data-elapsed]").forEach(n => n.textContent = elapsed({ liveStart: +n.dataset.elapsed })), 15000);
 
-  return { MARK, IC, P, blueprintCard, blueprintsTab, blueprintDetail, fromApi, sessionCard, sessionsPage, sessionReport, fromCard, dlg, closeDlg, vtoast, host, setGroups: g => { if (g && g.length) GROUPS = g; } };
+  return { MARK, LIC, licenceDetail, IC, P, blueprintCard, blueprintsTab, blueprintDetail, fromApi, sessionCard, sessionsPage, sessionReport, fromCard, dlg, closeDlg, vtoast, host, setGroups: g => { if (g && g.length) GROUPS = g; } };
 })();
 
 /* ---------- Your game settings (Set up) and the flag on Now: Claude Design round, 8 Nov 2026 ----------
@@ -2542,17 +2563,19 @@ function bindSettingsFlag() {
 }
 
 /* ---------- Blueprints tab ---------- */
-const bpState = { q: "", g: null, earned: [], want: [], seen: new Set() };
+const bpState = { q: "", g: null, earned: [], want: [], licences: [], seen: new Set() };
 async function renderBlueprints() {
   const d = await api("/api/blueprints");
   if (tab !== "blueprints") return;
   VR.setGroups(d.groups);
   bpState.earned = d.earned.map(VR.fromApi); bpState.want = d.want;
+  bpState.licences = (d.licences || []).map(l => ({ id: l.id, n: l.name, raw: l.raw, d: l.ts ? new Date(l.ts * 1000).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).replace(",", "") : "", c: l.contract, times: l.times, fresh: l.fresh }));
   drawBlueprints();
 }
 function drawBlueprints(keep) {
   $("view").innerHTML = `<section class="sec vr"><div class="bp-tab" style="display:flex;flex-direction:column;gap:18px">${VR.blueprintsTab(bpState)}</div></section>`;
   bpState.earned.filter(b => b.fresh).forEach(b => bpState.seen.add(b.id));        // flash once, not on every redraw
+  bpState.licences.filter(l => l.fresh).forEach(l => bpState.seen.add("lic:" + l.id));
   if (keep) { const i = $("view").querySelector("[data-bpq]"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
   const v = $("view");
   v.querySelector("[data-bpq]") && (v.querySelector("[data-bpq]").oninput = e => { bpState.q = e.target.value; drawBlueprints(true); });
@@ -2568,6 +2591,7 @@ function drawBlueprints(keep) {
     if (t.matches("[data-bpclear]")) { bpState.q = ""; return drawBlueprints(); }
     if (t.matches("[data-unwant]")) { try { const r = await api("/api/blueprints/unwant", { name: t.dataset.unwant }); bpState.want = r.want; drawBlueprints(); } catch (x) { toast(x.message, true); } return; }
     if (t.dataset.bp !== undefined) { const b = bpState.earned.find(x => x.id === t.dataset.bp); if (b) VR.dlg(VR.blueprintDetail(b)); }
+    if (t.dataset.lic !== undefined) { const l = bpState.licences.find(x => x.id === t.dataset.lic); if (l) VR.dlg(VR.licenceDetail(l)); }
   };
 }
 
@@ -2579,11 +2603,42 @@ async function drawSessions() {
   if (!$("ssList")) return;
   $("ssCount").textContent = ssCache.total ? `${ssCache.total} ${ssCache.total === 1 ? "session" : "sessions"} · newest first · one card per session (two in a day means two cards, marked 1st and 2nd)` : "";
   el.innerHTML = VR.sessionsPage(ssCache);
+  const wk = $("ssWeek"); if (wk) wk.innerHTML = ssCache.week && ssCache.page === 0 ? weekStrip(ssCache.week) : "";
   el.onclick = e => {
     const t = e.target.closest("button"); if (!t || !el.contains(t)) return;
     if (t.dataset.pg !== undefined) { ssPage = +t.dataset.pg; drawSessions(); return; }
     if (t.dataset.ss !== undefined) openSession(t.dataset.ss);
   };
+}
+// Your week: the last 7 days against the 7 before, from the session cards. Port addition, built from the round's parts
+function weekStrip(w) {
+  const a = w.this, b = w.last;
+  if (!a.sessions && !b.sessions) return "";
+  const hrs = m => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
+  const vs = (x, y, unit = "") => { if (!b.sessions || y == null || x == null || x === y) return ""; const up = x > y;
+    return ` <span class="vr-sub" style="color:${up ? "var(--teal)" : "var(--rust)"}">${up ? "▲" : "▼"} ${Math.abs(x - y)}${unit} on last week</span>`; };
+  const { IC, P } = VR;
+  return `<section class="ss-box" aria-label="Your week"><span class="vr-label">Your week · the last 7 days${b.sessions ? " against the 7 before" : ""}</span>
+    <ul class="ss-stats" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+      <li>${IC(P.star)}<span><b>${hrs(a.minutes)}</b> played, ${a.sessions} ${a.sessions === 1 ? "session" : "sessions"}${b.sessions ? `<br><span class="vr-sub">${hrs(b.minutes)} the week before</span>` : ""}</span></li>
+      <li>${IC(P.contract)}<span><b>${a.contracts} of ${a.accepted}</b> contracts${vs(a.contracts, b.contracts)}</span></li>
+      <li class="${a.blueprints ? "is-gold" : ""}">${IC(P.bp)}<span><b>${a.blueprints}</b> ${a.blueprints === 1 ? "blueprint" : "blueprints"}${a.licences ? `, <b>${a.licences}</b> ${a.licences === 1 ? "licence" : "licences"}` : ""}</span></li>
+      <li>${IC(P.check)}<span>${a.score != null ? `Average health <b>${a.score}</b>${vs(a.score, b.score)}` : "No health score this week"}${a.best ? `<br><span class="vr-sub">Best ${esc(a.best.day)} (${a.best.score})${a.worst && a.worst.id !== a.best.id ? `, worst ${esc(a.worst.day)} (${a.worst.score})` : ""}</span>` : ""}</span></li>
+      <li class="${a.problems ? "is-bad" : ""}">${IC(P.prob)}<span><b>${a.problems}</b> ${a.problems === 1 ? "problem" : "problems"} hit${vs(a.problems, b.problems)}</span></li>
+    </ul></section>`;
+}
+// Your contracts: per kind, from every session's log
+async function drawContracts() {
+  const el = $("ctStats"); if (!el) return;
+  let d; try { d = await api("/api/contracts"); } catch (e) { el.innerHTML = `<div class="sub">${esc(e.message)}</div>`; return; }
+  if (!$("ctStats")) return;
+  const k = d.kinds || [];
+  if (!k.length) { el.innerHTML = `<div class="empty"><h3>No contracts yet</h3><p>Take a contract in game and it shows here.</p></div>`; return; }
+  el.innerHTML = `<div class="frame tscroll"><table><thead><tr><th>Kind</th><th class="num">Done</th><th class="num">Failed</th><th class="num">Success</th><th class="num">Typical time</th><th>Rep</th><th>Blueprints from it</th><th>Last</th></tr></thead><tbody>
+    ${k.map(r => `<tr><td>${esc(r.kind)}</td><td class="num">${r.completed}</td><td class="num ${r.failed ? "bad" : ""}">${r.failed}</td><td class="num">${r.success != null ? r.success + "%" : "–"}</td><td class="num">${r.typical_min != null ? r.typical_min + " min" : "–"}</td>
+      <td>${esc(r.rep.join(", ") || "–")}</td><td>${r.blueprints.length ? r.blueprints.map(b => esc(b.name) + (b.times > 1 ? ` ×${b.times}` : "")).join(", ") : `<span class="sub">none yet</span>`}</td><td>${r.last ? dtm(r.last) : ""}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="sub">Typical time is from accepting to the game saying complete. Rep shows only where the game states one amount; “rep by rank” means a ladder. Blueprints are the ones that arrived within two minutes of that kind of contract finishing.</p>`;
 }
 async function openSession(id) {
   let c;
@@ -2638,7 +2693,9 @@ async function renderHistory() {
   const sh = d.shards, ss = d.sessions;
   $("view").innerHTML = `
   <section class="sec vr" style="display:flex;flex-direction:column;gap:18px"><div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 class="vr-h">Your sessions</h3><span class="vr-sub" id="ssCount"></span></div>
+    <div id="ssWeek"></div>
     <div id="ssList" style="display:flex;flex-direction:column;gap:18px"></div></section>
+  <section class="sec"><h3>Your contracts <span>by kind, from your game logs on this PC</span></h3><div id="ctStats"><div class="sub">Reading…</div></div></section>
   <section class="sec"><h3>Shards you've been on <span>from overlay readings</span></h3>
     ${sh.length ? `<div class="frame tscroll"><table><thead><tr><th>Shard</th><th class="num">Server fps</th><th class="num">Lowest</th><th class="num">Players</th><th class="num">Ping</th><th class="num">Readings</th><th>Last on it</th></tr></thead><tbody>
     ${sh.map(r => `<tr><td><code>${esc(r.shard_id)}</code></td><td class="num ${r.server_fps < 10 ? "bad" : ""}">${fmt(r.server_fps, 1)}</td><td class="num">${fmt(r.server_fps_low, 1)}</td><td class="num">${fmt(r.pop_shard)}</td><td class="num">${fmt(r.ping_ms)} ms</td><td class="num">${r.readings}</td><td>${dtm(r.last)}</td></tr>`).join("")}
@@ -2655,7 +2712,7 @@ async function renderHistory() {
     </tbody></table></div>` : `<div class="empty"><h3>No past sessions yet</h3><p>They're read from the logbackups folder in the background.</p></div>`}
   </section>`;
   barChart($("cHour"), d.hourly, "server_fps", "var(--amber)", "fps");
-  drawSessions();
+  drawSessions(); drawContracts();
 }
 
 /* ---------- My PC ---------- */

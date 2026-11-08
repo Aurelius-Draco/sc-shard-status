@@ -99,6 +99,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.history())
                 if path == "/api/news":
                     return self._send(200, {"news": list(app.news)[-5:]})
+                if path == "/api/contracts":
+                    return self._send(200, app.contracts())
                 if path == "/api/blueprints":
                     return self._send(200, app.blueprints())
                 if path == "/api/sessions":

@@ -733,6 +733,11 @@ class App:
     def blueprints(self):
         earned = played.blueprints(self.store.session_data(), self.session)
         return {"earned": earned, "want": self.want.get(), "groups": played.GROUPS, "total": len(earned),
+                "licences": played.licences(self.store.session_data(), self.session),
+                "import_status": self.import_status}
+
+    def contracts(self):
+        return {"kinds": played.contract_stats(self.store.session_data(), self.session),
                 "import_status": self.import_status}
 
     def want_add(self, name):
@@ -820,16 +825,22 @@ class App:
         pages = max(1, -(-total // per))
         page = max(0, min(int(page or 0), pages - 1))
         out = []
+        recent = time.time() - 14 * 86400
+        week_cards = []
         for i, x in enumerate(rows + [("past", p, None, None, False) for p in past]):
-            if i < page * per or i >= (page + 1) * per:
+            on_page = page * per <= i < (page + 1) * per
+            if not on_page and not (page == 0 and (x[1].get("start") or 0) >= recent):
                 continue
             kind, summ, snaps, probs, running = x
             sid = played.session_id(summ)
             end = time.time() if running else (summ.get("end") or summ.get("start"))
             if snaps is None:
                 snaps = self.store.snapshots_between(summ["start"], end)
-            out.append(played.card(summ, snaps, notes.get(sid), self._marks_between(summ["start"], end), probs,
-                                   live=running))
+            c = played.card(summ, snaps, notes.get(sid), self._marks_between(summ["start"], end), probs, live=running)
+            if (summ.get("start") or 0) >= recent:
+                week_cards.append(c)
+            if on_page:
+                out.append(c)
         # 1st and 2nd today: two sessions on one day are two cards
         days = {}
         for c in out:
@@ -838,7 +849,8 @@ class App:
             if len(cs) > 1:
                 for n, c in enumerate(sorted(cs, key=lambda c: c["start"] or 0), 1):
                     c["same_day"] = {1: "1st", 2: "2nd", 3: "3rd"}.get(n, f"{n}th") + " that day"
-        return {"sessions": out, "page": page, "pages": pages, "total": total, "import_status": self.import_status}
+        return {"sessions": out, "page": page, "pages": pages, "total": total, "import_status": self.import_status,
+                "week": played.week(week_cards) if page == 0 else None}
 
     def session_report(self, sid):
         for c in self.sessions_cards(0, per=10 ** 6)["sessions"]:

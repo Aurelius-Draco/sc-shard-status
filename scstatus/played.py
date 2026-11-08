@@ -10,6 +10,8 @@ import json
 import re
 import time
 
+from .logparse import contract_title
+
 GROUPS = ["Armour", "FPS weapons", "Magazines and batteries", "Ship weapons", "Other"]
 
 # Checked against the 34 blueprints in Ray's logs (Oct and Nov 2026). Order matters: a "Pistol Magazine" is a
@@ -176,7 +178,7 @@ def card(summary, snaps=(), notes=None, marks=(), problems=None, live=False, now
                                                                              "withdrawn": "withdrawn"}
                        .get(c.get("result"), c.get("result")), "rep": c.get("rep")} for c in contracts],
         "blueprints": [{"name": b["name"], "id": _bp_id(b["name"]), "group": group_of(b["name"])} for b in bps],
-        "journal": [j["text"] for j in summary.get("journal") or []],
+        "journal": [j["text"] for j in summary.get("journal") or [] if LICENCE.search(j.get("text") or "")],
         "problems": problems if problems is not None else summary.get("problems") or [],
         "lost": [{"ship": ship_name(x.get("ship")), "reason": reason_word(x.get("reason"))}
                  for x in summary.get("ships_lost") or []],
@@ -210,3 +212,146 @@ def problems_of(path, library, session, snaps=()):
 def time_label(ts):
     d = _local(ts)
     return _clock(d) if d else ""
+
+
+# --------------------------------------------------------------------------
+# Licences and permits (journal entries), contract stats and your week
+# --------------------------------------------------------------------------
+
+def licence_name(text):
+    """'Tracker License Earned (MRT)' -> 'Tracker License (MRT)'."""
+    return re.sub(r"\s+", " ", re.sub(r"\s+Earned\b", "", text or "", flags=re.I)).strip()
+
+
+def licences(summaries, live=None):
+    """Every licence, permit and journal entry, first time first: [{id, name, raw, ts, times, contract, fresh}]."""
+    rows = []
+    for s in summaries:
+        for j in s.get("journal") or []:
+            if LICENCE.search(j.get("text") or ""):
+                rows.append((j, s, False))
+    if live is not None:
+        for j in live.journal:
+            if LICENCE.search(j.get("text") or ""):
+                rows.append((j, None, True))
+    seen = {}
+    for j, s, fresh in sorted(rows, key=lambda r: r[0].get("ts") or 0):
+        name = licence_name(j.get("text"))
+        k = _key(name)
+        if k in seen:
+            seen[k]["times"] += 1
+            seen[k]["fresh"] = seen[k]["fresh"] or fresh
+            continue
+        contract = None
+        cs = (s or {}).get("contracts") if s is not None else (live.summary()["contracts"] if live is not None else [])
+        best = None
+        for c in cs or []:
+            e = c.get("ended")
+            if c.get("result") == "complete" and e is not None and j.get("ts") is not None and 0 <= j["ts"] - e <= BLUEPRINT_AFTER_S:
+                if best is None or e > best["ended"]:
+                    best = c
+        if best:
+            contract = best.get("title") or best.get("name")
+        seen[k] = {"id": _bp_id(name), "name": name, "raw": j.get("text"), "ts": j.get("ts"), "times": 1,
+                   "contract": contract, "fresh": fresh}
+    return sorted(seen.values(), key=lambda b: -(b["ts"] or 0))
+
+
+BLUEPRINT_AFTER_S = 120
+_TIER = re.compile(r"\b(VLRT|LRT|MRT|HRT|VHRT|ERT)\b")
+_PERSON = re.compile(r"^[A-Z][a-z'\-]+(?: [A-Z][a-z'\-]+){1,2}$")
+LICENCE = re.compile(r"\b(licen[cs]e|permit|certif|rank|promot|qualif|badge|award|accredit)", re.I)
+_BOUNTY = ("Verified Bounty", "Bounty Assignment", "Reclusive Bounty", "Bounty", "Wanted")
+
+
+def contract_kind(title):
+    """A contract's kind without the names in it: 'Verified Bounty: Made Up | HRT (Large Craft)' -> 'Verified Bounty
+    (HRT)'; 'Reclusive Bounty: Made Up | High Risk' -> 'Reclusive Bounty (High Risk)'. Others keep their title."""
+    t = (title or "").strip()
+    if ":" not in t:
+        return t
+    head, rest = t.split(":", 1)
+    head = head.strip()
+    m = _TIER.search(rest)
+    if m:
+        return f"{head} ({m.group(1)})"
+    if head in _BOUNTY:
+        tail = rest.split("|", 1)[1].strip() if "|" in rest else ""
+        tail = re.sub(r"\(.*?\)", "", tail).strip()
+        return f"{head} ({tail})" if tail else head
+    # "Neutralize UEE Threat: Basho Arrington", 'New Defense Contract: Andrea "Downpour" Lee': the part after the
+    # colon is a person, so the kind is the part before it (a one-word head like "Mercenary: Retake Outpost" keeps it)
+    if len(head.split()) >= 2 and (_PERSON.match(rest.strip()) or '"' in rest):
+        return head
+    return t
+
+
+def contract_stats(summaries, live=None):
+    """Per kind of contract, from every session: how many, how they ended, typical time, rep the game stated, and
+    the blueprints that came with them (what to farm)."""
+    allc = []
+    bps = []
+    for s in list(summaries) + ([live.summary()] if live is not None else []):
+        allc += s.get("contracts") or []
+        bps += s.get("blueprints") or []
+    by = {}
+    for c in allc:
+        if not c.get("accepted") and c.get("result") == "active":
+            continue
+        k = contract_kind(c.get("title") or contract_title(c.get("name"))[0])
+        if not k:
+            continue
+        r = by.setdefault(k, {"kind": k, "accepted": 0, "completed": 0, "failed": 0, "abandoned": 0, "mins": [],
+                              "rep": set(), "blueprints": {}, "last": 0})
+        r["accepted"] += 1
+        res = c.get("result")
+        if res == "complete":
+            r["completed"] += 1
+            if c.get("accepted") and c.get("ended") and c["ended"] > c["accepted"]:
+                r["mins"].append((c["ended"] - c["accepted"]) / 60)
+        elif res == "failed":
+            r["failed"] += 1
+        elif res in ("dropped", "abandoned", "abandon", "deactivate", "withdrawn"):
+            r["abandoned"] += 1
+        if c.get("rep"):
+            r["rep"].add(c["rep"])
+        r["last"] = max(r["last"], c.get("ended") or c.get("accepted") or 0)
+    for b in bps:
+        if b.get("contract"):
+            k = contract_kind(b["contract"])
+            if k in by:
+                by[k]["blueprints"][b["name"]] = by[k]["blueprints"].get(b["name"], 0) + 1
+    out = []
+    for r in by.values():
+        m = sorted(r["mins"])
+        done = r["completed"] + r["failed"]
+        out.append({"kind": r["kind"], "accepted": r["accepted"], "completed": r["completed"], "failed": r["failed"],
+                    "abandoned": r["abandoned"],
+                    "success": round(100 * r["completed"] / done) if done else None,
+                    "typical_min": round(m[len(m) // 2]) if m else None,
+                    "rep": sorted(r["rep"]) if r["rep"] else [],
+                    "blueprints": [{"name": n, "times": t} for n, t in sorted(r["blueprints"].items(), key=lambda x: -x[1])],
+                    "last": r["last"] or None})
+    return sorted(out, key=lambda r: (-len(r["blueprints"]), -r["completed"], r["kind"]))
+
+
+def week(cards, now=None):
+    """This week (last 7 days) against the 7 before: from the session cards."""
+    now = now or time.time()
+    def span(a, b):
+        cs = [c for c in cards if c.get("start") and a <= c["start"] < b]
+        scored = [c["score"] for c in cs if c.get("score") is not None]
+        return {"sessions": len(cs), "minutes": round(sum(c.get("minutes") or 0 for c in cs)),
+                "contracts": sum(c.get("completed") or 0 for c in cs), "accepted": sum(c.get("accepted") or 0 for c in cs),
+                "blueprints": sum(len(c.get("blueprints") or []) for c in cs),
+                "licences": sum(len(c.get("journal") or []) for c in cs),
+                "problems": sum(len(c.get("problems") or []) for c in cs),
+                "score": round(sum(scored) / len(scored)) if scored else None,
+                "best": max((c for c in cs if c.get("score") is not None), key=lambda c: c["score"], default=None),
+                "worst": min((c for c in cs if c.get("score") is not None), key=lambda c: c["score"], default=None)}
+    this, last = span(now - 7 * 86400, now + 1), span(now - 14 * 86400, now - 7 * 86400)
+    for w in (this, last):
+        for k in ("best", "worst"):
+            if w[k]:
+                w[k] = {"id": w[k]["id"], "day": w[k]["day"], "score": w[k]["score"], "word": w[k]["word"]}
+    return {"this": this, "last": last}
