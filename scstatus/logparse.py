@@ -453,10 +453,10 @@ class Session:
         elif k == "disconnect":
             self.disconnects.append(ev)
         elif k == "to_frontend":
-            # Back to the main menu right after leaving the server. The log says "Player requested disconnect" both
-            # when you quit or chose Exit to Menu and when the server ended your session; Exit to Menu from the game's
-            # own menu is written on this PC ("DisconnectCmd ... ExitToMenu", isRemote=0), so a remote 30016 that
-            # lands on the menu with no such command was the server's doing (8 Nov, 44 of 119 in Ray's logs)
+            # Back to the main menu right after leaving the server. Exit to Menu from the game's own menu is written
+            # on this PC ("DisconnectCmd ... ExitToMenu", isRemote=0). "Player requested disconnect" landing on the
+            # menu is also how quitting starts: when the game quits straight after, it was you (see _left_menu_quit).
+            # Only a remote 30016 that lands on the menu and stays there is put down to the server
             d = next((x for x in reversed(self.disconnects[-3:]) if ev["ts"] is not None and x.get("ts") is not None
                       and 0 <= ev["ts"] - x["ts"] <= 10 and not x.get("frontend")), None)
             if d is not None and d.get("view_state") in (None, "eCVS_InGame", "eCVS_UnstowPlayer"):
@@ -465,8 +465,10 @@ class Session:
         elif k == "quit":
             self.quit = ev
             self.clean_exit = True
+            self._left_menu_quit(ts)
         elif k == "shutdown":
             self.clean_exit = True
+            self._left_menu_quit(ts)
         elif k == "crash":
             self.crash = self.crash or {"ts": self.end}
             self.clean_exit = False
@@ -546,6 +548,16 @@ class Session:
             c["result"] = "dropped"
             c["ended"] = ev["ts"]
             c["end_reason"] = "Left the server"
+
+    def _left_menu_quit(self, ts):
+        """The game quitting straight after landing on the menu: you quit (from the game's menu), nobody kicked you.
+        8 Nov: "Player requested disconnect" then the menu then CSystem::Quit in the same moment is how Ray's
+        sessions end when he quits; it was being called "The server sent you back to the menu"."""
+        for d in self.disconnects[-3:]:
+            if d.get("to_menu") and ts is not None and d.get("ts") is not None and 0 <= ts - d["ts"] <= 10:
+                d["to_menu"] = False
+                d["by_server"] = False
+                d["quit_after"] = True
 
     def _just_finished(self, ts):
         """The contract that finished just before a blueprint arrived (the game gives it as the reward)."""

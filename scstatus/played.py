@@ -172,7 +172,8 @@ def card(summary, snaps=(), notes=None, marks=(), problems=None, live=False, now
         "minutes": round((now - start) / 60) if live and start else summary.get("minutes"),
         "score": sc, "health": h, "word": word, "readings": len(snaps), "overlay": sc is not None,
         "accepted": len(acc) or len(contracts), "completed": len(done), "failed": len(failed),
-        "contracts": [{"name": c.get("title") or c.get("name"), "result": {"complete": "completed", "dropped": "abandoned"}
+        "contracts": [{"name": c.get("title") or c.get("name"), "result": {"complete": "completed", "dropped": "abandoned", "deactivate": "withdrawn",
+                                                                             "withdrawn": "withdrawn"}
                        .get(c.get("result"), c.get("result")), "rep": c.get("rep")} for c in contracts],
         "blueprints": [{"name": b["name"], "id": _bp_id(b["name"]), "group": group_of(b["name"])} for b in bps],
         "journal": [j["text"] for j in summary.get("journal") or []],

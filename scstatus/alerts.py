@@ -24,6 +24,7 @@ from .config import FROZEN, say
 EVERY_S = 10
 PROBLEM_EVERY_S = 180
 QUIET_S = 600
+DISC_SETTLE_S = 8                                # a disconnect is only judged once this long has passed (a quit may follow)
 APP_ID = "AureliusDraco.SCShardStatus"          # set on the installer's Start menu shortcut
 PS_APP_ID = r"{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
 
@@ -162,7 +163,12 @@ class Alerts:
             self.disc_seen = n
             return
         from .logparse import NORMAL_CAUSES
-        for d in s.disconnects[self.disc_seen:]:
+        # Wait a few seconds after a disconnect: a quit written just after it means you quit, not a kick
+        now = time.time()
+        fresh = [i for i, d in enumerate(s.disconnects) if i >= self.disc_seen and d.get("ts") and now - d["ts"] < DISC_SETTLE_S]
+        if fresh:
+            n = fresh[0]
+        for d in s.disconnects[self.disc_seen:n]:
             if d.get("to_menu") and d.get("by_server"):
                 self.fire("disconnect", "The server sent you back to the menu",
                           "You didn't choose Exit to Menu, so the server ended your session. Anything you were doing "

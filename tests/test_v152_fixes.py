@@ -63,3 +63,9 @@ def test_sent_back_to_the_menu_by_the_server_or_by_you():
     assert [i["text"] for i in timeline(s, None) if i["group"] == "connection"] == ["Went back to the menu"]
     s = _session([DISC.format(r="Remote Disconnect - Player requested disconnect", rem=1), QUIT])     # a quit
     assert not s.disconnects[-1].get("to_menu")
+    # 8 Nov, Ray's TEST copy: the menu, then the game quits in the same moment. That's you quitting, not a kick
+    sysquit = ('<2026-09-16T10:30:27.287Z> [Notice] <SystemQuit> CSystem::Quit invoked with - cause=30016, reason=Quit via '
+               'console command, exitCode=0, thread id=17100, main thread id=17100 [Team_Unknown][System]')
+    s = _session([DISC.format(r="Remote Disconnect - Player requested disconnect", rem=1), MENU, sysquit])
+    assert s.disconnects[-1]["by_server"] is False and not s.disconnects[-1]["to_menu"]
+    assert "The server sent you back to the menu" not in [i["text"] for i in timeline(s, None)]
