@@ -287,6 +287,9 @@ def norm_server_name(s):
                 if len(w) == len(seg) >= 3 and sum(x != y for x, y in zip(w, seg)) == 1:
                     seg = w
                     break
+        # The region is letters, one digit, a letter ("use1b", "apse2a"): a 1 read as l or i there ("uselb", PTU 7 Nov)
+        if len(segs) == 1 and (r := re.fullmatch(r"([a-z]{2,5})[li|!]([a-z])", seg)):
+            seg = f"{r.group(1)}1{r.group(2)}"
         segs.append(seg)
     # The last part is the game server's number: "game190" is "game-190"; letters there ("13y", "alerver") mean a misread
     if segs and re.fullmatch(r"game\d{1,4}", segs[-1]):
@@ -317,6 +320,8 @@ def norm_shard_id(s):
     parts = t.split("_")
     if len(parts) >= 4:
         env, reg = parts[0], parts[1]
+        if r := re.fullmatch(r"([a-z]{2,5})[li|!]([a-z])", reg):      # "uselb": the region's digit read as l
+            reg = f"{r.group(1)}1{r.group(2)}"
         rest = "_".join(parts[2:]).translate(str.maketrans("oDdqil|!", "00001111"))
         t = f"{env}_{reg}_{rest}"
     else:
@@ -769,6 +774,11 @@ class OverlayReader:
         right = float(np.median([g[2] for _, g in found]))
         found = [(k, g) for k, g in found if abs(g[2] - right) < 2.0 * pitch]
         keys = {k for k, _ in found}
+        if "server" not in keys and ox > 0 and len(keys) >= 3:
+            g = self._left_strip(img, segs, found, right, pitch, ox, ds)
+            if g is not None:
+                found.append(("server", g))
+                keys.add("server")
         if len(keys) < 3 or not (keys & {"server_fps", "net", "server"}):
             return None
         ys = [g[1] for _, g in found] + [g[3] for _, g in found]
@@ -783,6 +793,35 @@ class OverlayReader:
             "ds": float(np.clip(det_scale(REF_H * pitch / REF_PITCH) * REF_PITCH / pitch, 0.25, 2.0)),
             "rows": rows,
         }
+
+    def _left_strip(self, img, segs, found, right, pitch, ox, ds):
+        """The Server line can start left of the search area: on the 4.10.3 PTU at 1440p the overlay's text stays
+        near its 4K size and the server name is long ("ptu-use1b-sc-alpha-4100-13132336-game-09"), so the line was
+        cut off at the area's left edge and its label never read (7 Nov: all 46 of Ray's Print Screens). Widening
+        the whole search cost good reads, so only the rows that run off the left edge, inside the block, get a
+        second look at a strip to their left. Returns the Server row's segment, or None."""
+        cys = [(g[1] + g[3]) / 2 for _, g in found]
+        lo, hi = min(cys), max(cys)
+        used = {id(g) for _, g in found}
+        cands = [g for g in segs if id(g) not in used and abs(g[2] - right) < 2.0 * pitch
+                 and g[0] <= ox + 1.0 * pitch and lo < (g[1] + g[3]) / 2 < hi][:3]
+        H = img.shape[0]
+        for g in cands:
+            cy = (g[1] + g[3]) / 2
+            y0, y1 = max(0, int(cy - 1.5 * pitch)), min(H, int(np.ceil(cy + 1.5 * pitch)))
+            x0 = max(0, int(ox - 40 * pitch))
+            rects = self._det(img[y0:y1, x0:int(ox + 3 * pitch)], ds, x0, y0)
+            row = [r for r in _segments(rects, pitch)
+                   if abs((r[1] + r[3]) / 2 - cy) < 0.45 * pitch and r[2] >= ox - 1.0 * pitch]
+            if not row:
+                continue
+            start = min(r[0] for r in row)
+            if start >= g[0] - 0.5 * pitch:
+                continue
+            text = self._rec([self._line_crop(img, start, cy, min(g[2], start + 7.5 * pitch), pitch)])[0]
+            if classify(text)[0] == "server":
+                return (start, g[1], g[2], g[3])
+        return None
 
     # ---- reading lines ----------------------------------------------------
 

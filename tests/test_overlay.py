@@ -350,3 +350,20 @@ def test_reader_game_smaller_than_screen(reader, where):
         reader.wide_search_every = old
     assert s["ok"] is True
     _assert_matches(s, EXPECTED[name], CORE)
+
+
+def test_ptu_long_server_line_at_1440p():
+    """4.10.3 PTU at 2560x1440 (Ray, 7 Nov): the text stays near its 4K size and the Server line starts left of the
+    search area, so its label was cut off and the server and its player counts were never read. The rows that run
+    off the area's left edge get a second look at a strip to their left; the rest of the search is unchanged."""
+    crop = cv2.imread(str(FIX / "overlay_ptu_1440_long_server.jpg"))
+    f = np.full((1440, 2560, 3), 18, np.uint8)
+    f[0:crop.shape[0], 2560 - crop.shape[1]:] = crop
+    r = OverlayReader()
+    s = r.read(f)
+    assert s["ok"]
+    assert s["server_name"] == "ptu-use1b-sc-alpha-4100-13132336-game-09"
+    assert (s["pop_shard"], s["pop_srv"]) == (96, 16)
+    assert s["server_fps"] == 30.0 and s["shard_id"] == "ptu_use1b_13132336_010"
+    s = r.read(f)                       # and again from the remembered position
+    assert r.last_path == "fast" and s["server_name"] == "ptu-use1b-sc-alpha-4100-13132336-game-09"
