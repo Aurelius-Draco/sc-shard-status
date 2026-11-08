@@ -532,6 +532,19 @@ class Community:
             raise ValueError(d.get("error") or f"Verse Shards answered {code}.")
         return {"matched": d.get("matched") or [], "sent": body}
 
+    def send_feedback(self, body):
+        """Send feedback: the player's answers, one picture if they added one, the app version and channel, and their
+        RSI handle only if they asked for a reply. The install id goes only so the site can count five a day; the
+        site doesn't keep it. Pressing Send is the player's own yes, so it doesn't depend on sharing being on."""
+        out = dict(body, source="companion", app_version=self.version, install=self.app.store.install_id())
+        try:
+            code, d = self._req("/api/v1/feedback", out)
+        except Exception as e:
+            raise ValueError(f"Couldn't reach Verse Shards ({e.__class__.__name__}). Try again in a minute.")
+        if code != 200 or not d.get("ok"):
+            raise ValueError(d.get("error") or f"Verse Shards answered {code}.")
+        return d
+
     def run(self, stop):
         while not stop.wait(15):
             try:

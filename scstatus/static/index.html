@@ -1187,6 +1187,7 @@ code.cmdsm { background: #05070a; padding: 3px 8px; border-radius: 3px; border: 
   <span class="grow"></span>
   <button type="button" class="pill plink upd" data-protected="true" id="updPill" hidden></button>
   <button type="button" class="btn sm ghost" data-protected="true" id="markBtn" title="Something just went wrong? Mark it and keep playing. What's gone wrong? looks at this moment later.">Mark this moment</button>
+  <button type="button" class="btn sm ghost" data-protected="true" id="fbBtn" title="Ask for a new feature or a change, with a picture if it helps">Send feedback</button>
   <a class="hlink" href="https://verseshards.com" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">verseshards.com ↗</a>
 </header>
 
@@ -1276,6 +1277,7 @@ function header(d) {
   $("grpCount").textContent = g.offer ? "!" : nInt ? nInt : "";
 }
 $("markBtn").onclick = () => openMoment();
+$("fbBtn").onclick = () => openFeedback();
 // Lines for global chat: the best one up front, then "Found this on Verse Shards: verseshards.com" as its own row, the rest folded.
 let FTS = true;
 try { FTS = localStorage.getItem("fts") !== "0"; } catch (e) {}
@@ -1948,6 +1950,96 @@ function drawCheck(r) {
   out.querySelectorAll("[data-review]").forEach(b => b.onclick = () => openReview(+b.dataset.review));
 }
 
+// ---------- Send feedback: a feature or change request, with one picture if it helps. Goes to verseshards.com only when
+// Send is pressed (not tied to sharing), with the app version and channel. The RSI handle only with a reply.
+const FB_KINDS = {feature: "A new feature", change: "A change to something that's there", broken: "Something not working right"};
+const FB_OFTEN = {every: "Every session", sometimes: "Now and then", rarely: "Rarely"};
+const FB_MATTERS = {nice: "Nice to have", lots: "I'd use it a lot", need: "I can't do without it"};
+const FB_WHERE = [["This app", [["companion", "The app in general"], ["companion-now", "Now"], ["companion-check", "What's gone wrong?"], ["companion-timeline", "Timeline"], ["companion-groups", "Groups"],
+    ["companion-history", "History"], ["companion-blueprints", "Blueprints"], ["companion-pilot", "My pilot"], ["companion-issues", "Known issues"], ["companion-setup", "Set up"]]],
+  ["verseshards.com", [["site", "The site in general"], ["site-board", "Board"], ["site-issues", "Known issues"], ["site-trends", "Busiest times"], ["site-blueprints", "Where blueprints drop"],
+    ["site-trade", "Trade"], ["site-groups", "Groups"], ["site-community", "Community (orgs, creators)"], ["site-guide", "Guide"]]],
+  ["Other", [["both", "Both the app and the site"], ["other", "Somewhere else"]]]];
+const FB_TAB = {now: "companion-now", check: "companion-check", timeline: "companion-timeline", groups: "companion-groups", history: "companion-history",
+  blueprints: "companion-blueprints", pc: "companion-pilot", issues: "companion-issues", setup: "companion-setup"};
+// The picture: up to 5 MB, redrawn here at up to 1600 wide as WebP (which drops any details the file carries)
+function fbShrink(src) {
+  return new Promise((ok, no) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = Math.min(1600, img.naturalWidth), h = Math.round(img.naturalHeight * w / img.naturalWidth);
+      const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(img, 0, 0, w, h);
+      let q = .85, out = c.toDataURL("image/webp", q);
+      while (out.length > 1400000 && q > .4) { q -= .1; out = c.toDataURL("image/webp", q); }
+      out.length > 1450000 ? no(new Error("That picture is too big. Try a smaller one.")) : ok(out);
+    };
+    img.onerror = () => no(new Error("Couldn't read that picture."));
+    img.src = src;
+  });
+}
+async function openFeedback(area) {
+  const opts = o => Object.entries(o).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+  const pre = area || FB_TAB[tab] || "companion";
+  openDrawer("Verse Shards", "Send feedback", `<form class="gform" id="fbF" data-protected="true" style="display:grid;gap:var(--s3)">
+    <p class="sub" style="margin:0">Ask for a new feature or a change to this app or the site. A few short questions help work out what you're after. Only Aurelius_Draco reads these.</p>
+    <label class="lbl">What kind of request is it?<select class="inp" name="kind" required><option value="">Pick one</option>${opts(FB_KINDS)}</select></label>
+    <label class="lbl">Where is it?<select class="inp" name="area" required>${FB_WHERE.map(([g, xs]) => `<optgroup label="${esc(g)}">${xs.map(([k, v]) => `<option value="${k}" ${k === pre ? "selected" : ""}>${esc(v)}</option>`).join("")}</optgroup>`).join("")}</select></label>
+    <label class="lbl">What would you like? <span class="hint">A sentence or two</span><textarea class="inp" name="want" rows="3" minlength="10" maxlength="800" required style="height:auto;padding:var(--s2) var(--s3)" placeholder="e.g. Show how long each contract took on the session report."></textarea></label>
+    <label class="lbl">What would it help you do? <span class="hint">The problem it solves for you</span><textarea class="inp" name="why" rows="3" maxlength="800" required style="height:auto;padding:var(--s2) var(--s3)" placeholder="e.g. I'd know which bounties are worth my time."></textarea></label>
+    <label class="lbl">How often would you use it?<select class="inp" name="often" required><option value="">Pick one</option>${opts(FB_OFTEN)}</select></label>
+    <label class="lbl">How much does it matter to you?<select class="inp" name="matters" required><option value="">Pick one</option>${opts(FB_MATTERS)}</select></label>
+    <label class="lbl">Seen something like it somewhere else? <span class="hint">Optional, in words (no links)</span><input class="inp" name="similar" maxlength="300"></label>
+    <div class="lbl">A picture, if it helps <span class="hint">Optional. One of your game screenshots (the session QR code is blacked out for you), or a PNG, JPEG or WebP up to 5 MB. Crop out other players' names first.</span>
+      <div id="fbShots" class="dchips"><span class="sub">Looking for your screenshots…</span></div>
+      <input class="inp" type="file" id="fbFile" accept="image/png,image/jpeg,image/webp" style="padding-top:6px">
+      <div id="fbPrev"></div></div>
+    <div class="lbl">Would you like a reply?<div class="dchips"><button type="button" class="dopt" data-fbr="no" aria-pressed="true">No thanks</button><button type="button" class="dopt" data-fbr="yes" aria-pressed="false">Yes</button></div></div>
+    <label class="lbl" id="fbH" hidden>Your RSI handle<input class="inp" name="handle" maxlength="30" autocomplete="off" placeholder="As it shows on Spectrum"><span class="hint">Aurelius_Draco may message you on Spectrum about this. Your handle is only used for that, only he sees it, and it's deleted with your request.</span></label>
+    <div style="display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap"><button class="btn" type="submit">Send</button><span class="sub" style="flex:1">Sent to verseshards.com with this app's version, kept up to a year. Never your logs or readings.</span></div>
+  </form>`);
+  const f = $("fbF");
+  let reply = false, pic = null;
+  const showPic = () => { $("fbPrev").innerHTML = pic ? `<div style="display:flex;gap:var(--s2);align-items:center;margin-top:var(--s2)"><img src="${pic}" alt="The picture that goes with it" style="max-width:220px;border-radius:6px;border:1px solid var(--line2)"><button type="button" class="btn sm ghost" id="fbNoPic">Remove</button></div>` : "";
+    if (pic) $("fbNoPic").onclick = () => { pic = null; $("fbFile").value = ""; f.querySelectorAll("[data-fbshot]").forEach(x => x.setAttribute("aria-pressed", "false")); showPic(); }; };
+  f.querySelectorAll("[data-fbr]").forEach(b => b.onclick = () => {
+    reply = b.dataset.fbr === "yes";
+    f.querySelectorAll("[data-fbr]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    $("fbH").hidden = !reply; f.handle.required = reply;
+  });
+  $("fbFile").onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { toast("Use a PNG, JPEG or WebP picture.", true); e.target.value = ""; return; }
+    if (file.size > 5 * 1024 * 1024) { toast("That picture is over 5 MB. Try a smaller one.", true); e.target.value = ""; return; }
+    const url = URL.createObjectURL(file);
+    try { pic = await fbShrink(url); f.querySelectorAll("[data-fbshot]").forEach(x => x.setAttribute("aria-pressed", "false")); showPic(); } catch (x) { toast(x.message, true); } finally { URL.revokeObjectURL(url); }
+  };
+  api("/api/feedback/shots").then(d => {
+    const el = $("fbShots"); if (!el) return;
+    const list = d.shots || [];
+    el.innerHTML = list.length ? list.slice(0, 8).map(x => `<button type="button" class="dopt" data-fbshot="${esc(x.name)}" aria-pressed="false" title="${esc(x.name)}">${esc(new Date(x.ts * 1000).toLocaleString([], {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"}))}</button>`).join("")
+      : `<span class="sub">No game screenshots found. Pick a file instead.</span>`;
+    el.querySelectorAll("[data-fbshot]").forEach(b => b.onclick = async () => {
+      el.querySelectorAll("[data-fbshot]").forEach(x => x.setAttribute("aria-pressed", x === b));
+      let u = null;
+      try {
+        const r = await fetch(`/api/feedback/shot?name=${encodeURIComponent(b.dataset.fbshot)}&t=${encodeURIComponent(TOKEN)}`);
+        if (!r.ok) throw new Error("Couldn't open that screenshot. Pick a file instead.");
+        u = URL.createObjectURL(await r.blob());
+        pic = await fbShrink(u); $("fbFile").value = ""; showPic();
+      } catch (x) { toast(x.message, true); } finally { if (u) URL.revokeObjectURL(u); }
+    });
+  }).catch(() => { const el = $("fbShots"); if (el) el.innerHTML = ""; });
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const btn = f.querySelector("button[type=submit]"); btn.disabled = true;
+    const fd = new FormData(f);
+    try {
+      const r = await api("/api/feedback", {kind: fd.get("kind"), area: fd.get("area"), want: fd.get("want"), why: fd.get("why"), often: fd.get("often"), matters: fd.get("matters"),
+        similar: fd.get("similar"), reply, handle: reply ? (fd.get("handle") || "").trim() : "", image: pic});
+      $("dBody").innerHTML = `<div class="frame card" style="padding:var(--s4)"><h4 style="margin-top:0">Thanks, that's sent.</h4><p>${esc(r.message.replace(/^Thanks, that's sent\. /, ""))}</p></div>`;
+    } catch (x) { toast(x.message, true); btn.disabled = false; }
+  };
+}
 function openDrawer(eyebrow, title, html) {
   $("dEyebrow").textContent = eyebrow; $("dTitle").textContent = title; $("dBody").innerHTML = html;
   $("drawer").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("scrim").classList.add("show");
@@ -3127,7 +3219,7 @@ async function renderAbout() {
 
   <section class="sec ab-two"><div><h2 class="ab-h">Ground rules</h2><div class="ab-rules">
       <div><b>Reads, never touches</b><span>Only your screen's overlay, Game.log and the game's text file. Never the game's memory or network traffic, never your mouse or keyboard.</span></div>
-      <div><b>Nothing leaves unless you say so</b><span>Update checks ask GitHub, only when switched on. Show other shards downloads the board and sends nothing about you. Sharing readings, app error reports and the buttons you press send to verseshards.com, and you can see what was last sent. Never your handle, other players' names or your IP.</span></div>
+      <div><b>Nothing leaves unless you say so</b><span>Update checks ask GitHub, only when switched on. Show other shards downloads the board and sends nothing about you. Sharing readings, app error reports, Send feedback and the buttons you press send to verseshards.com, and you can see what was last sent. Never your handle, other players' names or your IP.</span></div>
       <div><b>No accounts</b><span>Verse Shards stores no IP addresses. The app uses a random install id, never your handle, so nothing is counted twice.</span></div>
       <div><b>You file the reports</b><span>Issue Council reports are drafts. You check them and submit them yourself.</span></div></div>
       <p class="sub" style="margin:var(--s2) 0 0">Not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC.</p></div>
@@ -3139,6 +3231,7 @@ async function renderAbout() {
     <div><h2 class="ab-h">Thanks</h2><ul class="ab-thanks"><li>Every player sharing readings from the PC companion</li><li>The testers and Discord members who report bugs and suggest fixes</li><li>The players adding workarounds and Issue Council links on Known issues</li><li>UEX, for the trade and price data</li></ul></div></section>
 
   <section class="sec"><div class="notice teal"><p><b>Help wanted.</b> Testers with 1440p, 4K or ultrawide screens, and moderators and admins for the community side.</p><a class="btn ghost" href="https://verseshards.com/help" target="_blank" rel="noopener">See what's needed</a></div></section>
+  <section class="sec"><div class="notice"><p><b>Want something added or changed?</b> Tell Aurelius_Draco what you'd like, with a picture if it helps. Ask for a reply and he can message you on Spectrum.</p><button class="btn ghost" type="button" data-protected="true" id="abFb">Send feedback</button></div></section>
   <section class="sec"><div class="frame refcard ab-ref"><div class="rtext"><small>Bringing a friend into the 'verse?</small><b>Start with 50,000 UEC</b><span>New players who sign up with my referral code get the bonus, and it's the best way to say thanks for the tools.</span></div>
     <div class="rcode"><div class="rrow"><code>STAR-VD9W-346V</code><button class="btn ghost" type="button" data-protected="true" data-chat="STAR-VD9W-346V" data-plain>Copy</button></div><a class="btn" href="https://robertsspaceindustries.com/en/enlist?referral=STAR-VD9W-346V" target="_blank" rel="noopener">Sign up with the code</a></div></div></section>`;
   $("view").innerHTML = `<div class="abwrap">${siteAbout}</div>
@@ -3152,6 +3245,7 @@ async function renderAbout() {
   // The star count asks GitHub, so only when update checks are on (the same yes); otherwise no count
   if (d.star.show_count) fetch(d.star.api, {headers: {accept: "application/vnd.github+json"}}).then(r => r.ok ? r.json() : null)
     .then(j => { if (j && $("starN")) $("starN").textContent = "· " + j.stargazers_count; }).catch(() => {});
+  if ($("abFb")) $("abFb").onclick = () => openFeedback("companion");
   $("view").querySelectorAll("[data-theme]").forEach(x => x.onclick = () => {
     const t = x.dataset.theme;
     if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;

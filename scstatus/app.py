@@ -1,6 +1,7 @@
 """Everything the app's parts share: settings, database, the live log, overlay readings."""
 
 import collections
+import json
 import os
 import re
 import threading
@@ -1015,6 +1016,59 @@ class App:
 
     def _shot_dir(self):
         return self.game_dir / "screenshots"
+
+    # -- Send feedback: a feature or change request, with one picture if it helps (see community.send_feedback)
+    FEEDBACK_KINDS = ("feature", "change", "broken")
+    FEEDBACK_OFTEN = ("every", "sometimes", "rarely")
+    FEEDBACK_MATTERS = ("nice", "lots", "need")
+    FEEDBACK_PER_DAY = 5
+    HANDLE_RX = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,29}$")
+    PICTURE_RX = re.compile(r"^data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$")
+
+    def feedback_shots(self):
+        """Your newest screenshots, to pick one to send with feedback."""
+        from .screenshots import list_shots
+        return {"shots": list_shots(self._shot_dir(), 0, time.time() + 60, limit=12)}
+
+    def send_feedback(self, b):
+        b = b if isinstance(b, dict) else {}
+        def text(k, n):
+            return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", str(b.get(k) or "")).strip()[:n]
+        out = {"kind": b.get("kind"), "area": str(b.get("area") or "")[:40], "want": text("want", 800), "why": text("why", 800),
+               "often": b.get("often"), "matters": b.get("matters"), "similar": text("similar", 300),
+               "reply": bool(b.get("reply")), "handle": None, "image": None, "channel": self.channel or None}
+        if out["kind"] not in self.FEEDBACK_KINDS:
+            raise ValueError("Pick what kind of request it is.")
+        if len(out["want"]) < 10:
+            raise ValueError("Tell us what you'd like, in a sentence or two.")
+        if len(out["why"]) < 5:
+            raise ValueError("Tell us what it would help you do.")
+        if out["often"] not in self.FEEDBACK_OFTEN or out["matters"] not in self.FEEDBACK_MATTERS:
+            raise ValueError("Pick how often you'd use it and how much it matters.")
+        if out["reply"]:
+            h = text("handle", 30)
+            if not self.HANDLE_RX.match(h):
+                raise ValueError("Type your RSI handle so Aurelius_Draco can reply on Spectrum (letters, numbers, - and _).")
+            out["handle"] = h
+        pic = b.get("image")
+        if pic:
+            if not isinstance(pic, str) or not self.PICTURE_RX.match(pic) or len(pic) > 1_500_000:
+                raise ValueError("That picture can't be sent. Use a PNG, JPEG or WebP under 5 MB.")
+            out["image"] = pic
+        # Five a day from this PC (the site counts too)
+        day = int(time.time() // 86400)
+        try:
+            sent = json.loads(self.store.meta("feedback_sent") or "{}")
+        except ValueError:
+            sent = {}
+        n = int(sent.get(str(day), 0))
+        if n >= self.FEEDBACK_PER_DAY:
+            raise ValueError(f"That's {self.FEEDBACK_PER_DAY} today. Thanks! Try again tomorrow.")
+        r = self.community.send_feedback({k: v for k, v in out.items() if v not in (None, "")})
+        self.store.set_meta("feedback_sent", json.dumps({str(day): n + 1}))
+        return {"ok": True, "reply": out["reply"],
+                "message": "Thanks, that's sent. " + ("Aurelius_Draco reads every one and may message you on Spectrum about it."
+                                                     if out["reply"] else "Aurelius_Draco reads every one."), "id": r.get("id")}
 
     def moment_shots(self, ts, now=None):
         """Screenshots from 10 minutes before the moment up to 10 minutes after it (or now, if later)."""

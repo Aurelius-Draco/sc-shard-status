@@ -149,3 +149,35 @@ def thumbnail(folder, name, width=480):
         return p.read_bytes(), "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
     except OSError:
         return None
+
+
+def feedback_picture(folder, name, width=1600):
+    """One of your screenshots for Send feedback: (bytes, mime), or None. Shrunk to 1600 wide, with the session QR
+    code blacked out when the game drew one (it carries your shard and session). The page redraws it before it goes,
+    which also drops any details the file carries."""
+    p = shot_path(folder, name)
+    if not p:
+        return None
+    try:
+        import cv2
+        import numpy as np
+        img = cv2.imdecode(np.fromfile(str(p), dtype=np.uint8), cv2.IMREAD_COLOR)
+        if img is None:
+            return None
+        h, w = img.shape[:2]
+        x0, y1 = int(w * 0.75), int(h * 0.25)
+        try:
+            found, pts = cv2.QRCodeDetector().detect(img[0:y1, x0:w])
+        except Exception:
+            found, pts = False, None
+        if found and pts is not None:
+            xs, ys = pts[0][:, 0], pts[0][:, 1]
+            pad = int(max(xs.max() - xs.min(), ys.max() - ys.min()) * 0.15) + 4
+            cv2.rectangle(img, (max(0, int(xs.min()) + x0 - pad), max(0, int(ys.min()) - pad)),
+                          (min(w - 1, int(xs.max()) + x0 + pad), min(h - 1, int(ys.max()) + pad)), (0, 0, 0), -1)
+        if w > width:
+            img = cv2.resize(img, (width, max(1, round(h * width / w))), interpolation=cv2.INTER_AREA)
+        ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 88])
+        return (buf.tobytes(), "image/jpeg") if ok else None
+    except Exception:
+        return None

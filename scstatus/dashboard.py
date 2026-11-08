@@ -90,6 +90,14 @@ def start_server(app, open_browser=False):
                 from .screenshots import thumbnail
                 got = thumbnail(app.game_dir / "screenshots", qs.get("name", ""))
                 return self._send(200, got[0], got[1]) if got else self._send(404, b"", "text/plain")
+            if path == "/api/feedback/shot":
+                # One of your screenshots for Send feedback, 1600 wide with the session QR blacked out (token in the
+                # address, like /api/shot)
+                if not secrets.compare_digest(qs.get("t", ""), token):
+                    return self._send(403, {"error": "bad token"})
+                from .screenshots import feedback_picture
+                got = feedback_picture(app.game_dir / "screenshots", qs.get("name", ""))
+                return self._send(200, got[0], got[1]) if got else self._send(404, b"", "text/plain")
             if self.headers.get("X-Token") != token:
                 return self._send(403, {"error": "bad token"})
             try:
@@ -97,6 +105,8 @@ def start_server(app, open_browser=False):
                     return self._send(200, app.now())
                 if path == "/api/history":
                     return self._send(200, app.history())
+                if path == "/api/feedback/shots":
+                    return self._send(200, app.feedback_shots())
                 if path == "/api/news":
                     return self._send(200, {"news": list(app.news)[-5:]})
                 if path == "/api/logbook":
@@ -166,7 +176,7 @@ def start_server(app, open_browser=False):
                 return self._send(403, {"error": "not allowed"})
             try:
                 n = int(self.headers.get("Content-Length") or 0)
-                if n > 1_500_000:               # the largest thing posted is a profile picture (about 900 KB)
+                if n > 1_600_000:               # the largest things posted: a feedback picture (up to 1.5 MB), a profile picture
                     # Read and drop the body first (up to 20 MB), so the browser gets the answer instead of a broken pipe
                     left = min(n, 20_000_000)
                     while left > 0:
@@ -212,6 +222,8 @@ def handle_post(app, path, body):
     if path == "/api/mark":
         m = app.mark("button")
         return {"message": "Moment marked. Keep playing; \"What's gone wrong?\" will look at it.", "mark": m}
+    if path == "/api/feedback":
+        return app.send_feedback(body)
     if path == "/api/blueprints/want":
         return app.want_add(body.get("name"))
     if path == "/api/blueprints/unwant":
