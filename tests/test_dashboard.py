@@ -74,7 +74,7 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
         r = _call(url, token, "/api/setup", {"choices": {"game": "ok", "displayinfo": True, "sessioninfo": False,
                                                           "live": False, "screenshots": False, "board": False,
                                                           "share": False, "updates": False, "library": False,
-                                                          "alerts": False, "errors": False}})
+                                                          "alerts": False, "errors": False, "pilot": "skip"}})
         st = r["settings"]
         assert st["live"] is False and st["screenshots"] is False and st["share"] is False and st["board"] is False
         cfgtxt = (game / "USER.cfg").read_text()
@@ -85,19 +85,23 @@ def test_dashboard_end_to_end(tmp_path, monkeypatch):
         assert _call(url, token, "/api/about")["star"]["show_count"] is False      # answered no
         # Someone who answered the first set of questions is asked only the ones added since
         app.cfg["setup_version"] = 1
-        assert _call(url, token, "/api/now")["setup_ask"] == ["updates", "library", "alerts", "errors"]
-        r = _call(url, token, "/api/setup", {"choices": {"updates": False, "library": False, "alerts": "quiet", "errors": False}})
+        assert _call(url, token, "/api/now")["setup_ask"] == ["updates", "library", "alerts", "errors", "pilot"]
+        r = _call(url, token, "/api/setup", {"choices": {"updates": False, "library": False, "alerts": "quiet", "errors": False,
+                                                          "pilot": "skip"}})
         assert r["settings"]["alerts"]["mode"] == "quiet"
         assert _call(url, token, "/api/now")["setup_needed"] is False
         # What's shared changed in 1.3, so people already sharing are asked again; others get only the new question
         app.cfg.update(setup_version=3, share_readings=True, share_text_seen=3)
-        assert _call(url, token, "/api/now")["setup_ask"] == ["share", "errors"]
-        r = _call(url, token, "/api/setup", {"choices": {"share": True, "errors": True}})
+        assert _call(url, token, "/api/now")["setup_ask"] == ["share", "errors", "pilot"]
+        r = _call(url, token, "/api/setup", {"choices": {"share": True, "errors": True, "pilot": "done"}})
         assert r["settings"]["errors"] is True and r["settings"]["share"] is True
         app.cfg.update(setup_version=3, share_readings=True, share_text_seen=4)
-        assert _call(url, token, "/api/now")["setup_ask"] == ["errors"]
+        assert _call(url, token, "/api/now")["setup_ask"] == ["errors", "pilot"]
+        # 1.5.2: everyone who set up before is asked the new pilot card step once (it can be skipped)
         app.cfg.update(setup_version=4)
         app.cfg.update(share_readings=False)
+        assert _call(url, token, "/api/now")["setup_ask"] == ["pilot"]
+        _call(url, token, "/api/setup", {"choices": {"pilot": "skip"}})
         assert _call(url, token, "/api/now")["setup_ask"] == [] and not _call(url, token, "/api/now")["setup_needed"]
     finally:
         app.stop.set()

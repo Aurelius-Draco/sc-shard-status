@@ -1,4 +1,4 @@
-"""Who made the app, the ground rules it keeps, and its sister app. Shown on the About tab and in the README."""
+"""Who made the app and the ground rules it keeps. Shown on the About tab and in the README."""
 
 AUTHOR = {
     "name": "Aurelius_Draco",
@@ -16,7 +16,7 @@ LINKS = [
     {"icon": "citizen", "title": "Add Aurelius_Draco as a friend", "text": "Citizen page on RSI",
      "url": "https://robertsspaceindustries.com/citizens/Aurelius_Draco",
      "about": "Send a friend request, a message, or invite me along on team gameplay."},
-    {"icon": "citizen", "title": "Spectrum thread", "text": "SC Shard Status on Spectrum",
+    {"icon": "citizen", "title": "Spectrum thread", "text": "Verse Shards on Spectrum",
      "url": "https://robertsspaceindustries.com/spectrum/community/SC/forum/50172/thread/sc-shard-status-free-app-that-scores-your-shard-s-/575329",
      "about": "Questions, ideas and what's coming next, where other players can see them."},
     {"icon": "citizen", "title": "Help wanted", "text": "verseshards.com/help",

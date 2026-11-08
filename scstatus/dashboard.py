@@ -159,6 +159,9 @@ def start_server(app, open_browser=False):
                                             "offer": g.pirate_offer(), "error": g.error})
                 if path == "/api/profile":
                     return self._send(200, {"profile": app.profiles.get()})
+                if path == "/api/pilot/lists":
+                    from .pilotlists import lists
+                    return self._send(200, lists())
                 if path == "/api/moment":
                     if qs.get("part") == "shots":
                         from .issues import asks_for
@@ -293,6 +296,16 @@ def handle_post(app, path, body):
         return app.groups.decide(str(body.get("post") or ""), str(body.get("handle", "")), body.get("verdict"))
     if path == "/api/profile":
         return {"message": "Profile saved on this PC.", "profile": app.profiles.save(body.get("profile"))}
+    if path == "/api/profile/verify":
+        a = body.get("action")
+        if a == "start":
+            return app.profiles.verify_start()
+        if a == "check":
+            r = app.profiles.verify_check()
+            return dict(r, message="Verified on RSI. You can take the code out of your bio now.")
+        if a == "cancel":
+            return app.profiles.verify_cancel()
+        raise ValueError("Unknown step.")
     if path == "/api/groups/close":
         return {"message": app.groups.close(str(body.get("id", "")))}
     if path == "/api/groups/dismiss":

@@ -483,7 +483,7 @@ details.why[open] > summary { margin-bottom: var(--s2); }
 .chatbox h4 { margin: 0; font-size: .875rem; }
 .chatbox .rhd { flex-wrap: wrap; }
 .chatbox label { display: inline-flex; gap: 6px; align-items: center; }
-.chatline { display: flex; gap: var(--s3); align-items: center; padding: var(--s2) var(--s3); background: var(--well); border: 1px solid var(--line); border-radius: var(--r-sm); font: .875rem/1.4 var(--mono); }
+.chatline { display: flex; gap: var(--s3); align-items: center; padding: var(--s2) var(--s3); background: var(--well); border: 1px solid var(--line); border-radius: var(--r-sm); font: .9375rem/1.4 var(--f-body); }   /* chat lines to paste are words, not code (8 Nov) */
 .chatline span { flex: 1; overflow-wrap: anywhere; }
 .chatline .btn { font-family: var(--font); }
 .chatmore { display: grid; gap: var(--s2); margin-top: var(--s2); }
@@ -555,14 +555,43 @@ details.why[open] > summary { margin-bottom: var(--s2); }
 .pcard { padding: var(--s5); display: grid; gap: var(--s4); background: radial-gradient(900px 300px at 100% 0, var(--amber-bg), transparent 60%), var(--panel); border-color: var(--amber-line); }
 .pc-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s4); align-items: center; }
 .pc-pic { width: 5.5rem; height: 5.5rem; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--raise2); border: 2px solid var(--amber); box-shadow: 0 0 0 4px var(--amber-bg); }
-.pc-pic img { width: 100%; height: 100%; object-fit: cover; } .pc-pic span { font: 700 1.75rem var(--font); color: var(--amber); letter-spacing: .04em; }
-.pc-id h2 { margin: 2px 0; font: 700 2rem/1.1 var(--mono); letter-spacing: .01em; } .pc-sub { color: var(--muted); }
+.pc-pic img { width: 100%; height: 100%; object-fit: cover; } .pc-pic span { font: 700 1.875rem/1 var(--f-head); color: var(--amber); letter-spacing: .04em; }
+.pc-pic svg { width: 2.5rem; height: 2.5rem; color: var(--amber); }
+.pc-id { display: grid; gap: 2px; } .pc-id .eyebrow { color: var(--c-gold, #ffd166); }
+.pc-id h2 { margin: 0; font: 700 2.25rem/1.05 var(--f-head); letter-spacing: .005em; } .pc-sub { color: var(--muted); }
+.pc-id .pc-name { font: 600 1.125rem/1.2 var(--f-body); color: var(--text); }
+/* 8 Nov (Ray): the pilot card button up top, beside the card, where it can't be missed */
+.pc-brag { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; padding: var(--s3) var(--s4); border: 1px solid var(--amber-line); border-radius: var(--r); background: linear-gradient(90deg, var(--amber-bg), transparent 70%); }
+.pc-brag p { margin: 0; flex: 1 1 18rem; color: var(--muted); } .pc-brag .btn { gap: 8px; display: inline-flex; align-items: center; } .pc-brag .btn svg { width: 1.25rem; height: 1.25rem; }
+/* verified on RSI */
+.pc-ver { display: inline-flex; align-items: center; gap: 6px; width: fit-content; margin-top: 4px; padding: 3px 10px; border-radius: 99px; background: rgba(76,196,176,.14); color: var(--st-good); font: 600 .875rem/1.3 var(--f-body); }
+.pc-ver svg { width: 1rem; height: 1rem; }
+.pc-verify { display: grid; gap: var(--s3); padding: var(--s4); border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); }
+.pc-verify h4 { margin: 0; font: 700 1.125rem/1.2 var(--f-head); }
+.pc-verify ol { margin: 0; padding-left: 1.25rem; display: grid; gap: 4px; }
+.pc-verify .code { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.pc-verify .code code { font: 700 1.375rem/1.2 var(--mono); letter-spacing: .08em; color: var(--amber); padding: 6px 12px; border: 1px dashed var(--amber-line); border-radius: var(--r-sm); background: var(--panel); }
+.pc-verify .acts { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
+.pc-verify .msg { margin: 0; } .pc-verify .msg.bad { color: var(--st-bad); } .pc-verify .msg.good { color: var(--st-good); }
+/* the pilot fields, shared by Set up and Edit */
+.pf { display: grid; gap: var(--s4); }
+.pf .pe-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--s3); }
+.pf label, .pf .fld, .pedit .pf label { display: grid; gap: 4px; align-content: start; font: 600 .9375rem/1.3 var(--f-body); color: var(--text); }
+.pf .hint { font-weight: 400; color: var(--muted); font-size: .8125rem; margin-top: -2px; }
+.pf-pic { display: flex; align-items: center; gap: var(--s3); min-width: 0; } .pf-pic input[type=file] { flex: 1 1 0; min-width: 0; } .pf-pic .pc-pic { width: 3.5rem; height: 3.5rem; box-shadow: none; } .pf-pic .pc-pic span { font-size: 1.25rem; } .pf-pic .pc-pic svg { width: 1.5rem; height: 1.5rem; }
+.pf-ships { display: grid; gap: var(--s2); }
+.pf-chosen { display: flex; flex-wrap: wrap; gap: 6px; min-height: 2.25rem; align-items: center; }
+.pf-chosen .dopt.main { border-color: var(--amber); color: var(--amber); }
+.pf-sugg { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-sugg button { border: 1px dashed var(--line2); background: transparent; color: var(--text); border-radius: 99px; padding: 6px 12px; font: 500 .9375rem var(--f-body); cursor: pointer; }
+.pf-sugg button:hover, .pf-sugg button:focus-visible { border-color: var(--amber); color: var(--amber); }
+.wq .pf { margin-top: var(--s3); padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r); background: var(--well); }
 .pc-bio { margin: 0; font-size: 1.0625rem; max-width: 70ch; }
 .pc-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--s5); }
 @media (max-width: 860px) { .pc-grid { grid-template-columns: 1fr; } .pc-top { grid-template-columns: auto minmax(0, 1fr); } .pc-top .btn { grid-column: 1 / -1; justify-self: start; } }
 .pc-main { display: grid; gap: var(--s2); } .pc-main b { font-size: 1.25rem; }
 .pc-main .shot { aspect-ratio: 16 / 7; border: 1px solid var(--line2); border-radius: var(--r); display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--well) 0 12px, var(--panel) 12px 24px); }
-.pc-main .shot span { font: .8125rem var(--mono); color: var(--muted); }
+.pc-main .shot span { font: 600 1rem var(--f-head); letter-spacing: .04em; color: var(--muted); }
 .pc-side { display: grid; gap: var(--s4); align-content: start; } .pc-side > div { display: grid; gap: 6px; }
 .pc-note { margin: 0; }
 .pc-h { margin: var(--s3) 0 0; }
@@ -889,7 +918,7 @@ i.st.new { background: var(--amber); }
 .ab-ship figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s2); font-size: .9375rem; }
 .shot { position: relative; aspect-ratio: 16 / 7; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--well) 0 12px, var(--panel) 12px 24px); }
 .shot.wide { aspect-ratio: 16 / 9; }
-.shot span { font: .8125rem var(--mono); color: var(--muted); padding: var(--s3); text-align: center; }
+.shot span { font: 500 .875rem var(--f-body); color: var(--muted); padding: var(--s3); text-align: center; }
 .shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ab-h { margin: 0 0 var(--s3); font: 700 .875rem/1.2 var(--font); letter-spacing: .1em; text-transform: uppercase; color: var(--amber); font-stretch: semi-condensed; }
 .ab-how { display: grid; grid-template-columns: minmax(0, 1fr) 1.5rem minmax(0, 1fr) 1.5rem minmax(0, 1fr); gap: var(--s2); align-items: stretch; }
@@ -899,7 +928,13 @@ i.st.new { background: var(--amber); }
 .ab-step { display: flex; align-items: baseline; gap: var(--s3); } .ab-step b.n { font-size: 1.5rem; color: var(--amber); line-height: 1; } .ab-step b:last-child { font-size: 1.0625rem; }
 .ab-arrow { display: grid; place-items: center; color: var(--amber); font-size: 1.5rem; }
 .ab-ov { display: flex; flex-direction: column; align-items: flex-end; padding: var(--s3) var(--s4); background: #05070a; border-radius: var(--r-sm); font: .75rem/1.7 var(--mono); color: #d9e1ea; }
-.ab-img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border-radius: var(--r-sm); border: 1px solid var(--line); }
+.ab-now { display: flex; align-items: center; gap: var(--s4); padding: var(--s3) var(--s4); min-height: 7.5rem; background: var(--well); border: 1px solid var(--line); border-radius: var(--r-sm); --hc: var(--st-ok); }
+.ab-now[data-h="good"] { --hc: var(--st-good); } .ab-now[data-h="poor"], .ab-now[data-h="warn"] { --hc: var(--st-poor); } .ab-now[data-h="bad"] { --hc: var(--st-bad); }
+.ab-now.is-empty p { margin: 0; color: var(--muted); }
+.ab-ring { width: 5.5rem; height: 5.5rem; flex: none; } .ab-ring .tr { fill: none; stroke: var(--line2); stroke-width: 6; }
+.ab-ring .arc { fill: none; stroke: var(--hc); stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--hc)); }
+.ab-ring text { font: 700 1.5rem var(--f-head); fill: var(--text); }
+.ab-nowt { display: grid; gap: 2px; } .ab-nowt > b { font: 700 1.375rem/1.1 var(--f-head); color: var(--hc); }
 .ab-mini { display: grid; background: var(--well); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: .875rem; }
 .ab-mini > div { display: flex; justify-content: space-between; padding: 7px var(--s3); } .ab-mini > div + div { border-top: 1px solid var(--line); }
 .ab-mini span { display: inline-flex; align-items: center; gap: 6px; }
@@ -3223,7 +3258,9 @@ ${hits}</svg></div>` : ""}${sum ? `<div class="inj-sum">${sum}</div>` : ""}`;
   function dlg(html, wide) {
     closeDlg(); back = document.activeElement;
     const d = document.createElement("div"); d.className = "vr-scrim"; d.innerHTML = `<div class="vr-dialog${wide ? " is-wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="dlg-h"><button class="vr-close" type="button" data-close aria-label="Close">✕</button><div>${html}</div></div>`;
-    d.addEventListener("click", e => { if (e.target === d) closeDlg(); }); host().appendChild(d); d.querySelector("[data-close]").focus();
+    // The X, a click on the backdrop and Esc all close it (8 Nov: the X did nothing on the brag card and blueprint pop-ups)
+    d.addEventListener("click", e => { if (e.target === d || (e.target.closest && e.target.closest(".vr-close"))) closeDlg(); });
+    host().appendChild(d); d.querySelector("[data-close]").focus();
     return d;
   }
   function closeDlg() { const d = holder && holder.querySelector(".vr-scrim"); if (d) { d.remove(); if (back && back.isConnected) back.focus(); } }
@@ -3543,18 +3580,83 @@ async function renderHistory() {
 /* ---------- My PC ---------- */
 // My pilot: a profile the player fills in, plus what the app has worked out from Game.log and readings.
 // NEW (not built): /api/profile GET/POST, stored in the app's data folder like settings. Never sent anywhere.
-const SHIP_LIST = ["Aurora MR", "Avenger Titan", "C2 Hercules", "Carrack", "Constellation Andromeda", "Constellation Mk V Centaurus", "Corsair", "Cutlass Black", "Cutlass Red", "Freelancer MAX", "Gladius", "Hammerhead", "Hull C", "MOLE", "Mercury Star Runner", "Origin M80", "Prospector", "Reclaimer", "Sabre", "Vulture", "Zeus Mk II CL"];
+// 1.5.2: the ship and place lists are data files in the app (scstatus/pilotlists.py, /api/pilot/lists), shared by
+// Set up and Edit. Ships: a built-in list you type into. Places: the app's places library.
+let PILOT_LISTS = null;
+async function pilotLists() {
+  if (!PILOT_LISTS) PILOT_LISTS = await api("/api/pilot/lists").catch(() => null);
+  return PILOT_LISTS || {ships: [], places: []};
+}
+const PILOT_ICON = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4.5-6 8-6s7 2 8 6\"/></svg>";
+const TICK = "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 2.8l2.4 1.7 2.9-.1.9 2.8 2.3 1.8-.9 2.8.9 2.8-2.3 1.8-.9 2.8-2.9-.1L12 21.2l-2.4-1.7-2.9.1-.9-2.8-2.3-1.8.9-2.8-.9-2.8 2.3-1.8.9-2.8 2.9.1z\"/><path d=\"M8.5 12.2l2.4 2.4 4.6-4.8\"/></svg>";
+const isVerified = p => !!(p && p.verified && p.handle && String(p.verified.handle || "").toLowerCase() === String(p.handle).toLowerCase());
+const verDay = p => new Date(p.verified.at * 1000).toLocaleDateString("en-AU", {day: "numeric", month: "short", year: "numeric"});
+const picBox = (p, cls = "") => `<div class="pc-pic ${cls}">${p.pic ? `<img src="${esc(p.pic)}" alt="">` : (p.handle ? `<span>${esc((p.handle).replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase())}</span>` : PILOT_ICON)}</div>`;
+// The fields themselves. `found` is the handle Game.log shows, used when the card has none yet.
+function pilotFields(p, L, found) {
+  const h = p.handle || found || "";
+  return `<div class="pf" data-pf>
+    <div class="pe-row"><label>RSI handle <span class="hint">${!p.handle && found ? "from Game.log, change it if it's wrong" : "the name you log in to the game with"}</span><input class="inp" name="handle" maxlength="30" autocomplete="off" spellcheck="false" value="${esc(h)}"></label>
+      <label>Display name <span class="hint">optional, how you like to be called</span><input class="inp" name="name" maxlength="30" value="${esc(p.name || "")}"></label>
+      <label>Org <span class="hint">optional</span><input class="inp" name="org" maxlength="40" value="${esc(p.org || "")}"></label></div>
+    <div class="pe-row"><div class="fld">Picture <span class="hint">optional, stays on this PC</span><div class="pf-pic">${picBox(p)}<input class="inp" type="file" name="pic" accept="image/*">${p.pic ? `<button type="button" class="btn sm ghost" data-pf-nopic>Take it off</button>` : ""}</div></div>
+      <label>Favourite place <span class="hint">start typing, e.g. Orison</span><input class="inp" name="fav" list="pfPlaces" maxlength="60" autocomplete="off" value="${esc(p.fav || "")}" placeholder="Search the places in the game">
+        <datalist id="pfPlaces">${(L.places || []).map(x => `<option value="${esc(x.name)}">${esc(x.label || "")}</option>`).join("")}</datalist></label></div>
+    <div class="fld pf-ships">Ships I fly <span class="hint">type to find one, tap to add. Tap a ship you've added to make it your main, tap your main again to take it off.</span>
+      <div class="pf-chosen" data-pf-chosen></div>
+      <input class="inp" data-pf-ship type="search" autocomplete="off" placeholder="e.g. Cutlass, Hercules, Carrack" aria-label="Find a ship">
+      <div class="pf-sugg" data-pf-sugg aria-live="polite"></div></div>
+    <div class="fld">What I fly for <div class="dchips">${PILOT_ACTS.map(a => `<button type="button" class="dopt" data-pf-act="${esc(a)}" aria-pressed="${(p.acts || []).includes(a)}">${esc(a)}</button>`).join("")}</div></div>
+  </div>`;
+}
+// Wire the fields to a draft card. Returns read(), which copies the typed fields into the draft.
+function wirePilot(root, draft, L) {
+  const f = root.querySelector("[data-pf]"), chosen = f.querySelector("[data-pf-chosen]"), q = f.querySelector("[data-pf-ship]"), sugg = f.querySelector("[data-pf-sugg]");
+  draft.ships = (draft.ships || []).slice(); draft.acts = (draft.acts || []).slice();
+  const drawChosen = () => {
+    chosen.innerHTML = draft.ships.length ? draft.ships.map(s => `<button type="button" class="dopt${draft.main === s ? " main" : ""}" data-pf-chosen-ship="${esc(s)}" aria-pressed="true" title="${draft.main === s ? "Your main ship. Tap to take it off" : "Tap to make it your main ship"}">${draft.main === s ? "★ " : ""}${esc(s)}</button>`).join("")
+      : `<span class="sub">No ships yet</span>`;
+  };
+  const add = s => { s = String(s || "").trim().slice(0, 40); if (!s) return;
+    const known = (L.ships || []).find(x => x.toLowerCase() === s.toLowerCase()); s = known || s;
+    if (!draft.ships.some(x => x.toLowerCase() === s.toLowerCase())) draft.ships.push(s);
+    if (!draft.main) draft.main = s;
+    q.value = ""; drawChosen(); drawSugg(); q.focus(); };
+  const drawSugg = () => {
+    const t = q.value.trim().toLowerCase(), have = new Set(draft.ships.map(x => x.toLowerCase()));
+    if (!t) { sugg.innerHTML = ""; return; }
+    const words = t.split(/\s+/), list = (L.ships || []).filter(x => !have.has(x.toLowerCase()) && words.every(w => x.toLowerCase().includes(w)));
+    list.sort((a, b) => (a.toLowerCase().startsWith(t) ? 0 : 1) - (b.toLowerCase().startsWith(t) ? 0 : 1) || a.localeCompare(b));
+    sugg.innerHTML = list.slice(0, 8).map(x => `<button type="button" data-pf-add="${esc(x)}">+ ${esc(x)}</button>`).join("")
+      || `<button type="button" data-pf-add="${esc(q.value.trim())}">+ Add “${esc(q.value.trim())}”</button>`;
+  };
+  q.oninput = drawSugg;
+  q.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const first = sugg.querySelector("[data-pf-add]"); add(first ? first.dataset.pfAdd : q.value); } };
+  sugg.onclick = e => { const b = e.target.closest("[data-pf-add]"); if (b) add(b.dataset.pfAdd); };
+  chosen.onclick = e => { const b = e.target.closest("[data-pf-chosen-ship]"); if (!b) return; const s = b.dataset.pfChosenShip;
+    if (draft.main !== s) draft.main = s; else { draft.ships = draft.ships.filter(x => x !== s); draft.main = draft.ships[0] || ""; }
+    drawChosen(); };
+  f.querySelectorAll("[data-pf-act]").forEach(b => b.onclick = () => { const a = b.dataset.pfAct, on = !draft.acts.includes(a);
+    draft.acts = on ? draft.acts.concat(a) : draft.acts.filter(x => x !== a); b.setAttribute("aria-pressed", on); });
+  const box = f.querySelector(".pf-pic .pc-pic");
+  f.querySelector("[name=pic]").onchange = e => { const file = e.target.files[0]; if (!file) return; const rd = new FileReader();
+    rd.onload = () => { draft.pic = rd.result; box.innerHTML = `<img src="${esc(rd.result)}" alt="">`; }; rd.readAsDataURL(file); };
+  const nopic = f.querySelector("[data-pf-nopic]"); if (nopic) nopic.onclick = () => { draft.pic = ""; box.innerHTML = PILOT_ICON; nopic.remove(); };
+  drawChosen();
+  return () => { ["handle", "name", "org", "fav"].forEach(k => draft[k] = (f.querySelector(`[name=${k}]`).value || "").trim()); return draft; };
+}
 const PILOT_ACTS = ["Mining", "Salvage", "Cargo hauling", "Bounty hunting", "Mercenary", "Combat / PvP", "Exploration", "Medical / rescue", "Racing", "Missions (any)", "Piracy", "Just flying together"];
 // /api/profile (NEW in v3): GET {profile: {...} | null}, POST {profile} saves it in the app's data folder. Never sent anywhere.
 const EXPW = {new: "New", regular: "Regular", veteran: "Veteran"}, VOICEW = {voice: "Voice", text: "Text only"};
 let pilotEdit = false;
 async function renderPC() {
-  const [d, hs, st, pr, lb] = await Promise.all([api("/api/pc"), api("/api/history").catch(() => ({sessions: [], shards: []})), api("/api/settings").catch(() => ({})), api("/api/profile").catch(() => ({profile: null})), api("/api/logbook").catch(() => null)]);
+  const [d, hs, st, pr, lb, L, gr] = await Promise.all([api("/api/pc"), api("/api/history").catch(() => ({sessions: [], shards: []})), api("/api/settings").catch(() => ({})), api("/api/profile").catch(() => ({profile: null})), api("/api/logbook").catch(() => null), pilotLists(), api("/api/groups").catch(() => ({}))]);
   const hw = d.hardware || {};
   if (tab !== "pc") return;
   const saved = pr.profile, empty = !saved;
   // No profile yet (first run): start an empty one, with your region from the shard you're on
-  const p = saved || {handle: "", ships: [], main: "", acts: [], org: "", region: (nowData && nowData.shard && nowData.shard.region) || "", times: "", voice: "", exp: "", bio: "", fav: "", pic: ""};
+  const p = saved || {handle: "", name: "", ships: [], main: "", acts: [], org: "", region: (nowData && nowData.shard && nowData.shard.region) || "", times: "", voice: "", exp: "", bio: "", fav: "", pic: ""};
+  const ver = isVerified(p);
   const ss = hs.sessions || [], hours = Math.round(ss.reduce((n, x) => n + (x.minutes || 0), 0) / 60);
   const contracts = ss.flatMap(x => x.contracts || []), done = contracts.filter(x => x.result === "complete").length;
   const shards = hs.shards || [];
@@ -3562,18 +3664,21 @@ async function renderPC() {
   const places = (d.by_location || []).slice().sort((a, b) => b.readings - a.readings).slice(0, 4);
   const retrieved = hs.ships_retrieved || [];   // NEW in v3 on /api/history: [{ship, times}], counted from Game.log
   const fed = nowData ? (sharing(nowData) || {}).fed_week : 0;
-  const initials = (p.handle || "?").replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase();
   const chip = t => `<span class="dchip">${esc(t)}</span>`;
-  const view = empty ? `<section class="sec pilot"><div class="frame pcard pempty">
-      <div class="pc-top"><div class="pc-pic"><span>?</span></div>
+  // 8 Nov (Ray): the pilot card button, prominent, at the top beside the card
+  const bragStrip = `<div class="pc-brag"><button class="btn" type="button" data-brag="pilot">${BC_SVG.brag}Make a pilot card</button><p>A picture of your pilot logbook to post where your mates are. Made on this PC, nothing uploaded.</p></div>`;
+  const view = empty ? `<section class="sec pilot">${bragStrip}<div class="frame pcard pempty">
+      <div class="pc-top">${picBox(p)}
         <div class="pc-id"><span class="eyebrow">Pilot</span><h2>Set up your pilot card</h2><div class="pc-sub">Handle, ships, what you fly for. It stays on this PC and is never sent anywhere.</div></div>
         <button class="btn" type="button" data-protected="true" id="pEdit">Fill it in</button></div>
-      <p class="sub pc-note">The logbook below fills in by itself from Game.log, profile or not.</p></div>` + logbook() + `</section>` : `<section class="sec pilot">
+      <p class="sub pc-note">The logbook below fills in by itself from Game.log, profile or not.</p></div>` + logbook() + `</section>` : `<section class="sec pilot">${bragStrip}
     <div class="frame pcard"><div class="pc-top">
-      <div class="pc-pic">${p.pic ? `<img src="${esc(p.pic)}" alt="">` : `<span>${esc(initials)}</span>`}</div>
-      <div class="pc-id"><span class="eyebrow">Pilot</span><h2>${esc(p.handle || "Your handle")}</h2>
-        <div class="pc-sub">${p.org ? `<b>${esc(p.org)}</b> · ` : ""}${esc([EXPW[p.exp] || "", VOICEW[p.voice] || "", p.region, p.times].filter(Boolean).join(" · "))}</div></div>
-      <button class="btn sm ghost" type="button" data-protected="true" id="pEdit">Edit profile</button></div>
+      ${picBox(p)}
+      <div class="pc-id"><span class="eyebrow">Pilot</span><h2>${esc(p.handle || "Your handle")}</h2>${p.name ? `<span class="pc-name">${esc(p.name)}</span>` : ""}
+        <div class="pc-sub">${[p.org ? `<b>${esc(p.org)}</b>` : "", esc([EXPW[p.exp] || "", VOICEW[p.voice] || "", p.region, p.times].filter(Boolean).join(" · "))].filter(Boolean).join(" · ")}</div>
+        ${ver ? `<span class="pc-ver">${TICK}Verified on RSI · ${esc(verDay(p))}</span>` : ""}</div>
+      <div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${ver || !p.handle ? "" : `<button class="btn sm ghost" type="button" data-protected="true" id="pVerify">Verify on RSI</button>`}<button class="btn sm ghost" type="button" data-protected="true" id="pEdit">Edit profile</button></div></div>
+      <div id="pVerBox" hidden></div>
       ${p.bio ? `<p class="pc-bio">${esc(p.bio)}</p>` : ""}
       <div class="pc-grid">
         <div class="pc-main"><span class="eyebrow">Main ship</span><b>${esc(p.main || "Not picked yet")}</b>
@@ -3590,7 +3695,7 @@ async function renderPC() {
     const lbDay = ts => ts ? new Date(ts * 1000).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "";
     const { XI, XP } = VR;
     return `
-    <div class="vr lb-wrap"><div class="lb-head"><h3>Logbook</h3><span>worked out from Game.log and your readings on this patch</span><span class="lb-brag" data-brag-spot="pilot"></span></div></div>
+    <div class="vr lb-wrap"><div class="lb-head"><h3>Logbook</h3><span>worked out from Game.log and your readings on this patch</span></div></div>
     <div class="pc-stats">
       <div class="frame"><dt>Hours played</dt><dd>${hours}</dd><span class="sub">${plural(ss.length, "session")}</span></div>
       <div class="frame"><dt>Contracts completed</dt><dd>${done}</dd><span class="sub">of ${contracts.length} taken</span></div>
@@ -3614,10 +3719,8 @@ async function renderPC() {
   const opt = (k, v, t, on) => `<button type="button" class="dopt" data-pk="${k}" data-pv="${esc(String(v))}" aria-pressed="${on}">${esc(t)}</button>`;
   const edit = `<section class="sec pilot"><form class="frame pedit" id="pForm" data-protected="true">
     <div class="ghead"><h4>Edit your pilot profile</h4><p class="sub">Stays on this PC. Nothing here is sent to Verse Shards.</p></div>
-    <div class="pe-row"><label>RSI handle<input class="inp" name="handle" maxlength="30" value="${esc(p.handle || "")}"></label><label>Org<input class="inp" name="org" maxlength="40" value="${esc(p.org || "")}"></label></div>
-    <div class="pe-row"><label>Profile picture<input class="inp" type="file" name="pic" accept="image/*"></label><label>Favourite place<input class="inp" name="fav" maxlength="40" value="${esc(p.fav || "")}" placeholder="e.g. Orison at sunset"></label></div>
-    <div><span class="lbl">Ships I fly <span class="hint">tap to add; tap again to make it your main ship</span></span><div class="dchips pe-ships">${SHIP_LIST.map(s => `<button type="button" class="dopt${p.main === s ? " main" : ""}" data-ship="${esc(s)}" aria-pressed="${(p.ships || []).includes(s)}">${p.main === s ? "★ " : ""}${esc(s)}</button>`).join("")}</div></div>
-    <div><span class="lbl">What I do</span><div class="dchips">${PILOT_ACTS.map(a => opt("acts", a, a, (p.acts || []).includes(a))).join("")}</div></div>
+    ${pilotFields(p, L, gr.handle || "")}
+    ${isVerified(p) ? `<p class="sub" style="margin:0">Verified on RSI as ${esc(p.handle)}. Changing the handle takes the tick off until you verify again.</p>` : ""}
     <div class="pe-row"><div><span class="lbl">Comms</span><div class="dchips">${opt("voice", "voice", "Voice", p.voice === "voice")}${opt("voice", "text", "Text only", p.voice === "text")}</div></div>
       <div><span class="lbl">Experience</span><div class="dchips">${[["new", "New"], ["regular", "Regular"], ["veteran", "Veteran"]].map(([v, x]) => opt("exp", v, x, p.exp === v)).join("")}</div></div></div>
     <div class="pe-row"><label>Home region<select class="inp" name="region">${["", "Australia", "Asia", "US West", "US East", "Europe"].map(x => `<option value="${x}" ${p.region === x ? "selected" : ""}>${x || "Pick one"}</option>`).join("")}</select></label><label>Usual play times<input class="inp" name="times" maxlength="40" value="${esc(p.times || "")}" placeholder="e.g. Evenings, AEST"></label></div>
@@ -3639,23 +3742,44 @@ async function renderPC() {
     ${d.vram_total_mb ? `<p class="sub">Video memory in use: ${d.vram_used_mb} of ${d.vram_total_mb} MB.</p>` : ""}
   </section>`;
   if ($("pEdit")) $("pEdit").onclick = () => { pilotEdit = true; renderPC(); };
+  if ($("pVerify")) $("pVerify").onclick = () => verifyFlow($("pVerBox"));
+  if (!pilotEdit && p.verify && p.verify.expires > Date.now() / 1000 && $("pVerBox")) verifyFlow($("pVerBox"));   // a code in progress comes back
   const f = $("pForm"); if (!f) return;
   const draft = JSON.parse(JSON.stringify(p));
+  const readPilot = wirePilot(f, draft, L);
   f.querySelectorAll("[data-pk]").forEach(b => b.onclick = () => {
     const k = b.dataset.pk, v = b.dataset.pv === "true" ? true : b.dataset.pv === "false" ? false : b.dataset.pv;
     if (k === "acts") { const s = new Set(draft.acts || []); s.has(v) ? s.delete(v) : s.add(v); draft.acts = [...s]; b.setAttribute("aria-pressed", s.has(v)); return; }
     draft[k] = draft[k] === v ? null : v; f.querySelectorAll(`[data-pk="${k}"]`).forEach(x => x.setAttribute("aria-pressed", String(draft[k]) === x.dataset.pv));
   });
-  f.querySelectorAll("[data-ship]").forEach(b => b.onclick = () => {
-    const s = b.dataset.ship, has = (draft.ships || []).includes(s);
-    if (!has) draft.ships = (draft.ships || []).concat(s); else if (draft.main !== s) draft.main = s; else { draft.ships = draft.ships.filter(x => x !== s); draft.main = draft.ships[0] || ""; }
-    f.querySelectorAll("[data-ship]").forEach(x => { const on = draft.ships.includes(x.dataset.ship), m = draft.main === x.dataset.ship; x.setAttribute("aria-pressed", on); x.classList.toggle("main", m); x.textContent = (m ? "★ " : "") + x.dataset.ship; });
-  });
-  f.querySelector("[name=pic]").onchange = e => { const file = e.target.files[0]; if (!file) return; const rd = new FileReader(); rd.onload = () => { draft.pic = rd.result; }; rd.readAsDataURL(file); };
   $("pCancel").onclick = () => { pilotEdit = false; renderPC(); };
-  f.onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(f)); ["handle", "org", "fav", "region", "times", "bio"].forEach(k => draft[k] = (v[k] || "").trim());
+  f.onsubmit = async e => { e.preventDefault(); readPilot(); const v = Object.fromEntries(new FormData(f)); ["region", "times", "bio"].forEach(k => draft[k] = (v[k] || "").trim());
     if (!draft.handle) { toast("Add your RSI handle first.", true); return f.querySelector("[name=handle]").focus(); }
     try { const r = await api("/api/profile", {profile: draft}); toast(r.message); pilotEdit = false; renderPC(); } catch (x) { toast(x.message, true); } };
+}
+
+// Verify on RSI (1.5.2): the same bio code as the site's org claim. The app reads the player's public RSI page from
+// this PC; nothing goes to verseshards.com.
+async function verifyFlow(box) {
+  box.hidden = false;
+  const say = (t, cls = "") => { const m = box.querySelector(".msg"); if (m) { m.className = "msg " + cls; m.textContent = t; } };
+  let v;
+  try { v = await api("/api/profile/verify", {action: "start"}); } catch (x) { toast(x.message, true); box.hidden = true; return; }
+  const until = new Date(v.expires * 1000).toLocaleTimeString("en-AU", {hour: "numeric", minute: "2-digit"});
+  box.innerHTML = `<div class="pc-verify" role="region" aria-labelledby="pvH"><h4 id="pvH">Verify ${esc(v.handle)} on RSI</h4>
+    <div class="code"><code id="pvCode">${esc(v.code)}</code><button class="btn sm ghost" type="button" data-chat="${esc(v.code)}" data-plain>Copy</button><span class="sub">works until ${esc(until)}</span></div>
+    <ol><li>Open <a href="https://robertsspaceindustries.com/account/profile" target="_blank" rel="noopener">your RSI profile settings</a> and sign in.</li>
+      <li>Paste the code anywhere in your Short Bio and save.</li>
+      <li>Come back and press Check. Once it's verified you can take the code out again.</li></ol>
+    <p class="sub" style="margin:0">The app reads <a href="${esc(v.url)}" target="_blank" rel="noopener">your public citizen page</a> from this PC. Nothing goes to verseshards.com.</p>
+    <div class="acts"><button class="btn" type="button" data-protected="true" id="pvCheck">Check</button><button class="btn ghost" type="button" data-protected="true" id="pvCancel">Cancel</button></div>
+    <p class="msg" aria-live="polite"></p></div>`;
+  box.querySelector("#pvCheck").onclick = async e => {
+    const b = e.currentTarget; b.disabled = true; say("Reading your RSI page…");
+    try { const r = await api("/api/profile/verify", {action: "check"}); say(r.message, "good"); toast(r.message); setTimeout(() => { if (tab === "pc") renderPC(); }, 1200); }
+    catch (x) { say(x.message, "bad"); b.disabled = false; }
+  };
+  box.querySelector("#pvCancel").onclick = async () => { await api("/api/profile/verify", {action: "cancel"}).catch(() => {}); box.hidden = true; box.innerHTML = ""; };
 }
 
 /* ---------- Known issues ---------- */
@@ -3916,6 +4040,18 @@ async function renderSetup() {
 
 /* ---------- About ---------- */
 // Same About as verseshards.com/about, then the app's own bits (version, theme, star)
+// About, How it works, card 2 (1.5.2): a small live Now panel from this PC's own numbers, in place of the old
+// screenshot. With nothing read yet it says so in plain words.
+function aboutNow() {
+  const h = nowData && nowData.health, sh = (nowData && nowData.shard) || {};
+  if (!h || h.score == null) return `<div class="ab-now is-empty"><p>Nothing read yet. Start the game with the overlay on and this shows your shard's score, server fps and shard name, live.</p></div>`;
+  const r = 34, c = 2 * Math.PI * r, pct = Math.max(0, Math.min(100, h.score)) / 100;
+  return `<div class="ab-now" data-h="${esc(h.cls || "")}" aria-label="Right now: score ${h.score}, ${esc(h.label || "")}">
+    <svg class="ab-ring" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="${r}" class="tr"/><circle cx="40" cy="40" r="${r}" class="arc" stroke-dasharray="${(c * pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 40 40)"/><text x="40" y="47" text-anchor="middle">${h.score}</text></svg>
+    <div class="ab-nowt"><span class="eyebrow">Right now</span><b>${esc(h.label || "")}</b>
+      <span>${h.server_fps != null ? `Server <b>${fmt(h.server_fps, 1)}</b> fps` : "Server fps not read yet"}</span>
+      <span class="muted">${esc(sh.name || "Shard not known yet")}</span></div></div>`;
+}
 async function renderAbout() {
   const d = await api("/api/about");
   if (tab !== "about") return;
@@ -3937,12 +4073,12 @@ async function renderAbout() {
       <p>Star Citizen already shows server numbers in the corner of your screen. Turn it on once with one console line.</p></div>
     <span class="ab-arrow" aria-hidden="true">›</span>
     <div class="frame"><div class="ab-step"><b class="n">2</b><b>Verse Shards for PC</b></div>
-      <img class="ab-img" src="img/1-now-healthy.webp" onerror="this.remove()" alt="The companion's Now tab">
-      <p>The free companion reads those numbers and Game.log, and tells you in plain English how your shard is doing.</p></div>
+      ${aboutNow()}
+      <p>The app reads those numbers and Game.log, and tells you in plain English how your shard is doing.</p></div>
     <span class="ab-arrow" aria-hidden="true">›</span>
     <div class="frame"><div class="ab-step"><b class="n">3</b><b>The board</b></div>
       <div class="ab-mini" aria-hidden="true"><div><span><i class="st good"></i> <b>AU-110</b></span><span class="muted">96 · 21.6 fps</span></div><div><span><i class="st good"></i> <b>AU-90</b></span><span class="muted">92 · 20.0 fps</span></div><div><span><i class="st bad"></i> <b>AU-60</b></span><span class="muted">31 · 6.2 fps</span></div></div>
-      <p>If you switch sharing on, a short summary joins everyone else's here, so anyone can pick a healthy shard.</p></div></div></section>
+      <p>If you switch sharing on, a short summary joins everyone else's on <a href="${esc(COMMUNITY_SITE)}/board" target="_blank" rel="noopener">verseshards.com/board</a>, so anyone can pick a healthy shard.</p></div></div></section>
 
   <section class="sec ab-two"><div><h2 class="ab-h">Ground rules</h2><div class="ab-rules">
       <div><b>Reads, never touches</b><span>Only your screen's overlay, Game.log and the game's text file. Never the game's memory or network traffic, never your mouse or keyboard.</span></div>
@@ -3980,6 +4116,10 @@ async function openWizard(all) {
   const d = await api("/api/now"); const st = await api("/api/settings"); const u = d.user_cfg || {};
   const ask = all ? null : d.setup_ask;
   const A = {};
+  // The pilot card step (1.5.2): optional, with earlier answers filled in. The handle comes from Game.log when there's none yet.
+  const wantPilot = !ask || ask.includes("pilot");
+  const [PR, PL, GR] = wantPilot ? await Promise.all([api("/api/profile").catch(() => ({})), pilotLists(), api("/api/groups").catch(() => ({}))]) : [{}, {}, {}];
+  const pDraft = JSON.parse(JSON.stringify((PR && PR.profile) || {handle: "", name: "", org: "", fav: "", pic: "", ships: [], main: "", acts: []}));
   const yn = (key, yes = "Yes", no = "No") => `<div class="ans" data-q="${key}" data-protected="true"><button type="button" data-v="1">${yes}</button><button type="button" data-v="0">${no}</button></div>`;
   const now = v => v === null || v === undefined ? "" : `<span class="now">Right now: ${v ? "on" : "off"}</span>`;
   const qs = [
@@ -4021,14 +4161,19 @@ async function openWizard(all) {
     ["errors", "This app", "Send a report when something in the app itself goes wrong?",
       `So faults in Verse Shards for PC get found and fixed. Where in the app it went wrong and the error, with every file path cut down to the file name and anything in quotes taken out. Never Game.log lines, your handle, your files or screenshots. At most every 30 minutes.`,
       yn("errors", "Yes, send them", "No") + now(st.errors)],
+    ["pilot", "Your pilot card", "Set up your pilot card?",
+      `Optional. Your handle, ships and what you fly for, shown on My pilot and on the pilot cards you make to post for your mates. It stays on this PC and is never sent anywhere. Skip it if you like; it's always there on My pilot.`,
+      (wantPilot ? pilotFields(pDraft, PL, GR.handle || "") : "") +
+      `<div class="ans" data-q="pilot" data-protected="true"><button type="button" data-v="done">Save my pilot card</button><button type="button" data-v="skip">Skip for now</button></div>`],
   ].filter(([k]) => !ask || ask.includes(k));
   if (!qs.length) return;
   const isNew = ask && ask.length && !ask.includes("game");
+  const onlyPilot = isNew && qs.length === 1 && qs[0][0] === "pilot";
   const w = document.createElement("div");
   w.className = "wiz"; w.id = "wiz"; w.setAttribute("role", "dialog"); w.setAttribute("aria-modal", "true"); w.setAttribute("aria-labelledby", "wzTitle");
   const many = qs.length === 1 ? "1 new question" : `${qs.length} ${isNew ? "new " : ""}questions`;
-  w.innerHTML = `<div class="box"><header><h2 id="wzTitle">${isNew ? `This version brings ${many}` : `Before you start: ${qs.length} quick questions`}</h2>
-    <p>${isNew ? "Your earlier answers are kept. " : ""}Each one needs a yes or a no, so nothing gets missed. You can change any of them later on the Set up tab.</p></header>
+  w.innerHTML = `<div class="box"><header><h2 id="wzTitle">${onlyPilot ? "New in this version: your pilot card" : isNew ? `This version brings ${many}` : `Before you start: ${qs.length} quick questions`}</h2>
+    <p>${onlyPilot ? "Your earlier answers are kept. This one's optional: fill it in or skip it, and it won't ask again. You can change it any time on My pilot." : `${isNew ? "Your earlier answers are kept. " : ""}Each one needs an answer, so nothing gets missed. You can change any of them later on the Set up tab.`}</p></header>
     ${qs.map(([k, eb, h, p, a], i) => `<section class="wq" id="wq-${k}"><span class="qn">${i + 1} of ${qs.length} · ${eb}</span><h3>${h}</h3><p>${p}</p>${a}</section>`).join("")}
     <footer><span class="sub" id="wzLeft"></span><span class="grow"></span><button class="btn big" data-protected="true" id="wzDone" disabled>Save and start</button></footer></div>`;
   document.body.appendChild(w);
@@ -4040,8 +4185,11 @@ async function openWizard(all) {
     $("wzDone").disabled = !!left;
     qs.forEach(([k]) => $("wq-" + k).classList.toggle("done", A[k] !== undefined && (k !== "game" || pathOk)));
   };
+  const readPilot = wantPilot && $("wq-pilot") ? wirePilot($("wq-pilot"), pDraft, PL) : null;
   w.querySelectorAll(".ans").forEach(g => g.querySelectorAll("button").forEach(b => b.onclick = () => {
     const k = g.dataset.q;
+    if (k === "pilot" && b.dataset.v === "done" && !/^[A-Za-z0-9_-]{3,30}$/.test(readPilot().handle || "")) {
+      toast("Add your RSI handle first, or skip for now.", true); return $("wq-pilot").querySelector("[name=handle]").focus(); }
     A[k] = b.dataset.v === "1" ? true : b.dataset.v === "0" ? false : b.dataset.v;
     g.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
     if (k === "game") { $("wzPathRow").hidden = A.game !== "other"; if (A.game === "other") $("wzPath").focus(); }
@@ -4052,6 +4200,7 @@ async function openWizard(all) {
     const choices = {...A, game: A.game === "other" ? $("wzPath").value.trim() : A.game};
     $("wzDone").disabled = true;
     try {
+      if (A.pilot === "done" && readPilot) await api("/api/profile", {profile: readPilot()});   // the card first, so a bad handle stops here
       const r = await api("/api/setup", {choices});
       toast(r.message); w.remove(); document.body.style.overflow = ""; show(tab);
     } catch (e) { toast(e.message, true); $("wzDone").disabled = false; }
@@ -4136,7 +4285,7 @@ const BRAG = (() => {
     const p = (pr && pr.profile) || {};
     D = { sess, week: ss && ss.week, best: br && br.best, groups, earned, lics, lb: lb || {},
       minutes: hist.reduce((n, x) => n + (x.minutes || 0), 0), sessions: hist.length, done: cons.filter(c => c.result === "complete").length,
-      handle: (p.handle || "").trim(), org: (p.org || "").trim(), main: (p.main || "").trim() };
+      handle: (p.handle || "").trim(), org: (p.org || "").trim(), main: (p.main || "").trim(), verified: isVerified(p) };
     return D;
   }
   const has = { session: d => !!d.sess, week: d => !!(d.week && d.week.this && d.week.this.sessions), blueprints: d => d.earned.length > 0, licence: d => d.lics.length > 0, pilot: () => true };
@@ -4244,7 +4393,7 @@ const BRAG = (() => {
       extra = l.contract ? `<span class="bc-line">From a <b>${esc(kindOf(l.contract))}</b> contract</span>` : `<span class="bc-line">Logged in my game journal</span>`;
     }
     if (k === "pilot") {
-      title = handleOn ? `<span class="bc-handle">${esc(d.handle)}</span>` : "Pilot logbook";
+      title = handleOn ? `<span class="bc-handle">${esc(d.handle)}</span>${d.verified ? `<span class="bc-ver" title="Verified on RSI" aria-label="Verified on RSI">${TICK}</span>` : ""}` : "Pilot logbook";
       const flies = d.main ? `Flies the <b>${esc(d.main)}</b>` : "Counted from my game logs";
       sub = (handleOn && d.org ? esc(d.org) + " · " : "") + flies;
       fig = d.best ? `<div class="bc-fig" style="--hc:${hc(d.best.health)}"><div class="bc-ring ">${ring(d.best.score)}<b>${d.best.score}</b></div><span class="bc-ring-word">Best session</span></div>`
@@ -4315,6 +4464,46 @@ const BRAG = (() => {
       return blob;
     } finally { box.remove(); }
   }
+
+  // ---------------- the saved file: its name, and words inside the PNG that point back to verseshards.com ----------------
+  // 8 Nov (Ray): "<handle> - Verse Shards <kind> card <date>.png" when the handle is switched on, otherwise without it;
+  // and the PNG carries a title, the app, the site, a one-line description, the fan-made notice, and the handle as the
+  // author only when the player switched it on. Never other players' names (cards never carry them anyway).
+  const FILE_KIND = { session: "Session", week: "Week", blueprints: "Blueprints", licence: "Licence", pilot: "Pilot" };
+  const safeName = t => String(t || "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().slice(0, 60);
+  function fileName(st) {
+    const dt = new Date(), day = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    const base = `Verse Shards ${FILE_KIND[st.kind] || "Brag"} card ${day}.png`, h = st.handle && D.handle ? safeName(D.handle) : "";
+    return h ? `${h} - ${base}` : base;
+  }
+  const plain = h => { const e = document.createElement("div"); e.innerHTML = String(h == null ? "" : h); return e.textContent.replace(/\s+/g, " ").trim(); };
+  function pngMeta(st) {
+    const ver = ((document.querySelector('meta[name="app"]') || {}).content || "").replace(/^.*?v(?=\d)/, "") || "";
+    const all = stats(st.kind, st), picked = st.pick.map(id => all.find(x => x.id === id)).filter(Boolean);
+    const m = { Title: `Verse Shards ${FILE_KIND[st.kind] || ""} card`.replace(/\s+/g, " "), Software: `Verse Shards for PC${ver ? " " + ver : ""}`,
+      Source: "https://verseshards.com", URL: "https://verseshards.com",
+      Description: `${KIND[st.kind] || "Brag card"}${picked.length ? ": " + picked.map(x => `${plain(x.name)} ${plain(x.b)}`).join(", ") : ""}. Made with Verse Shards for PC.`,
+      Copyright: "Unofficial fan-made card. Not affiliated with Cloud Imperium Games." };
+    if (st.handle && D.handle) m.Author = D.handle;
+    return m;
+  }
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = b => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  // iTXt chunks (UTF-8 text) go in just before IEND
+  async function withMeta(blob, meta) {
+    const src = new Uint8Array(await blob.arrayBuffer()), enc = new TextEncoder(), parts = [];
+    for (const [k, v] of Object.entries(meta)) {
+      const body = new Uint8Array([...enc.encode(k), 0, 0, 0, 0, 0, ...enc.encode(v)]);   // keyword, no compression, no language
+      const type = enc.encode("iTXt"), len = new Uint8Array(4), crc = new Uint8Array(4);
+      new DataView(len.buffer).setUint32(0, body.length);
+      const tb = new Uint8Array(4 + body.length); tb.set(type); tb.set(body, 4);
+      new DataView(crc.buffer).setUint32(0, crc32(tb));
+      parts.push(len, tb, crc);
+    }
+    const iend = src.length - 12;      // the last chunk is IEND: 4 length + 4 type + 4 crc
+    return new Blob([src.slice(0, iend), ...parts, src.slice(iend)], { type: "image/png" });
+  }
+  async function drawToSave(st) { return withMeta(await draw(st), pngMeta(st)); }
 
   // ---------------- the maker ----------------
   let st = null, dlgEl = null, ro = null;
@@ -4391,8 +4580,8 @@ const BRAG = (() => {
       const t = e.target.closest("button"); if (!t) return;
       if (t.matches("[data-bm-save]")) {
         busy(true);
-        try { const blob = await draw(st); const a = document.createElement("a"), u = URL.createObjectURL(blob);
-          a.href = u; a.download = `verse-shards-${st.kind}-${st.size}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+        try { const blob = await drawToSave(st); const a = document.createElement("a"), u = URL.createObjectURL(blob);
+          a.href = u; a.download = fileName(st); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
         catch (x) { st.err = "Couldn't draw the card."; paint(false); toast(`Couldn't draw the card: ${x.message}`, true); }
         busy(false);
       }
@@ -4400,6 +4589,7 @@ const BRAG = (() => {
         busy(true);
         try {
           // The promise form keeps the click's permission while the card draws
+          // No metadata on Copy: the browser engine re-encodes a picture put on the clipboard, so words written into the PNG are dropped
           await navigator.clipboard.write([new ClipboardItem({ "image/png": draw(st) })]);
           st.copied = true; st.err = ""; paint();
         } catch (x) { st.err = /denied|not allowed|permission/i.test(String(x && x.message)) ? "Your browser didn't allow copying a picture. Use Save image instead." : "Couldn't copy the card. Use Save image instead."; paint(); }
@@ -4425,7 +4615,7 @@ const BRAG = (() => {
     const k = b.dataset.brag, id = b.dataset.bragId || null;
     open({ kind: k === "blueprint" ? "blueprints" : k, id });
   });
-  return { open, card, draw, load, defaults, stats, SIZES, get state() { return st; } };
+  return { open, card, draw, drawToSave, fileName, pngMeta, withMeta, load, defaults, stats, SIZES, get state() { return st; } };
 })();
 
 

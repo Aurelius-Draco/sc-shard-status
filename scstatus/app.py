@@ -1390,8 +1390,9 @@ class App:
     # already been through set-up are asked only the new ones.
     # share is 3: 1.2 added the area and session stats to what's shared, so sharers are asked again
     # share is 4: 1.3 adds reading-quality counts and the game's wording for disconnects, so sharers are asked again
+    # pilot is 5: 1.5.2 adds the pilot card step (optional: "done" or "skip"), so everyone goes through set-up once more
     QUESTIONS = {"game": 1, "displayinfo": 1, "sessioninfo": 1, "live": 1, "screenshots": 1, "board": 1, "share": 4,
-                 "updates": 2, "library": 2, "alerts": 2, "errors": 4}
+                 "updates": 2, "library": 2, "alerts": 2, "errors": 4, "pilot": 5}
     SETUP_VERSION = max(QUESTIONS.values())
 
     @property
