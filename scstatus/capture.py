@@ -71,8 +71,13 @@ def _region(left, top, w, h):
 
 
 def pick_area(mons, monitor, rect):
-    """The part of the desktop to read and the screen size the overlay is drawn for. With the game's window known
-    and sensible (at least 640x360 and on the desktop), that window; otherwise the monitor in config (1 = main)."""
+    """The part of the desktop to read and the screen size the overlay's text is drawn for.
+
+    With the game's window known (at least 640x360, its middle on a monitor): the top right of that window. The
+    game draws the overlay's text at the same pixel size in a small window as full screen on that monitor (9 Nov,
+    a 1920x1080 window on a 4K screen had 4K-sized text), so the size handed on is the monitor's, and the slice is
+    at least as wide and tall as the overlay is on that monitor (about 42% by 40% of it), within the window.
+    Otherwise the monitor in config (1 = main), as before."""
     if rect:
         x, y, w, h = rect
         cx, cy = x + w // 2, y + h // 2
@@ -83,7 +88,10 @@ def pick_area(mons, monitor, rect):
             l, t = max(x, on["left"]), max(y, on["top"])
             r, b = min(x + w, on["left"] + on["width"]), min(y + h, on["top"] + on["height"])
             if r - l >= 640 and b - t >= 360:
-                return _region(l, t, r - l, b - t), (r - l, b - t), "window"
+                W, H = on["width"], on["height"]
+                cw = min(r - l, max((r - l) - (r - l) // 2, int(W * 0.42)))
+                ch = min(b - t, max(int((b - t) * 0.4), int(H * 0.4)))
+                return {"left": r - cw, "top": t, "width": cw, "height": ch}, (max(W, r - l), max(H, b - t)), "window"
     mon = mons[monitor] if 0 < monitor < len(mons) else mons[1]
     return _region(mon["left"], mon["top"], mon["width"], mon["height"]), (mon["width"], mon["height"]), "monitor"
 
