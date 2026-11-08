@@ -118,8 +118,14 @@ _CONF1 = "Il|!"
 _NUMISH = re.compile(r"(?<![A-Za-z])[0-9OoDQIl|!][0-9OoDQIl|!.,]*")
 
 
+_SPLIT_DEC = re.compile(r"(\d)\.\s+(\d+\s*(?:ms|%))")      # "110. 9ms": a space read after the point
+_SPLIT_DEC2 = re.compile(r"(\d)\s+\.\s?(\d)")              # "113 . 2ms", "113 .2ms"
+
+
 def fix_digits(s):
-    """Turn O/o/D/Q into 0 and I/l/|/! into 1 where they sit in a number."""
+    """Turn O/o/D/Q into 0 and I/l/|/! into 1 where they sit in a number, and close up a decimal point the OCR
+    split with a space."""
+    s = _SPLIT_DEC2.sub(r"\1.\2", _SPLIT_DEC.sub(r"\1.\2", s))
     def repl(m):
         tok = m.group(0)
         core = tok.rstrip(".,")
@@ -447,6 +453,38 @@ PARSERS = {
 }
 
 
+def _fps_agrees(fps, ms):
+    """Server fps and its frame time are the same number two ways (30 fps is 33.3 ms), to the rounding."""
+    if fps is None or ms is None or fps <= 0 or ms <= 0:
+        return False
+    return abs(1000.0 / fps - ms) <= max(0.6, 0.03 * ms)
+
+
+def _within(v, lo, hi):
+    return v is not None and (lo is None or v >= lo - 0.05) and (hi is None or v <= hi + 0.05) and (lo is not None or hi is not None)
+
+
+def _fps_ms_check(out):
+    """When the server fps and its frame time disagree, one was misread (LAB, 7 Nov: 57 of 1,845 readings, e.g.
+    50.0 fps with 33.3 ms, or 30.0 fps with 3.3 ms). Keep the half that fits its own range and work the other out
+    from it; if neither can be trusted, drop both rather than show a wrong number."""
+    fps, ms = out.get("server_fps"), out.get("server_ms")
+    if fps is None or ms is None or _fps_agrees(fps, ms):
+        return
+    ms_ok = _within(ms, out.get("server_ms_min"), out.get("server_ms_max"))
+    fps_ok = _within(fps, out.get("server_fps_min"), out.get("server_fps_max"))
+    from_ms = round(1000.0 / ms, 1)
+    from_fps = round(1000.0 / fps, 1)
+    if ms_ok and (not fps_ok or _within(from_ms, out.get("server_fps_min"), out.get("server_fps_max"))):
+        out["server_fps"] = from_ms
+    elif fps_ok and _within(from_fps, out.get("server_ms_min"), out.get("server_ms_max")):
+        out["server_ms"] = from_fps
+    elif fps_ok and not ms_ok:
+        out["server_ms"] = from_fps
+    else:
+        out["server_fps"] = out["server_ms"] = None
+
+
 def _sanity(out):
     for f, (lo, hi) in LIMITS.items():
         v = out.get(f)
@@ -477,6 +515,7 @@ def _sanity(out):
     fix_range("server_fps", "server_fps_min", "server_fps_max")
     fix_range("server_ms", "server_ms_min", "server_ms_max")
     fix_range("client_fps", "client_fps_min", "client_fps_max")
+    _fps_ms_check(out)
     u, t = out.get("vram_used_mb"), out.get("vram_total_mb")
     if u is not None and t is not None and u > t:
         out["vram_used_mb"] = out["vram_total_mb"] = None
