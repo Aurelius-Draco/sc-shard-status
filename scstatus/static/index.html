@@ -1167,6 +1167,9 @@ code.cmdsm { background: #05070a; padding: 3px 8px; border-radius: 3px; border: 
 .ss-auec .vr-inp { width: 100%; min-width: 0; }
 @media (max-width: 1000px) { .ss-rep-grid { grid-template-columns: minmax(0, 1fr); } }
 
+/* port: the round came in dark only. In the light theme its pieces sit on a dark panel so they read; light versions are asked of Claude Design */
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .sec.vr { background: #0b0e12; padding: 20px; border-radius: 14px; color-scheme: dark; } }
+:root[data-theme="light"] .sec.vr { background: #0b0e12; padding: 20px; border-radius: 14px; color-scheme: dark; }
 /* port: a just-received card flashes once; when the tab redraws (search, groups) it keeps its New chip without flashing again */
 .bp-card.is-new.is-seen, .bp-card.is-new.is-seen .bp-mark { animation: none; }
 .bp-card.is-new.is-seen .bp-in::after { display: none; }
@@ -1728,6 +1731,7 @@ async function renderNow() {
       ${gauge("Your fps", fmt(h.client_fps), "", gb("client_fps", flat), "")}
     </div>
   </section>
+  ${d.settings_flag ? `<div class="sec vr">${GS.nowFlag(d.settings_flag)}</div>` : ""}
   <section class="hud2">
     <div class="frame hsit">
       <span class="hl">Situation${sh.id ? ` · ${esc(sh.name || sh.id)}` : ""}${srvName ? ` · server ${esc(srvName)}` : ""}${areaName ? `, ${esc(areaName)}` : ""}</span>
@@ -1779,6 +1783,7 @@ async function renderNow() {
   ${h.score !== null ? `<p class="sub" style="margin-top:var(--s5)">Overlay in the way? Press <kbd>~</kbd> and type <code>r_displayinfo 0</code> to hide it; <code>r_displayinfo 3</code> brings it back. <button class="link" id="goSetup2">More on the switches</button></p>` : ""}
   <p class="sub" style="margin-top:var(--s4)">Finding this useful? A star on GitHub helps other players find it and trust it. <a href="https://github.com/Aurelius-Draco/sc-shard-status" target="_blank" rel="noopener">★ Star on GitHub</a></p>
   <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
+  bindSettingsFlag();
   const b = $("addCfg");
   if (b) b.onclick = async () => { try { const r = await api("/api/usercfg", {name: "r_displayinfo"}); toast(r.message); renderNow(); } catch (e) { toast(e.message, true); } };
   if ($("goSetup")) $("goSetup").onclick = () => show("setup");
@@ -2446,6 +2451,96 @@ const VR = (() => {
   return { MARK, IC, P, blueprintCard, blueprintsTab, blueprintDetail, fromApi, sessionCard, sessionsPage, sessionReport, fromCard, dlg, closeDlg, vtoast, host, setGroups: g => { if (g && g.length) GROUPS = g; } };
 })();
 
+/* ---------- Your game settings (Set up) and the flag on Now: Claude Design round, 8 Nov 2026 ----------
+   Ported from reference/round.js settingsCard and nowFlag, with real data from /api/gamesettings. */
+const GS = (() => {
+  const { IC, P } = VR;
+  const when = t => { const d = new Date(t * 1000); return `${d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", "")}, ${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")} ${d.getHours() < 12 ? "am" : "pm"}`; };
+  const stamp = () => { const d = new Date(), z = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}${z(d.getMinutes())}`; };
+  function settingsCard(d, st = {}) {
+    const saved = !!d.saved, running = !!d.game_running;
+    const nChanged = (d.changed || []).reduce((n, g) => n + g.settings.length, 0), binds = (d.binds || {}).count || 0;
+    const copy = c => {
+      const tag = { match: ["is-match", "Matches your saved settings"], differs: ["is-differs", `${c.differs} ${c.differs === 1 ? "setting differs" : "settings differ"}`], never: ["is-never", "Never launched. No settings yet"], unsaved: ["is-unsaved", "Nothing saved to compare with"] }[c.state] || ["is-unsaved", ""];
+      const canPut = saved && c.state === "differs";
+      return `<div class="gs-copy ${tag[0]}"><div class="gs-copy-h"><b>${esc(c.name)}</b>${c.key === (d.saved && d.saved.from || "LIVE") ? `<span class="vr-sub">· where the save comes from</span>` : ""}</div><span class="gs-st"><i></i>${esc(tag[1])}</span>
+        ${canPut ? `<div class="gs-copy-acts"><button class="vr-btn is-sm" type="button" data-diff="${esc(c.key)}" aria-expanded="${st.diff === c.key}">${st.diff === c.key ? "Hide differences" : "Show differences"}</button>
+          <button class="vr-btn is-sm is-primary" type="button" data-put="${esc(c.key)}" ${running ? "disabled" : ""}>Put them back</button></div>
+          ${running ? `<span class="gs-wait">Star Citizen is running. Close it to put them back; the button turns on by itself when the game closes.</span>` : ""}` : ""}</div>`;
+    };
+    const dc = st.diff ? (d.copies || []).find(c => c.key === st.diff) : null;
+    const diffBy = new Map((dc ? dc.diff : []).map(x => [x.name, x]));
+    const rows = (d.changed || []).map(g => `<div class="gs-group"><h4>${esc(g.group)}</h4>${g.settings.map(r => {
+      const x = diffBy.get(r.name);
+      return `<div class="gs-row${x ? " is-diff" : ""}"><span>${esc(r.name)}</span><span class="v">${esc(r.value)}</span><span class="d">${x ? `${esc(dc.name)} has ${esc(x.now)}` : r.default != null ? `default ${esc(r.default)}` : ""}</span></div>`; }).join("")}</div>`).join("");
+    // Differences the changed list doesn't show (settings with no known default, key binds), so the whole list is there
+    const shownNames = new Set((d.changed || []).flatMap(g => g.settings.map(r => r.name)));
+    const extra = dc ? dc.diff.filter(x => !shownNames.has(x.name)) : [];
+    const extraBox = extra.length ? `<div class="gs-group" style="grid-column:1/-1"><h4>Also different in ${esc(dc.name)} · ${extra.length}</h4>${extra.map(x => `<div class="gs-row is-diff"><span>${esc(x.name)}${x.group ? ` <span class="vr-sub" style="font-size:12px">· ${esc(x.group)}</span>` : ""}</span><span class="v">${esc(x.saved)}</span><span class="d">${esc(dc.name)} has ${esc(x.now)}</span></div>`).join("")}</div>` : "";
+    const bl = (d.binds || {}).list || [];
+    const savedTxt = saved ? `${IC(P.check).replace("<svg", '<svg width="16" height="16"')}Saved ${esc(when(d.saved.t))} · ${d.saved.changed} changed ${d.saved.changed === 1 ? "setting" : "settings"} and ${d.saved.binds} custom key ${d.saved.binds === 1 ? "bind" : "binds"}`
+      : `<span>Not saved yet. Star Citizen sometimes loses settings after a patch, a test server or a reinstall. Save them once and you can put them back.</span>`;
+    const anyDiffers = (d.copies || []).some(c => c.state === "differs");
+    return `<section class="gs" data-s="${!saved ? "none" : anyDiffers ? "differs" : "match"}" aria-labelledby="gs-h">
+      <div class="gs-head"><div><h3 class="vr-h" id="gs-h">Your game settings</h3>
+        <div class="gs-saved">${savedTxt}</div></div>
+        <button class="vr-btn${saved ? "" : " is-primary"}" type="button" data-save>${saved ? "Save again" : "Save my settings"}</button></div>
+      ${st.confirm === "save" ? `<div class="gs-confirm" role="alertdialog" aria-label="Replace your saved settings?"><span>Replace the save from ${esc(when(d.saved.t))} with LIVE as it is now?</span><div class="gs-copy-acts"><button class="vr-btn is-sm is-primary" type="button" data-yes="save">Replace it</button><button class="vr-btn is-sm" type="button" data-no>Keep the old save</button></div></div>` : ""}
+      ${st.confirm && st.confirm.startsWith("put:") ? (c => `<div class="gs-confirm" role="alertdialog" aria-label="Put your settings back?"><span>Put your saved settings into <b>${esc(c ? c.name : st.confirm.slice(4))}</b>? What's there now is backed up first, to<br><code>${esc(d.backups_dir || "Documents\\Verse Shards\\Settings backups")}\\${esc(st.confirm.slice(4))} ${stamp()}</code></span><div class="gs-copy-acts"><button class="vr-btn is-sm is-primary" type="button" data-yes="put" ${running ? "disabled" : ""}>Back up and put them back</button><button class="vr-btn is-sm" type="button" data-no>Cancel</button></div></div>`)((d.copies || []).find(c => c.key === st.confirm.slice(4))) : ""}
+      ${st.done ? `<div class="gs-confirm" style="border-color:rgba(76,196,176,.5);background:rgba(76,196,176,.07)" role="status">${esc(st.done)}</div>` : ""}
+      ${st.err ? `<div class="gs-confirm" style="border-color:rgba(236,122,94,.5);background:rgba(236,122,94,.07)" role="alert">${esc(st.err)}</div>` : ""}
+      <div class="gs-copies">${(d.copies || []).map(copy).join("")}</div>
+      ${nChanged || binds ? `<div class="gs-groups">${rows}${extraBox}</div>
+        ${binds ? `<details class="gs-binds"><summary>${binds} custom key ${binds === 1 ? "bind" : "binds"}</summary><ul>${bl.map(b => `<li>${esc(b.action)} <kbd>${esc(b.key)}</kbd></li>`).join("")}${binds > bl.length ? `<li class="vr-sub">and ${binds - bl.length} more</li>` : ""}</ul></details>` : ""}` : extraBox ? `<div class="gs-groups">${extraBox}</div>` : ""}
+      <span class="vr-sub">Read from the game's own settings files on this PC. Nothing here leaves your PC.</span></section>`;
+  }
+  const nowFlag = f => { const ex = (f.examples || []).slice(0, 2).map(x => x.toLowerCase());
+    return `<div class="gs-flag" role="status"><i aria-hidden="true"></i><span><b>${esc(f.copy)} isn't set up the way you saved it.</b> ${f.differs} ${f.differs === 1 ? "setting differs" : "settings differ"}${ex.length ? `, including ${esc(ex.join(" and "))}` : ""}.</span><button class="vr-btn is-sm" type="button" data-go-set>Review in Set up</button><button class="vr-btn is-sm is-quiet" type="button" data-flag-no>Not now</button></div>`; };
+  return { settingsCard, nowFlag };
+})();
+
+const gsUi = {};
+let gsData = null, gsWait = null;
+async function drawGameSettings() {
+  const el = $("gsCard"); if (!el) return;
+  try { gsData = await api("/api/gamesettings"); } catch (e) { el.innerHTML = `<section class="gs"><h3 class="vr-h">Your game settings</h3><span class="vr-sub">${esc(e.message)}</span></section>`; return; }
+  if (!$("gsCard")) return;
+  el.innerHTML = GS.settingsCard(gsData, gsUi);
+  // While the game runs, Put them back waits; check again so it turns on by itself when the game closes
+  clearTimeout(gsWait);
+  if (gsData.game_running && (gsData.copies || []).some(c => c.state === "differs")) gsWait = setTimeout(() => { if (tab === "setup") drawGameSettings(); }, 10000);
+  el.onclick = async e => {
+    const t = e.target.closest("button"); if (!t || !el.contains(t)) return;
+    const again = () => drawGameSettings();
+    gsUi.err = null;
+    if (t.matches("[data-save]")) {
+      if (gsData.saved) { gsUi.confirm = "save"; gsUi.done = null; return again(); }
+      try { const r = await api("/api/gamesettings/save", {}); Object.assign(gsUi, { confirm: null, done: `Saved. ${r.changed} changed settings and ${r.binds} custom key binds from ${r.from || "LIVE"}.` }); } catch (x) { gsUi.err = x.message; }
+      return again();
+    }
+    if (t.dataset.diff) { gsUi.diff = gsUi.diff === t.dataset.diff ? null : t.dataset.diff; return again(); }
+    if (t.dataset.put) { gsUi.confirm = "put:" + t.dataset.put; gsUi.done = null; return again(); }
+    if (t.matches("[data-no]")) { gsUi.confirm = null; return again(); }
+    if (t.dataset.yes === "save") {
+      try { await api("/api/gamesettings/save", { replace: true }); Object.assign(gsUi, { confirm: null, done: "Saved again. The old save was replaced." }); } catch (x) { gsUi.err = x.message; }
+      return again();
+    }
+    if (t.dataset.yes === "put") {
+      const c = gsUi.confirm.slice(4);
+      try { const r = await api("/api/gamesettings/restore", { copy: c }); Object.assign(gsUi, { confirm: null, diff: null, done: r.message }); } catch (x) { gsUi.err = x.message; }
+      return again();
+    }
+  };
+}
+function bindSettingsFlag() {
+  const f = document.querySelector("#view .gs-flag"); if (!f) return;
+  f.onclick = async e => {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.matches("[data-go-set]")) { show("setup"); setTimeout(() => { const c = $("gsCard"); if (c) c.scrollIntoView({ behavior: "smooth", block: "start" }); }, 300); }
+    if (t.matches("[data-flag-no]")) { try { await api("/api/gamesettings/dismiss", {}); } catch (x) {} f.innerHTML = `<span class="vr-sub">Hidden until ${esc(nowData && nowData.settings_flag ? nowData.settings_flag.copy : "this copy")} is next launched.</span>`; }
+  };
+}
+
 /* ---------- Blueprints tab ---------- */
 const bpState = { q: "", g: null, earned: [], want: [], seen: new Set() };
 async function renderBlueprints() {
@@ -2781,6 +2876,7 @@ async function renderSetup() {
     <p><b>Live</b> reads the overlay corner of your screen every 5 seconds while the game is in front. That gives the health score, the charts and warnings when the server slows down. <b>Screenshots</b> reads only the screenshots you take, so nothing watches your screen; you get a reading each time you press <kbd>Print Screen</kbd>, but no live score.</p>
     <div class="swlist" id="setToggles"></div>
   </section>
+  <div class="sec vr" id="gsCard"></div>
   <h2 class="sgroup">Sharing and the community board</h2><section class="sec frame setcard" id="commCard">
     <h4>Community board</h4>
     <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
@@ -2822,6 +2918,7 @@ async function renderSetup() {
     <div id="libState" style="margin-top:var(--s3)"></div>
   </section>
   <section class="sec"><p class="sub">USER.cfg lives in your StarCitizen\\LIVE folder${u.path ? ` (<code>${esc(u.path)}</code>)` : ""}. Before each change the app saves the file as it was to USER.cfg.bak. Changes take effect the next time the game starts; type the command in the console to use it straight away.</p></section>`;
+  drawGameSettings();
   $("gdSave").onclick = async () => {
     try { const r = await api("/api/gamedir", {path: $("gdPath").value}); toast(r.message); nowData = await api("/api/now"); renderSetup(); }
     catch (e) { toast(e.message, true); }

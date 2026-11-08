@@ -172,6 +172,28 @@ class App:
     def build(self):
         return self.session.build if self.session else None
 
+    # -- your game settings, saved (Set up, and a flag on Now)
+    @property
+    def gamesettings(self):
+        from .gamesettings import GameSettings
+        gs = getattr(self, "_gs", None)
+        if gs is None or gs.game_dir != Path(self.game_dir):
+            gs = self._gs = GameSettings(DATA, self.game_dir)
+        return gs
+
+    def gamesettings_flag(self):
+        """The copy being played isn't set up the way you saved it: shown on Now once per launch of that copy."""
+        s = self.session
+        try:
+            return self.gamesettings.flag(self.game_dir, s.start if s else None, self.store.meta("gs_flag_dismissed"))
+        except Exception:
+            return None
+
+    def gamesettings_dismiss(self):
+        s = self.session
+        self.store.set_meta("gs_flag_dismissed", str(s.start) if s and s.start else "")
+        return {"ok": True}
+
     # -- running
     def start(self, overlay=True):
         self.tail.poll()
@@ -465,6 +487,7 @@ class App:
         }
         out["server_view"] = server_view(a, out["community"])
         out["you"] = self.you_state()
+        out["settings_flag"] = self.gamesettings_flag()
         from .groups import chat_lines
         out["chat_lines"] = chat_lines(out, a)
         return out
@@ -788,7 +811,8 @@ class App:
         live = self._live_card()
         if live:
             summ, snaps, probs, running = live
-            rows.append(("live", summ, snaps, probs, running))
+            if running or summ.get("joins"):            # a launch that never got past the menu isn't a session
+                rows.append(("live", summ, snaps, probs, running))
         past = [x for x in self.store.session_data() if x.get("start") and x.get("joins")]
         if live:
             past = [x for x in past if played.session_id(x) != played.session_id(live[0])]
