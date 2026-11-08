@@ -342,6 +342,16 @@ def contract_stats(summaries, live=None):
     return sorted(out, key=lambda r: (-len(r["blueprints"]), -r["completed"], r["kind"]))
 
 
+def _top(titles):
+    """The most common of a list, or None. Ties go to the one seen first."""
+    if not titles:
+        return None
+    n = {}
+    for t in titles:
+        n[t] = n.get(t, 0) + 1
+    return max(n, key=lambda t: n[t])
+
+
 def week(cards, now=None):
     """This week (last 7 days) against the 7 before: from the session cards."""
     now = now or time.time()
@@ -355,7 +365,11 @@ def week(cards, now=None):
                 "problems": sum(len(c.get("problems") or []) for c in cs),
                 "score": round(sum(scored) / len(scored)) if scored else None,
                 "best": max((c for c in cs if c.get("score") is not None), key=lambda c: c["score"], default=None),
-                "worst": min((c for c in cs if c.get("score") is not None), key=lambda c: c["score"], default=None)}
+                "worst": min((c for c in cs if c.get("score") is not None), key=lambda c: c["score"], default=None),
+                # for the design's Your week: one dot per session, oldest first, by health; the days it covers; the usual problem
+                "dots": [c.get("health") or "none" if c.get("score") is not None else "none" for c in sorted(cs, key=lambda c: c["start"])],
+                "from": a + 86400, "to": min(b, now),
+                "top_problem": _top([p.get("title") for c in cs for p in c.get("problems") or [] if isinstance(p, dict) and p.get("title")])}
     this, last = span(now - 7 * 86400, now + 1), span(now - 14 * 86400, now - 7 * 86400)
     for w in (this, last):
         for k in ("best", "worst"):

@@ -188,13 +188,18 @@ def test_licences_contract_kinds_stats_and_your_week():
     assert st["Verified Bounty (HRT)"]["typical_min"] == 20
     assert st["Data Transfer"]["blueprints"] == [{"name": "Aves Arms", "times": 1}] and st["Data Transfer"]["rep"] == ["100 Rep"]
     now = time.time()
-    cards = [{"id": "1", "start": now - 3600, "minutes": 90, "completed": 5, "accepted": 6, "blueprints": [1], "journal": [],
+    cards = [{"id": "1", "start": now - 3600, "minutes": 90, "health": "good", "completed": 5, "accepted": 6, "blueprints": [1], "journal": [],
               "problems": [1, 2], "score": 80, "day": "Sun 8 Nov", "word": "Healthy"},
              {"id": "2", "start": now - 8 * 86400, "minutes": 60, "completed": 2, "accepted": 2, "blueprints": [], "journal": [],
               "problems": [], "score": None, "day": "Sat 31 Oct", "word": "No score"}]
     w = played.week(cards, now)
     assert (w["this"]["sessions"], w["this"]["minutes"], w["this"]["contracts"], w["this"]["score"]) == (1, 90, 5, 80)
     assert w["this"]["best"]["id"] == "1" and w["last"]["score"] is None and w["last"]["contracts"] == 2
+    assert w["this"]["dots"] == ["good"] and w["last"]["dots"] == ["none"]
+    assert w["this"]["to"] <= now and w["this"]["from"] == now - 6 * 86400 and w["last"]["to"] == now - 7 * 86400
+    assert w["this"]["top_problem"] is None                              # problems given as numbers carry no title
+    cards[0]["problems"] = [{"title": "Slow server"}, {"title": "Slow server"}, {"title": "Ship stuck"}]
+    assert played.week(cards, now)["this"]["top_problem"] == "Slow server"
 
 
 def test_spending_money_injuries_places_waits_and_quantum():

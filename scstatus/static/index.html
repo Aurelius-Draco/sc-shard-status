@@ -1167,9 +1167,397 @@ code.cmdsm { background: #05070a; padding: 3px 8px; border-radius: 3px; border: 
 .ss-auec .vr-inp { width: 100%; min-width: 0; }
 @media (max-width: 1000px) { .ss-rep-grid { grid-template-columns: minmax(0, 1fr); } }
 
-/* port: the round came in dark only. In the light theme its pieces sit on a dark panel so they read; light versions are asked of Claude Design */
-@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .sec.vr { background: #0b0e12; padding: 20px; border-radius: 14px; color-scheme: dark; } }
-:root[data-theme="light"] .sec.vr { background: #0b0e12; padding: 20px; border-radius: 14px; color-scheme: dark; }
+/* ===== 1.5.2 extras: Claude Design round, 8 Nov 2026 (port/css/extras-1.5.2.css, whole file as given; the Brag button
+   and maker rules in it are used by the brag card port) ===== */
+/* =====================================================================================================
+   Verse Shards for PC 1.5.2 extras. Claude Design round, 8 Nov 2026.
+   Licences and permits, Your week, Your contracts, the three report boxes, My pilot logbook additions,
+   the Brag button and the brag card maker. Lives inside .vr like the 8 Nov round and uses its tokens.
+   Light theme: round-8nov-light.css. Every animation has a still version (reduced motion and .is-calm).
+   ===================================================================================================== */
+
+/* ---------- shared bits ---------- */
+.vr .x-panel { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); }
+.vr .x-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.vr .x-head > div { flex: 1 1 260px; min-width: 0; }
+.vr .x-head h3 { margin: 2px 0 0; font: 800 22px/1.15 var(--cond); letter-spacing: .01em; }
+.vr .x-head h3 small { font: 500 14px var(--font); color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+.vr .x-ic { width: 16px; height: 16px; flex: none; stroke: currentColor; }
+.vr .x-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line2); background: var(--raise); font: 600 13px var(--font); white-space: nowrap; }
+.vr .x-chip small { color: var(--muted); font-weight: 500; }
+.vr .x-up, .vr .x-down, .vr .x-same { display: inline-flex; align-items: center; gap: 3px; font: 700 13px var(--font); white-space: nowrap; }
+.vr .x-up svg, .vr .x-down svg { width: 13px; height: 13px; stroke: currentColor; }
+.vr .is-better { color: var(--teal); } .vr .is-worse { color: var(--rust-text); } .vr .x-same { color: var(--muted); }
+
+/* ---------- Brag button (entry point in five places) ---------- */
+.vr .brag-btn { position: relative; overflow: hidden; border-color: rgba(255, 209, 102, .55); color: var(--text); }
+.vr .brag-btn svg { width: 16px; height: 16px; stroke: var(--gold); }
+.vr .brag-btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgba(255, 209, 102, .28) 50%, transparent 65%); transform: translateX(-120%); }
+.vr .brag-btn:hover, .vr .brag-btn.is-hover { border-color: var(--gold); box-shadow: 0 0 18px rgba(255, 209, 102, .22); }
+.vr .brag-btn:hover::after, .vr .brag-btn.is-hover::after { animation: brag-glint .9s var(--ease-out) 1; }
+.vr .brag-btn:active, .vr .brag-btn.is-pressed { transform: translateY(1px); background: rgba(255, 209, 102, .12); }
+
+/* ---------- 2. Licences and permits ---------- */
+.lc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.lc-card .bp-in { min-height: 60px; padding-top: 13px; }
+/* the pass: a gold band across the top and a lanyard slot cut into the edge */
+.lc-card .bp-in::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, #ffd166, #f2a93b 55%, #ffe2a0); }
+.lc-card .lc-slot { position: absolute; top: -1px; left: 50%; width: 30px; height: 8px; margin-left: -15px; border-radius: 0 0 6px 6px; background: var(--bg); z-index: 2; }
+.lc-card .bp-mark { width: 38px; height: 38px; }
+.lc-tier { display: inline-flex; gap: 3px; margin-top: 5px; vertical-align: middle; }
+.lc-tier i { width: 12px; height: 5px; border-radius: 2px; background: var(--line2); }
+.lc-tier i.on { background: var(--gold); }
+.lc-tier-w { font: 700 10.5px var(--cond); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-left: 6px; }
+.lc-card .bp-sheen { background: radial-gradient(circle at calc(50% + var(--x) * 50%) calc(50% + var(--y) * 50%), rgba(255, 209, 102, .26), transparent 55%),
+  linear-gradient(calc(115deg + var(--x) * 20deg), transparent 38%, rgba(181, 245, 233, .16) 47%, rgba(255, 209, 102, .2) 53%, transparent 62%); }
+/* just earned: the pass is stamped down, the band sweeps, a New chip stays for the session */
+.lc-card.is-new { animation: bp-got 1.4s var(--ease-out) 1; }
+.lc-card.is-new .bp-mark { animation: lc-stamp .9s var(--ease-out) 1; }
+.lc-card.is-new .bp-in::before { background: linear-gradient(90deg, #f2a93b, #fff3cf 50%, #f2a93b) 0 0 / 200% 100%; animation: lc-sweep 1.4s ease-out 2; }
+.lc-empty { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; border: 1px dashed var(--line2); color: var(--muted); font-size: 14px; }
+.lc-empty svg { width: 38px; height: 38px; flex: none; }
+.lc-jump { border-style: dashed !important; }
+
+/* ---------- 3. Your week ---------- */
+.wk { --wk-gap: 10px; }
+.wk-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1.35fr 1fr; gap: var(--wk-gap); }
+@media (max-width: 1100px) { .wk-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } .wk-grid > :nth-child(1), .wk-grid > :nth-child(4) { grid-column: span 3; } .wk-grid > :nth-child(2), .wk-grid > :nth-child(3), .wk-grid > :nth-child(5) { grid-column: span 2; } }
+.wk-cell { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); overflow: hidden; }
+.wk-cell::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; background: linear-gradient(90deg, var(--wk-c, var(--line2)), transparent); }
+.wk-k { font: 700 12px/1.2 var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.wk-v { font: 800 30px/1 var(--cond); white-space: nowrap; }
+.wk-v small { font: 700 15px var(--cond); color: var(--muted); margin: 0 4px 0 2px; }
+.wk-s { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.wk-s a { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--line2); text-underline-offset: 3px; }
+.wk-bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.wk-bar i { display: block; height: 100%; width: var(--w); border-radius: inherit; background: var(--teal); }
+.wk-dots { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; }
+.wk-dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+.wk-dots i.is-none { background: transparent; border: 1.5px dashed var(--line2); }
+.wk-hero { --wk-c: var(--amber); }
+.wk-hero .wk-v { font-size: 38px; }
+.wk-none { font: 600 13px var(--font); color: var(--muted); }
+.wk-ghost { opacity: .5; border-style: dashed; }
+
+/* ---------- 4. Your contracts ---------- */
+.ct-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ct-tools .vr-inp { flex: 1 1 200px; max-width: 280px; height: 34px; }
+.ct { display: flex; flex-direction: column; gap: 8px; }
+.ct-hd, .ct-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px 118px 74px 96px 76px; gap: 12px; align-items: center; }
+.ct-hd { padding: 0 16px 2px; font: 700 11.5px var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ct-hd span:not(:first-child), .ct-row > :not(:first-child) { text-align: right; justify-self: end; }
+.ct-sec { margin: 8px 0 0; display: flex; align-items: baseline; gap: 10px; font: 700 13px var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ct-sec b { color: var(--gold); }
+.ct-row { padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-size: 14px; }
+.ct-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.ct-name small { display: block; font-weight: 500; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.ct-done b { font: 800 18px var(--cond); }
+.ct-done small { display: block; font-size: 12px; color: var(--muted); }
+.ct-done small.is-bad { color: var(--rust-text); }
+.ct-succ { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; width: 100%; }
+.ct-succ b { font: 700 15px var(--font); }
+.ct-succ i { width: 100%; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; display: block; }
+.ct-succ i::before { content: ""; display: block; height: 100%; width: var(--w); background: var(--sc, var(--teal)); border-radius: inherit; }
+.ct-rep { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.ct-rep b { color: var(--text); font-weight: 700; }
+.ct-last { font-size: 13px; color: var(--muted); white-space: nowrap; }
+/* a blueprint source: the same gold edge as the blueprint cards, its blueprints underneath */
+.ct-src { padding: 1.5px; border-radius: 12px; background: linear-gradient(135deg, rgba(242, 169, 59, .9), rgba(242, 169, 59, .2) 40%, rgba(255, 255, 255, .05) 65%, rgba(255, 209, 102, .45)); }
+.ct-src > .ct-in { border-radius: 10.5px; background: linear-gradient(160deg, rgba(255, 209, 102, .06), transparent 50%), var(--card); }
+.ct-src .ct-row { border: 0; background: transparent; }
+.ct-gave { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 16px 12px; }
+.ct-gave > span:first-child { font: 700 11.5px var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin-right: 4px; }
+.ct-bp { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px 0 5px; border-radius: 8px; border: 1px solid rgba(255, 209, 102, .4); background: rgba(255, 209, 102, .06); font: 600 13px var(--font); white-space: nowrap; }
+.ct-bp svg { width: 22px; height: 22px; }
+.ct-bp small { color: var(--muted); font-weight: 500; }
+.ct-plain .ct-row { background: transparent; border-color: transparent; border-top-color: var(--line); border-radius: 0; padding-top: 9px; padding-bottom: 9px; }
+.ct-plain { border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; }
+.ct-plain .ct-row:first-child { border-top-color: transparent; }
+.ct-foot { font-size: 13px; color: var(--muted); line-height: 1.5; }
+@media (max-width: 980px) { .ct-hd, .ct-row { grid-template-columns: minmax(0, 1fr) 80px 104px 66px 92px 70px; gap: 10px; } }
+
+/* ---------- 5. Session report boxes ---------- */
+.oa-top { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 10px; }
+.oa-stat { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--card); }
+.oa-stat b { font: 800 24px/1 var(--cond); white-space: nowrap; }
+.oa-stat b small { font: 700 13px var(--cond); color: var(--muted); margin-left: 3px; }
+.oa-stat span { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.oa-k { display: flex; align-items: center; gap: 6px; font: 700 11px var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.oa-k svg { width: 14px; height: 14px; stroke: var(--steel); }
+/* each wait as a tick on a 0 to 15 min track, the typical one marked */
+.oa-track { position: relative; height: 18px; margin: 4px 2px 0; }
+.oa-track::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 2px; border-radius: 2px; background: var(--line2); }
+.oa-track i { position: absolute; top: 3px; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; background: var(--steel); left: var(--at); }
+.oa-track i.is-typ { width: 10px; height: 10px; top: 4px; margin-left: -5px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 25%, transparent); }
+.oa-track i.is-long { background: var(--gold); }
+.oa-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.oa-jur { display: flex; flex-wrap: wrap; gap: 6px; }
+.oa-jur .x-chip svg { width: 13px; height: 13px; stroke: var(--steel); }
+.inj { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 14px; align-items: start; }
+.inj-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.inj-rows li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.inj-rows li:first-child { border-top: 0; }
+.inj-lv { font: 700 11px var(--cond); letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+.inj-lv.is-minor { background: rgba(169, 192, 216, .14); color: var(--steel); }
+.inj-lv.is-moderate { background: rgba(255, 209, 102, .14); color: var(--gold); }
+.inj-lv.is-severe { background: rgba(236, 122, 94, .16); color: var(--rust-text); }
+.inj-tier { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.inj-tier b { color: var(--text); }
+.inj-body { width: 84px; height: 132px; }
+.inj-body .b { fill: var(--raise); stroke: var(--line2); stroke-width: 1.5; }
+.inj-body .hit { stroke-width: 0; }
+.inj-body .hit.is-severe { fill: var(--rust); } .inj-body .hit.is-minor { fill: var(--steel); } .inj-body .hit.is-moderate { fill: var(--gold); }
+.inj-sum { display: flex; flex-wrap: wrap; gap: 6px; }
+.au-log { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.au-log .oa-stat b { font-size: 20px; }
+.au-note { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.au-note svg { width: 15px; height: 15px; flex: none; margin-top: 2px; stroke: var(--steel); }
+.au-sep { height: 1px; background: var(--line); margin: 2px 0; }
+
+/* ---------- 6. My pilot: the logbook additions ---------- */
+.lb-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lb-head h3 { margin: 0; font: 700 14px var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.lb-head span { font-size: 13px; color: var(--muted); flex: 1 1 200px; }
+.lb-groups { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px; }
+@media (max-width: 1100px) { .lb-groups { grid-template-columns: 1fr 1fr; } .lb-groups > :first-child { grid-column: 1 / -1; } }
+.lb-g { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
+.lb-g h4 { margin: 0; display: flex; align-items: center; gap: 8px; font: 700 12px var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.lb-g h4 svg { width: 15px; height: 15px; stroke: var(--steel); }
+.lb-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lb-fig b { display: block; font: 800 28px/1 var(--cond); white-space: nowrap; }
+.lb-fig b small { font: 700 14px var(--cond); color: var(--muted); margin-left: 3px; }
+.lb-fig span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+.lb-jur { display: flex; flex-wrap: wrap; gap: 6px; }
+.lb-jur .x-chip { height: 26px; font-size: 12.5px; }
+.lb-jur .x-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+.lb-jur .x-chip.is-lawless i { background: var(--rust); }
+.lb-rows { display: flex; flex-direction: column; }
+.lb-rows div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.lb-rows div:first-child { border-top: 0; padding-top: 0; }
+.lb-rows b { font-weight: 700; white-space: nowrap; }
+.lb-small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+
+/* ---------- 1. Brag card maker ---------- */
+.bm { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; }
+@media (max-width: 1000px) { .bm { grid-template-columns: minmax(0, 1fr); } }
+.bm-stage { position: relative; display: grid; place-items: center; min-height: 460px; padding: 22px; border-radius: 12px; border: 1px solid var(--line);
+  background: radial-gradient(70% 60% at 50% 40%, rgba(242, 169, 59, .08), transparent 70%), repeating-conic-gradient(rgba(255, 255, 255, .025) 0 25%, transparent 0 50%) 0 0 / 22px 22px, var(--well, #0e1115); overflow: hidden; }
+.bm-frame { position: relative; box-shadow: 0 24px 60px rgba(0, 0, 0, .55); border-radius: 18px; transform-style: preserve-3d; transition: transform .5s var(--ease-out); }
+.bm-frame:hover { transform: perspective(900px) rotateY(-5deg) rotateX(3deg); }
+.bm-scale { transform-origin: 0 0; }
+.bm-size { position: absolute; left: 14px; bottom: 12px; font: 600 12px var(--mono); color: var(--muted); }
+.bm-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.bm-f { display: flex; flex-direction: column; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.bm-f legend, .bm-f > .vr-label { padding: 0; margin-bottom: 8px; }
+.bm-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.bm-seg label { position: relative; }
+.bm-seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.bm-seg span { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line2); font: 600 13px var(--font); cursor: pointer; white-space: nowrap; }
+.bm-seg span svg { width: 15px; height: 15px; stroke: var(--muted); }
+.bm-seg input:checked + span { border-color: var(--amber); background: rgba(242, 169, 59, .14); }
+.bm-seg input:checked + span svg { stroke: var(--gold); }
+.bm-seg input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
+.bm-sizes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.bm-sizes label { position: relative; }
+.bm-sizes input { position: absolute; opacity: 0; }
+.bm-sizes span { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px 9px; border-radius: 10px; border: 1px solid var(--line2); cursor: pointer; text-align: center; font: 600 13px var(--font); }
+.bm-sizes span i { display: block; border: 2px solid var(--muted); border-radius: 3px; }
+.bm-sizes span small { font-size: 11px; color: var(--muted); font-weight: 500; line-height: 1.25; }
+.bm-sizes input:checked + span { border-color: var(--amber); background: rgba(242, 169, 59, .1); }
+.bm-sizes input:checked + span i { border-color: var(--gold); }
+.bm-pics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.bm-pics label { position: relative; }
+.bm-pics input { position: absolute; opacity: 0; }
+.bm-pics img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 7px; border: 2px solid transparent; cursor: pointer; }
+.bm-pics input:checked + img { border-color: var(--gold); }
+.bm-checks { display: flex; flex-direction: column; gap: 2px; }
+.bm-check { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.bm-check:hover { background: var(--hover, rgba(255, 255, 255, .045)); }
+.bm-check input { width: 18px; height: 18px; accent-color: var(--amber); margin: 0; }
+.bm-check.is-off { color: var(--muted); }
+.bm-check small { margin-left: auto; font-size: 12px; color: var(--muted); }
+.bm-count { font: 600 12.5px var(--font); color: var(--muted); margin-left: 8px; letter-spacing: 0; text-transform: none; }
+.bm-tog { display: flex; align-items: center; gap: 12px; min-height: 40px; font-size: 14px; cursor: pointer; }
+.bm-tog input { position: absolute; opacity: 0; }
+.bm-tog .sw { flex: none; position: relative; width: 40px; height: 22px; border-radius: 99px; background: var(--line2); transition: background .2s; }
+.bm-tog .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease-out); }
+.bm-tog input:checked + .sw { background: var(--amber); }
+.bm-tog input:checked + .sw::after { transform: translateX(18px); }
+.bm-tog input:focus-visible + .sw { outline: 2px solid var(--amber); outline-offset: 2px; }
+.bm-tog small { display: block; font-size: 12px; color: var(--muted); }
+.bm-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.bm-acts .vr-btn { flex: 1 1 140px; height: 44px; font-size: 15px; }
+.bm-acts .vr-btn svg { width: 17px; height: 17px; stroke: currentColor; }
+.bm-acts .vr-btn.is-done { border-color: var(--teal); color: var(--teal); }
+.bm-local { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); font-size: 13px; line-height: 1.45; color: var(--muted); }
+.bm-local svg { width: 16px; height: 16px; flex: none; margin-top: 1px; stroke: var(--teal); }
+.bm-local b { color: var(--text); }
+.bm-hdr { display: flex; align-items: center; gap: 14px; padding-right: 44px; }
+.bm-hdr h2 { margin: 0; font: 800 26px/1.1 var(--cond); }
+
+/* ---------- keyframes (named and timed in the README) ---------- */
+@keyframes brag-glint { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+@keyframes lc-stamp { 0% { transform: translateY(-14px) scale(1.5) rotate(-12deg); opacity: 0; } 40% { transform: translateY(0) scale(.9) rotate(3deg); opacity: 1; } 65% { transform: scale(1.06) rotate(-1deg); } 100% { transform: none; } }
+@keyframes lc-sweep { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vr .brag-btn::after { display: none; }
+  .bm-frame, .bm-frame:hover { transform: none; transition: none; }
+  .lc-card.is-new { box-shadow: 0 0 0 2px var(--gold), 0 10px 24px rgba(0, 0, 0, .45); }
+  .bm-tog .sw, .bm-tog .sw::after { transition: none; }
+}
+.vr.is-calm .brag-btn::after { display: none; }
+.vr.is-calm .bm-frame, .vr.is-calm .bm-frame:hover { transform: none; transition: none; }
+.vr.is-calm .lc-card.is-new { box-shadow: 0 0 0 2px var(--gold), 0 10px 24px rgba(0, 0, 0, .45); }
+.lc-grid > .lc-card { height: 100%; }
+.lc-card .bp-in { height: 100%; }
+
+/* port: a licence that's just been earned stamps once; redraws keep the New chip without stamping again */
+.lc-card.is-new.is-seen, .lc-card.is-new.is-seen .bp-mark, .lc-card.is-new.is-seen .bp-in::before { animation: none; }
+@media (prefers-reduced-motion: reduce) { .lc-card.is-new .bp-mark, .lc-card.is-new .bp-in::before { animation: none; } }
+.vr.is-calm .lc-card.is-new .bp-mark, .vr.is-calm .lc-card.is-new .bp-in::before { animation: none; }
+
+/* ===== Light theme for the 8 Nov round and the 1.5.2 extras: Claude Design round, 8 Nov 2026 (port/css/round-8nov-light.css,
+   whole file as given; it replaces the port's stop-gap dark panel) ===== */
+/* =====================================================================================================
+   Light theme for the 8 Nov round (Blueprints, Your sessions, Your game settings) and the 1.5.2 extras.
+   Claude Design round, 8 Nov 2026. Load after the round's block and extras-1.5.2.css.
+   Replaces the port's stop-gap (".sec.vr" on a dark panel in the light theme): delete those two lines.
+   Two copies of the same rules: one for the app's Light setting, one for "Match Windows" when Windows is light.
+   The blueprint mark and the licence mark keep their own colours in both themes (they're drawn objects).
+   ===================================================================================================== */
+
+/* the app set to Light */
+:root[data-theme="light"] .vr {
+  --bg: #e9ecef; --panel: #f9fafb; --card: #ffffff; --raise: #f0f2f5; --well: #f2f4f6; --line: #dce0e5; --line2: #b6bec8;
+  --text: #13171c; --muted: #4f5965; --soft: #2f3842; --hover: rgba(19, 30, 45, .045);
+  --amber: #8c5000; --gold: #9a6b00; --teal: #0a6b5f; --teal-hi: #4cc4b0; --rust: #a23a22; --rust-text: #a23a22; --steel: #2c5a84;
+  --on-amber: #ffffff; --on-teal: #ffffff;
+  color-scheme: light;
+}
+/* the dark panel the port put round these pieces goes */
+:root[data-theme="light"] .sec.vr { background: none; padding: 0; border-radius: 0; color-scheme: light; }
+:root[data-theme="light"] .vr a:hover { color: var(--amber); }
+:root[data-theme="light"] .vr-inp { background: #ffffff; }
+:root[data-theme="light"] .vr-note { background: #ffffff; }
+:root[data-theme="light"] .vr-btn.is-primary { background: var(--amber); color: #ffffff; }
+:root[data-theme="light"] .vr-scrim { background: rgba(20, 28, 38, .45); }
+:root[data-theme="light"] .vr-dialog { background: linear-gradient(135deg, #b77a14, rgba(201, 138, 27, .3) 40%, #e3a73a); box-shadow: 0 30px 70px rgba(20, 32, 48, .28); }
+:root[data-theme="light"] .vr-toast { background: #ffffff; border-color: rgba(140, 80, 0, .5); box-shadow: 0 14px 34px rgba(20, 32, 48, .18), 0 0 24px rgba(242, 169, 59, .2); }
+
+/* Blueprints: white glass, a deeper gold edge so it reads on a light page */
+:root[data-theme="light"] .bp-gchip[aria-pressed="true"] { border-color: var(--amber); background: rgba(140, 80, 0, .09); }
+:root[data-theme="light"] .bp-card { background: linear-gradient(135deg, #c98a1b, rgba(201, 138, 27, .32) 38%, rgba(19, 30, 45, .1) 62%, rgba(201, 138, 27, .7)); box-shadow: 0 6px 16px rgba(20, 32, 48, .12); }
+:root[data-theme="light"] .bp-in { background: linear-gradient(160deg, #fffaf0, rgba(255, 255, 255, 0) 45%), #ffffff; }
+:root[data-theme="light"] .bp-card:hover, :root[data-theme="light"] .bp-card.is-hover, :root[data-theme="light"] .bp-card:focus-visible { box-shadow: 0 12px 26px rgba(20, 32, 48, .16), 0 0 22px rgba(201, 138, 27, .28); }
+:root[data-theme="light"] .bp-sheen { mix-blend-mode: multiply; background: radial-gradient(circle at calc(50% + var(--x) * 50%) calc(50% + var(--y) * 50%), rgba(242, 169, 59, .18), transparent 55%), linear-gradient(calc(110deg + var(--x) * 20deg), transparent 35%, rgba(242, 169, 59, .1) 50%, transparent 65%); }
+:root[data-theme="light"] .bp-card.is-wanted { background: none; box-shadow: none; outline-color: rgba(140, 80, 0, .6); }
+:root[data-theme="light"] .bp-card.is-wanted .bp-in { background: rgba(255, 255, 255, .7); }
+:root[data-theme="light"] .bp-new { background: #ffd166; color: #1a1103; }
+:root[data-theme="light"] .bp-want { border-color: rgba(140, 80, 0, .35); background: rgba(140, 80, 0, .04); }
+:root[data-theme="light"] .bp-x:hover { border-color: var(--rust); }
+
+/* Your sessions */
+:root[data-theme="light"] .ss-card { box-shadow: 0 8px 22px rgba(20, 32, 48, .12); }
+:root[data-theme="light"] .ss-card:hover, :root[data-theme="light"] .ss-card:focus-visible { box-shadow: 0 14px 30px rgba(20, 32, 48, .16), 0 0 24px color-mix(in srgb, var(--hc) 22%, transparent); }
+:root[data-theme="light"] .ss-card[data-h="ok"] { --hc: var(--steel); } :root[data-theme="light"] .ss-card[data-h="poor"] { --hc: #9a6b00; } :root[data-theme="light"] .ss-card[data-h="none"] { --hc: #77818d; }
+:root[data-theme="light"] .ss-stats li { background: #f4f6f8; }
+:root[data-theme="light"] .ss-rate.is-good { background: rgba(10, 107, 95, .1); } :root[data-theme="light"] .ss-rate.is-bad { background: rgba(162, 58, 34, .1); }
+:root[data-theme="light"] .ss-box { background: #ffffff; }
+:root[data-theme="light"] .ss-res.is-completed { background: rgba(10, 107, 95, .1); } :root[data-theme="light"] .ss-res.is-failed { background: rgba(162, 58, 34, .1); } :root[data-theme="light"] .ss-res.is-abandoned { background: rgba(44, 90, 132, .1); }
+:root[data-theme="light"] .ss-rating button[aria-pressed="true"].is-good { background: rgba(10, 107, 95, .1); } :root[data-theme="light"] .ss-rating button[aria-pressed="true"].is-bad { background: rgba(162, 58, 34, .1); }
+:root[data-theme="light"] .ss-live-chip { color: #ffffff; }
+
+/* Your game settings */
+:root[data-theme="light"] .vr .gs[data-s="differs"] { border-color: rgba(140, 80, 0, .5); }
+:root[data-theme="light"] .gs-copy, :root[data-theme="light"] .gs-group { background: #ffffff; }
+:root[data-theme="light"] .gs-copy.is-differs, :root[data-theme="light"] .gs-confirm, :root[data-theme="light"] .gs-flag { border-color: rgba(140, 80, 0, .45); background: rgba(140, 80, 0, .05); }
+:root[data-theme="light"] .gs-row.is-diff { background: rgba(140, 80, 0, .06); }
+
+/* 1.5.2 extras */
+:root[data-theme="light"] .vr .brag-btn { border-color: rgba(140, 80, 0, .45); }
+:root[data-theme="light"] .vr .brag-btn::after { background: linear-gradient(110deg, transparent 35%, rgba(242, 169, 59, .22) 50%, transparent 65%); }
+:root[data-theme="light"] .vr .brag-btn:hover, :root[data-theme="light"] .vr .brag-btn.is-hover { border-color: var(--amber); box-shadow: 0 0 16px rgba(201, 138, 27, .22); }
+:root[data-theme="light"] .vr .brag-btn:active, :root[data-theme="light"] .vr .brag-btn.is-pressed { background: rgba(140, 80, 0, .08); }
+:root[data-theme="light"] .lc-card .bp-in::before { background: linear-gradient(90deg, #c98a1b, #f2a93b 55%, #e3b24d); }
+:root[data-theme="light"] .lc-tier i { background: #d3d8de; } :root[data-theme="light"] .lc-tier i.on { background: var(--gold); }
+:root[data-theme="light"] .ct-src { background: linear-gradient(135deg, #c98a1b, rgba(201, 138, 27, .3) 40%, rgba(19, 30, 45, .08) 65%, rgba(201, 138, 27, .6)); }
+:root[data-theme="light"] .ct-src > .ct-in { background: linear-gradient(160deg, #fff8ea, transparent 50%), #ffffff; }
+:root[data-theme="light"] .ct-bp { border-color: rgba(140, 80, 0, .35); background: rgba(140, 80, 0, .05); }
+:root[data-theme="light"] .inj-lv.is-minor { background: rgba(44, 90, 132, .1); } :root[data-theme="light"] .inj-lv.is-moderate { background: rgba(154, 107, 0, .12); } :root[data-theme="light"] .inj-lv.is-severe { background: rgba(162, 58, 34, .1); }
+:root[data-theme="light"] .bm-stage { background: radial-gradient(70% 60% at 50% 40%, rgba(242, 169, 59, .12), transparent 70%), repeating-conic-gradient(rgba(19, 30, 45, .045) 0 25%, transparent 0 50%) 0 0 / 22px 22px, var(--well); }
+:root[data-theme="light"] .bm-frame { box-shadow: 0 20px 50px rgba(20, 32, 48, .25); }
+:root[data-theme="light"] .bm-seg input:checked + span, :root[data-theme="light"] .bm-sizes input:checked + span { background: rgba(140, 80, 0, .08); }
+:root[data-theme="light"] .bm-tog .sw::after { box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+:root[data-theme="light"] .wk-cell, :root[data-theme="light"] .oa-stat { background: #ffffff; }
+
+/* "Match Windows" with Windows set to light */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .vr {
+    --bg: #e9ecef; --panel: #f9fafb; --card: #ffffff; --raise: #f0f2f5; --well: #f2f4f6; --line: #dce0e5; --line2: #b6bec8;
+    --text: #13171c; --muted: #4f5965; --soft: #2f3842; --hover: rgba(19, 30, 45, .045);
+    --amber: #8c5000; --gold: #9a6b00; --teal: #0a6b5f; --teal-hi: #4cc4b0; --rust: #a23a22; --rust-text: #a23a22; --steel: #2c5a84;
+    --on-amber: #ffffff; --on-teal: #ffffff;
+    color-scheme: light;
+  }
+  /* the dark panel the port put round these pieces goes */
+  :root:not([data-theme="dark"]) .sec.vr { background: none; padding: 0; border-radius: 0; color-scheme: light; }
+  :root:not([data-theme="dark"]) .vr a:hover { color: var(--amber); }
+  :root:not([data-theme="dark"]) .vr-inp { background: #ffffff; }
+  :root:not([data-theme="dark"]) .vr-note { background: #ffffff; }
+  :root:not([data-theme="dark"]) .vr-btn.is-primary { background: var(--amber); color: #ffffff; }
+  :root:not([data-theme="dark"]) .vr-scrim { background: rgba(20, 28, 38, .45); }
+  :root:not([data-theme="dark"]) .vr-dialog { background: linear-gradient(135deg, #b77a14, rgba(201, 138, 27, .3) 40%, #e3a73a); box-shadow: 0 30px 70px rgba(20, 32, 48, .28); }
+  :root:not([data-theme="dark"]) .vr-toast { background: #ffffff; border-color: rgba(140, 80, 0, .5); box-shadow: 0 14px 34px rgba(20, 32, 48, .18), 0 0 24px rgba(242, 169, 59, .2); }
+
+  /* Blueprints: white glass, a deeper gold edge so it reads on a light page */
+  :root:not([data-theme="dark"]) .bp-gchip[aria-pressed="true"] { border-color: var(--amber); background: rgba(140, 80, 0, .09); }
+  :root:not([data-theme="dark"]) .bp-card { background: linear-gradient(135deg, #c98a1b, rgba(201, 138, 27, .32) 38%, rgba(19, 30, 45, .1) 62%, rgba(201, 138, 27, .7)); box-shadow: 0 6px 16px rgba(20, 32, 48, .12); }
+  :root:not([data-theme="dark"]) .bp-in { background: linear-gradient(160deg, #fffaf0, rgba(255, 255, 255, 0) 45%), #ffffff; }
+  :root:not([data-theme="dark"]) .bp-card:hover, :root:not([data-theme="dark"]) .bp-card.is-hover, :root:not([data-theme="dark"]) .bp-card:focus-visible { box-shadow: 0 12px 26px rgba(20, 32, 48, .16), 0 0 22px rgba(201, 138, 27, .28); }
+  :root:not([data-theme="dark"]) .bp-sheen { mix-blend-mode: multiply; background: radial-gradient(circle at calc(50% + var(--x) * 50%) calc(50% + var(--y) * 50%), rgba(242, 169, 59, .18), transparent 55%), linear-gradient(calc(110deg + var(--x) * 20deg), transparent 35%, rgba(242, 169, 59, .1) 50%, transparent 65%); }
+  :root:not([data-theme="dark"]) .bp-card.is-wanted { background: none; box-shadow: none; outline-color: rgba(140, 80, 0, .6); }
+  :root:not([data-theme="dark"]) .bp-card.is-wanted .bp-in { background: rgba(255, 255, 255, .7); }
+  :root:not([data-theme="dark"]) .bp-new { background: #ffd166; color: #1a1103; }
+  :root:not([data-theme="dark"]) .bp-want { border-color: rgba(140, 80, 0, .35); background: rgba(140, 80, 0, .04); }
+  :root:not([data-theme="dark"]) .bp-x:hover { border-color: var(--rust); }
+
+  /* Your sessions */
+  :root:not([data-theme="dark"]) .ss-card { box-shadow: 0 8px 22px rgba(20, 32, 48, .12); }
+  :root:not([data-theme="dark"]) .ss-card:hover, :root:not([data-theme="dark"]) .ss-card:focus-visible { box-shadow: 0 14px 30px rgba(20, 32, 48, .16), 0 0 24px color-mix(in srgb, var(--hc) 22%, transparent); }
+  :root:not([data-theme="dark"]) .ss-card[data-h="ok"] { --hc: var(--steel); } :root:not([data-theme="dark"]) .ss-card[data-h="poor"] { --hc: #9a6b00; } :root:not([data-theme="dark"]) .ss-card[data-h="none"] { --hc: #77818d; }
+  :root:not([data-theme="dark"]) .ss-stats li { background: #f4f6f8; }
+  :root:not([data-theme="dark"]) .ss-rate.is-good { background: rgba(10, 107, 95, .1); } :root:not([data-theme="dark"]) .ss-rate.is-bad { background: rgba(162, 58, 34, .1); }
+  :root:not([data-theme="dark"]) .ss-box { background: #ffffff; }
+  :root:not([data-theme="dark"]) .ss-res.is-completed { background: rgba(10, 107, 95, .1); } :root:not([data-theme="dark"]) .ss-res.is-failed { background: rgba(162, 58, 34, .1); } :root:not([data-theme="dark"]) .ss-res.is-abandoned { background: rgba(44, 90, 132, .1); }
+  :root:not([data-theme="dark"]) .ss-rating button[aria-pressed="true"].is-good { background: rgba(10, 107, 95, .1); } :root:not([data-theme="dark"]) .ss-rating button[aria-pressed="true"].is-bad { background: rgba(162, 58, 34, .1); }
+  :root:not([data-theme="dark"]) .ss-live-chip { color: #ffffff; }
+
+  /* Your game settings */
+  :root:not([data-theme="dark"]) .vr .gs[data-s="differs"] { border-color: rgba(140, 80, 0, .5); }
+  :root:not([data-theme="dark"]) .gs-copy, :root:not([data-theme="dark"]) .gs-group { background: #ffffff; }
+  :root:not([data-theme="dark"]) .gs-copy.is-differs, :root:not([data-theme="dark"]) .gs-confirm, :root:not([data-theme="dark"]) .gs-flag { border-color: rgba(140, 80, 0, .45); background: rgba(140, 80, 0, .05); }
+  :root:not([data-theme="dark"]) .gs-row.is-diff { background: rgba(140, 80, 0, .06); }
+
+  /* 1.5.2 extras */
+  :root:not([data-theme="dark"]) .vr .brag-btn { border-color: rgba(140, 80, 0, .45); }
+  :root:not([data-theme="dark"]) .vr .brag-btn::after { background: linear-gradient(110deg, transparent 35%, rgba(242, 169, 59, .22) 50%, transparent 65%); }
+  :root:not([data-theme="dark"]) .vr .brag-btn:hover, :root:not([data-theme="dark"]) .vr .brag-btn.is-hover { border-color: var(--amber); box-shadow: 0 0 16px rgba(201, 138, 27, .22); }
+  :root:not([data-theme="dark"]) .vr .brag-btn:active, :root:not([data-theme="dark"]) .vr .brag-btn.is-pressed { background: rgba(140, 80, 0, .08); }
+  :root:not([data-theme="dark"]) .lc-card .bp-in::before { background: linear-gradient(90deg, #c98a1b, #f2a93b 55%, #e3b24d); }
+  :root:not([data-theme="dark"]) .lc-tier i { background: #d3d8de; } :root:not([data-theme="dark"]) .lc-tier i.on { background: var(--gold); }
+  :root:not([data-theme="dark"]) .ct-src { background: linear-gradient(135deg, #c98a1b, rgba(201, 138, 27, .3) 40%, rgba(19, 30, 45, .08) 65%, rgba(201, 138, 27, .6)); }
+  :root:not([data-theme="dark"]) .ct-src > .ct-in { background: linear-gradient(160deg, #fff8ea, transparent 50%), #ffffff; }
+  :root:not([data-theme="dark"]) .ct-bp { border-color: rgba(140, 80, 0, .35); background: rgba(140, 80, 0, .05); }
+  :root:not([data-theme="dark"]) .inj-lv.is-minor { background: rgba(44, 90, 132, .1); } :root:not([data-theme="dark"]) .inj-lv.is-moderate { background: rgba(154, 107, 0, .12); } :root:not([data-theme="dark"]) .inj-lv.is-severe { background: rgba(162, 58, 34, .1); }
+  :root:not([data-theme="dark"]) .bm-stage { background: radial-gradient(70% 60% at 50% 40%, rgba(242, 169, 59, .12), transparent 70%), repeating-conic-gradient(rgba(19, 30, 45, .045) 0 25%, transparent 0 50%) 0 0 / 22px 22px, var(--well); }
+  :root:not([data-theme="dark"]) .bm-frame { box-shadow: 0 20px 50px rgba(20, 32, 48, .25); }
+  :root:not([data-theme="dark"]) .bm-seg input:checked + span, :root:not([data-theme="dark"]) .bm-sizes input:checked + span { background: rgba(140, 80, 0, .08); }
+  :root:not([data-theme="dark"]) .bm-tog .sw::after { box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+  :root:not([data-theme="dark"]) .wk-cell, :root:not([data-theme="dark"]) .oa-stat { background: #ffffff; }
+
+}
+
 /* port: a just-received card flashes once; when the tab redraws (search, groups) it keeps its New chip without flashing again */
 .bp-card.is-new.is-seen, .bp-card.is-new.is-seen .bp-mark { animation: none; }
 .bp-card.is-new.is-seen .bp-in::after { display: none; }
@@ -2404,6 +2792,11 @@ const VR = (() => {
   const P = { contract: "M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5", bp: "M4 4h12l4 4v12H4zM8 4v16M4 9h16M4 14h16", lic: "M4 6h16v12H4zM8 10h4M8 14h6M16 10v4", prob: "M12 4l9 16H3zM12 10v4M12 17h.01",
     info: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8h.01", check: "M5 12l5 5 9-10", good: "M7 11v9H4v-9zM7 11l4-7c1.5 0 2.5 1 2.2 2.6L12.6 10H19c1 0 1.8 1 1.5 2l-1.8 7c-.2.6-.8 1-1.5 1H7",
     bad: "M7 13V4H4v9zM7 13l4 7c1.5 0 2.5-1 2.2-2.6L12.6 14H19c1 0 1.8-1 1.5-2l-1.8-7c-.2-.6-.8-1-1.5-1H7", ship: "M3 12l7-3 11 3-11 3zM10 9l-2-4M10 15l-2 4", star: "M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z" };
+  // 1.5.2 extras icons, drawn at stroke 2 as in the round
+  const XI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+  const XP = { quantum: "M3 12h4M17 12h4M7 12a5 5 0 0 0 10 0 5 5 0 0 0-10 0M12 3v2M12 19v2", wait: "M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9",
+    map: "M9 4l6 2 6-2v16l-6 2-6-2-6 2V6zM9 4v16M15 6v16", cart: "M3 4h3l2.5 11h10L21 7H7M10 20a1 1 0 1 0 0-.01M17 20a1 1 0 1 0 0-.01", sent: "M4 12l16-8-6 16-2-6z",
+    recv: "M12 5v13M6 12l6 6 6-6", info: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8h.01", bed: "M3 18V8M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5M7 11.5a1.5 1.5 0 1 0 0-.01" };
   // The blueprint mark: our own, not CIG art. A drafting sheet with a folded gold corner, a part outline and a dimension line.
   const MARK = (cls = "bp-mark") => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">
 <rect class="bp-fill" x="2" y="2" width="28" height="28" rx="5" fill="#163a63"/>
@@ -2435,7 +2828,8 @@ const VR = (() => {
     if (!total) return `<div class="vr-empty">${MARK()}<b>No blueprints yet</b><span class="vr-sub">No blueprints yet. They show here as you earn them in game.</span></div>${wantBox}${licencesSec(st)}${note()}`;
     const shown = earned.filter(b => (!q || b.n.toLowerCase().includes(q)) && (st.g === null || b.g === st.g));
     const chips = [`<button type="button" class="bp-gchip" data-g="" aria-pressed="${st.g === null}">All<b>${total}</b></button>`]
-      .concat(GROUPS.map((g, i) => `<button type="button" class="bp-gchip" data-g="${i}" aria-pressed="${st.g === i}">${esc(g)}<b>${earned.filter(b => b.g === i).length}</b></button>`)).join("");
+      .concat(GROUPS.map((g, i) => `<button type="button" class="bp-gchip" data-g="${i}" aria-pressed="${st.g === i}">${esc(g)}<b>${earned.filter(b => b.g === i).length}</b></button>`))
+      .concat((st.licences || []).length ? [`<button type="button" class="bp-gchip lc-jump" data-lcjump>Licences <b>${st.licences.length}</b></button>`] : []).join("");
     const secs = GROUPS.map((g, i) => { const list = shown.filter(b => b.g === i); if (!list.length) return "";
       return `<section class="bp-sec" aria-labelledby="bpg-${i}"><div class="bp-sec-h"><h3 id="bpg-${i}">${esc(g)}</h3><span>${list.length}</span></div><div class="bp-grid" role="list">${list.map((b, k) => blueprintCard(b, { state: b.fresh ? "new" : "rest", seen: st.seen.has(b.id), i: k })).join("")}</div></section>`; }).join("");
     return `<div class="bp-top"><div class="bp-total">${total}<small>${total === 1 ? "blueprint" : "blueprints"} earned</small></div><span style="flex:1"></span><input class="vr-inp" type="search" data-bpq value="${esc(st.q)}" placeholder="Search your blueprints" aria-label="Search your blueprints"></div>
@@ -2445,25 +2839,43 @@ const VR = (() => {
       ${licencesSec(st)}
       ${note()}`;
   }
-  // Licences, permits and other journal entries the game writes when you earn them. Same card family as blueprints,
-  // with a licence mark (a pass with a gold band) instead of the drafting sheet. Port addition, not in the 8 Nov round.
-  const LIC = (cls = "bp-mark") => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">
-<rect x="2" y="5" width="28" height="22" rx="4" fill="#1c2a1f" stroke="#ffd166" stroke-width="1.3"/>
-<rect x="2" y="9" width="28" height="4" fill="#f2a93b" opacity=".85"/>
-<circle cx="10" cy="20" r="3.4" fill="none" stroke="#e7f3ff" stroke-width="1.5"/>
-<path d="M16 18.5h9M16 22h6" stroke="#e7f3ff" stroke-width="1.5" stroke-linecap="round"/>
+  // Licences, permits and other journal entries the game writes when you earn them. 1.5.2 extras round: the licence mark
+  // (a pass with a gold band and a lanyard slot), pass cards with risk-tier pips, the empty state and the detail.
+  const LIC = (cls = "bp-mark", style = "") => `<svg class="${cls}"${style ? ` style="${style}"` : ""} viewBox="0 0 32 32" aria-hidden="true">
+<defs><linearGradient id="lmBand" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd166"/><stop offset="1" stop-color="#e0901f"/></linearGradient>
+<linearGradient id="lmBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2b3d"/><stop offset="1" stop-color="#0f1a26"/></linearGradient></defs>
+<rect x="3" y="4.5" width="26" height="23" rx="3.5" fill="url(#lmBody)"/>
+<path d="M3 8a3.5 3.5 0 0 1 3.5-3.5h19A3.5 3.5 0 0 1 29 8v4H3z" fill="url(#lmBand)"/>
+<rect x="12.5" y="6.8" width="7" height="2.1" rx="1.05" fill="#0f1a26"/>
+<path d="M22 12l3-7.5M25.5 12l3-7.5" stroke="#fff3cf" stroke-opacity=".55" stroke-width="1.1"/>
+<circle cx="10.5" cy="19.5" r="3.7" fill="none" stroke="#ffd166" stroke-width="1.5"/>
+<path d="M10.5 17.2l.72 1.46 1.6.23-1.16 1.13.27 1.6-1.43-.75-1.43.75.27-1.6-1.16-1.13 1.6-.23z" fill="#ffd166"/>
+<path d="M17 18h7.5M17 21.5h5" stroke="#e7f3ff" stroke-width="1.5" stroke-linecap="round"/>
+<rect x="3" y="4.5" width="26" height="23" rx="3.5" fill="none" stroke="#ffd166" stroke-width="1.3"/>
 </svg>`;
+  // The risk tier is in the name the game gives, e.g. "Tracker License (MRT)". ERT (extreme) is the port's guess at a sixth
+  // the game may use; it shows full pips.
+  const TIERS = { VLRT: [1, "Very low risk"], LRT: [2, "Low risk"], MRT: [3, "Medium risk"], HRT: [4, "High risk"], VHRT: [5, "Very high risk"], ERT: [5, "Extreme risk"] };
+  const tierOf = n => { const m = /\((VLRT|LRT|MRT|HRT|VHRT|ERT)\)/.exec(n || ""); return m ? { code: m[1], n: TIERS[m[1]][0], w: TIERS[m[1]][1] } : null; };
+  const PIPS = (t, style = "") => `<span class="lc-tier"${style ? ` style="${style}"` : ` aria-label="Risk tier ${t.n} of 5"`}>${[1, 2, 3, 4, 5].map(i => `<i${i <= t.n ? ' class="on"' : ""}></i>`).join("")}</span>`;
+  const LIC_EMPTY = `<div class="lc-empty"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="4.5" width="26" height="23" rx="3.5" fill="none" stroke="#ffd166" stroke-opacity=".7" stroke-width="1.3" stroke-dasharray="2.4 2"/><path d="M3 12h26" stroke="#ffd166" stroke-opacity=".7" stroke-width="1.3"/><rect x="12.5" y="7" width="7" height="2" rx="1" fill="#ffd166" fill-opacity=".7"/><circle cx="10.5" cy="19.5" r="3.4" fill="none" stroke="#ffd166" stroke-opacity=".7" stroke-width="1.4"/><path d="M17 18h7.5M17 21.5h5" stroke="#ffd166" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/></svg><span><b style="color:var(--text)">No licences or permits yet.</b> Certification contracts give them, and each one shows here with the date and the contract.</span></div>`;
+  function licenceCard(l, opt = {}) {
+    const t = tierOf(l.n), isNew = opt.state ? opt.state === "new" : l.fresh;
+    return `<button type="button" class="bp-card lc-card${isNew ? " is-new" : ""}${isNew && opt.seen ? " is-seen" : ""}${opt.hover ? " is-hover" : ""}" data-lic="${esc(l.id)}" role="listitem" style="--i:${opt.i || 0}" aria-label="${esc(l.n)}, earned ${esc(l.d)}"><span class="lc-slot" aria-hidden="true"></span><span class="bp-in">${LIC()}<span class="bp-name">${esc(l.n)}<span class="bp-tagline">${esc(l.d)}</span>${t ? `<span style="display:block">${PIPS(t)}<span class="lc-tier-w">${esc(t.w)}</span></span>` : ""}</span>${isNew ? `<span class="vr-chip bp-new">New</span>` : ""}<span class="bp-sheen" aria-hidden="true"></span></span></button>`;
+  }
   function licencesSec(st) {
     const q = st.q.trim().toLowerCase(), all = st.licences || [], list = all.filter(l => !q || l.n.toLowerCase().includes(q));
-    if (!all.length || (q && !list.length)) return "";
-    return `<section class="bp-sec" aria-labelledby="bpl-h"><div class="bp-sec-h"><h3 id="bpl-h">Licences and permits</h3><span>${list.length}</span></div>
-      <div class="bp-grid" role="list">${list.map((l, k) => `<button type="button" class="bp-card${l.fresh ? " is-new" : ""}${l.fresh && st.seen.has("lic:" + l.id) ? " is-seen" : ""}" data-lic="${esc(l.id)}" role="listitem" style="--i:${k}" aria-label="${esc(l.n)}, earned ${esc(l.d)}">
-        <span class="bp-in">${LIC()}<span class="bp-name">${esc(l.n)}</span>${l.fresh ? `<span class="vr-chip bp-new">New</span>` : ""}<span class="bp-sheen" aria-hidden="true"></span></span></button>`).join("")}</div></section>`;
+    if (q && !list.length) return "";
+    return `<section class="bp-sec" id="bpl-sec" aria-labelledby="bpl-h"><div class="bp-sec-h" style="margin-top:6px"><h3 id="bpl-h">Licences and permits</h3><span>${list.length}</span><span style="flex:1"></span><span class="vr-sub" style="font-size:13px">Logged when the game says you earned one</span></div>
+      ${all.length ? `<div class="lc-grid" role="list">${list.map((l, k) => licenceCard(l, { seen: st.seen.has("lic:" + l.id), i: k })).join("")}</div>` : LIC_EMPTY}</section>`;
   }
+  const whenFull = ts => { if (!ts) return ""; const d = new Date(ts * 1000);
+    return `${d.toLocaleDateString("en-AU", { weekday: "short" })} ${d.getDate()} ${d.toLocaleDateString("en-AU", { month: "short" })} ${d.getFullYear()}, ${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")} ${d.getHours() < 12 ? "am" : "pm"}`; };
   function licenceDetail(l) {
-    return `<div class="bp-det-head">${LIC()}<div><div class="vr-label" style="color:var(--amber)">Licence or permit</div><h2 id="dlg-h">${esc(l.n)}</h2></div></div>
-      <dl class="vr-dl"><dt>Earned</dt><dd>${esc(l.d)}${l.times > 1 ? ` <span class="vr-sub">(the game logged it ${l.times} times)</span>` : ""}</dd><dt>From</dt><dd>${l.c ? esc(l.c) : `<span class="vr-sub">Not known. The log didn't show a contract finishing just before.</span>`}</dd></dl>
-      <span class="vr-sub">From the line “Journal Entry Added: ${esc(l.raw || l.n)}” in your game log.</span>`;
+    const t = tierOf(l.n);
+    return `<div class="bp-det-head">${LIC("bp-mark", "width:56px;height:56px")}<div><div class="vr-label" style="color:var(--amber)">Licence or permit</div><h2 id="dlg-h">${esc(l.n)}</h2></div></div>
+      <dl class="vr-dl"><dt>Earned</dt><dd>${esc(l.ts ? whenFull(l.ts) : l.d)}${l.times > 1 ? ` <span class="vr-sub">(the game logged it ${l.times} times)</span>` : ""}</dd><dt>From</dt><dd>${l.c ? esc(l.c) : `<span class="vr-sub">Not known. The log didn't show a contract finishing just before.</span>`}</dd>${t ? `<dt>Risk tier</dt><dd>${PIPS(t, "margin:0 8px 0 0")}${esc(t.w)} (${t.code})</dd>` : ""}<dt>As the game logged it</dt><dd style="font:13px var(--mono);color:var(--muted)">${esc(l.raw || l.n)}</dd></dl>
+      <div class="lc-acts" data-brag-spot="licence" data-lic-id="${esc(l.id)}" style="display:flex;gap:8px"></div>`;
   }
   function blueprintDetail(b) {
     return `<div class="bp-det-head">${MARK()}<div><div class="vr-label" style="color:var(--amber)">Blueprint</div><h2 id="dlg-h">${esc(b.n)}</h2></div></div>
@@ -2526,6 +2938,30 @@ const VR = (() => {
     return `<div class="ss-grid">${list.map((s, i) => sessionCard(s, { i, sameDay: s.sameDay })).join("")}</div>
       ${pages > 1 ? `<nav class="ss-pager" aria-label="Session pages"><button class="vr-btn is-sm" type="button" data-pg="${p - 1}" ${p === 0 ? "disabled" : ""}>← Newer</button><span>Page ${p + 1} of ${pages}</span><button class="vr-btn is-sm" type="button" data-pg="${p + 1}" ${p >= pages - 1 ? "disabled" : ""}>Older →</button></nav>` : ""}`;
   }
+  // ---- 1.5.2 extras: the report's Out and about, Injuries and aUEC boxes ----
+  const AUEC_HINT = `<span class="vr-sub" style="font-size:13px">Type both and the app works out what you made or spent.</span>`;
+  function outAndAbout(s) {
+    const w = (s.waits || []).slice().sort((x, y) => x - y), typ = w.length ? w[Math.floor(w.length / 2)] : null, long = w.length ? w[w.length - 1] : null;
+    const at = x => `${Math.round(Math.min(x, 900) / 900 * 1000) / 10}%`;
+    let longDone = false;
+    const ticks = (s.waits || []).map(x => { const l = x === long && w.length > 1 && !longDone; if (l) longDone = true; return `<i class="${l ? "is-long" : ""}" style="--at:${at(x)}"></i>`; }).join("");
+    return `<div class="oa-top"><div class="oa-stat"><span class="oa-k">${XI(XP.quantum)}Quantum jumps</span><b>${s.quantum || 0}</b><span>this session</span></div>
+<div class="oa-stat"><span class="oa-k">${XI(XP.wait)}Ship ready after asking</span>${w.length ? `<b>${mmss(typ)}${w.length > 1 ? "<small>typical</small>" : ""}</b><span>${w.length > 1 ? `Longest ${mmss(long)}, ${w.length} times asked` : "Asked once"}</span>
+<div class="oa-track" aria-hidden="true">${ticks}<i class="is-typ" style="--at:${at(typ)}"></i></div><div class="oa-scale" aria-hidden="true"><span>0</span><span>5 min</span><span>10 min</span><span>15+</span></div>` : `<b>–</b><span>No ship called from a terminal</span>`}</div></div>
+${s.jur.length ? `<span class="oa-k">${XI(XP.map)}Jurisdictions entered</span><div class="oa-jur">${s.jur.map(j => `<span class="x-chip">${esc(j)}</span>`).join("")}</div>` : ""}`;
+  }
+  // Where each body part sits on the map (the figure faces you, so its left arm is on your right)
+  const BODY_AT = { head: [42, 13], torso: [42, 50], "left arm": [70, 50], "right arm": [14, 50], "left leg": [50, 103], "right leg": [34, 103] };
+  function injuriesBox(s) {
+    const lv = l => String(l || "").toLowerCase(), part = p => { const t = String(p || "").toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); };
+    const R = { severe: 8, moderate: 7, minor: 6 };
+    const hits = s.injuries.filter(i => BODY_AT[lv(i.part)]).map(i => { const [x, y] = BODY_AT[lv(i.part)]; return `<circle class="hit is-${lv(i.level)}" cx="${x}" cy="${y}" r="${R[lv(i.level)] || 6}"/>`; }).join("");
+    const label = s.injuries.map(i => `${part(i.part)}: ${lv(i.level)}.`).join(" ");
+    const sum = [s.downed ? `<span class="x-chip">Downed <b>${s.downed}</b> ${s.downed === 1 ? "time" : "times"}</span>` : "", s.medbed ? `<span class="x-chip">Healed at a med bed <b>${s.medbed}</b> ${s.medbed === 1 ? "time" : "times"}</span>` : ""].join("");
+    return `${s.injuries.length ? `<div class="inj"><ul class="inj-rows">${s.injuries.map(i => `<li><span class="inj-lv is-${lv(i.level)}">${esc(i.level)}</span><span>${esc(part(i.part))}</span><span class="inj-tier">treatment tier <b>${esc(String(i.tier))}</b></span></li>`).join("")}</ul><svg class="inj-body" viewBox="0 0 84 132" role="img" aria-label="${esc(label)}">
+<circle class="b" cx="42" cy="13" r="10"/><rect class="b" x="27" y="28" width="30" height="46" rx="8"/><rect class="b" x="12" y="30" width="11" height="40" rx="5.5" transform="rotate(12 17 30)"/><rect class="b" x="61" y="30" width="11" height="40" rx="5.5" transform="rotate(-12 67 30)"/><rect class="b" x="28" y="78" width="12" height="50" rx="6"/><rect class="b" x="44" y="78" width="12" height="50" rx="6"/>
+${hits}</svg></div>` : ""}${sum ? `<div class="inj-sum">${sum}</div>` : ""}`;
+  }
   function sessionReport(s, st = {}) {
     const sc = s.overlay && s.score != null, a = st.auec || s.auec || {}, start = +String(a.s || "").replace(/[^0-9]/g, ""), end = +String(a.e || "").replace(/[^0-9]/g, ""), diff = start && end ? end - start : null;
     const rate = st.rating !== undefined ? st.rating : s.rating, noteTxt = st.note !== undefined ? st.note : s.note;
@@ -2543,15 +2979,18 @@ const VR = (() => {
      </div><div style="display:flex;flex-direction:column;gap:14px">
       ${box(`Blueprints · ${s.bps.length}`, s.bps.length ? `<div class="bp-grid" style="grid-template-columns:1fr">${s.bpsFull.map(b => blueprintCard({ id: b.id, n: b.name, g: b.group, d: s.day }, {})).join("")}</div><a href="#" data-go-bp style="font-size:13px">See them all in Blueprints →</a>` : none("None this time."))}
       ${box("Licences and journal", s.lic.length ? (s.licRaw || s.lic).map(l => `<span style="font-size:14px">${IC(P.lic).replace("<svg", '<svg width="15" height="15" style="stroke:var(--gold);vertical-align:-2px;margin-right:6px"')}${/\sEarned\b/i.test(l) ? esc(l.replace(/\s+Earned\b/i, "")) + " earned" : esc(l)}</span>`).join("") : none("None."))}
-      ${box("Out and about", `<span style="font-size:14px">${s.quantum ? `<b>${s.quantum}</b> quantum ${s.quantum === 1 ? "jump" : "jumps"}` : "No quantum jumps"}${s.waits.length ? ` · ${s.waits.length === 1 ? "ship ready in" : "ships ready in a typical"} <b>${mmss(s.waits.slice().sort((a, b) => a - b)[Math.floor(s.waits.length / 2)])}</b>${s.waits.length > 1 ? `, longest ${mmss(Math.max(...s.waits))}` : ""}` : ""}</span>
-        ${s.jur.length ? `<span class="vr-sub">Jurisdictions: ${esc(s.jur.join(", "))}</span>` : ""}`)}
-      ${s.injuries.length || s.downed || s.medbed ? box("Injuries", `${s.injuries.length ? `<ul class="ss-rows">${s.injuries.map(i => `<li><span>${esc(i.level)} injury, ${esc(i.part.toLowerCase())}</span><span></span><span class="ss-res is-${i.level === "Severe" ? "failed" : "abandoned"}">tier ${i.tier}</span></li>`).join("")}</ul>` : ""}
-        <span class="vr-sub">${[s.downed ? `Downed ${s.downed} ${s.downed === 1 ? "time" : "times"}` : "", s.medbed ? `healed at a med bed ${s.medbed} ${s.medbed === 1 ? "time" : "times"}` : ""].filter(Boolean).join(", ") || "Not downed."}</span>`) : ""}
+      ${box("Out and about", outAndAbout(s))}
+      ${s.injuries.length || s.downed || s.medbed ? box("Injuries", injuriesBox(s)) : ""}
       ${box(`Moments marked · ${s.moments}`, s.moments ? `<span style="font-size:14px">${s.moments} marked. They're in What's gone wrong? for this session.</span>` : none("None."))}
       ${box("Your rating", `<div class="ss-rating"><button type="button" class="vr-btn is-sm is-good" data-rate="good" aria-pressed="${rate === "good"}">${IC(P.good).replace("<svg", '<svg width="15" height="15" style="stroke:currentColor"')}Good</button><button type="button" class="vr-btn is-sm is-bad" data-rate="bad" aria-pressed="${rate === "bad"}">${IC(P.bad).replace("<svg", '<svg width="15" height="15" style="stroke:currentColor"')}Bad</button></div>
         <textarea class="vr-inp" data-note rows="2" maxlength="200" placeholder="A short note for future you" aria-label="Note" style="height:auto;padding:8px 12px;resize:vertical">${esc(noteTxt)}</textarea>`)}
-      ${box("aUEC (optional)", `${s.spent || s.money.in || s.money.out || s.money.awarded ? `<span style="font-size:14px">The game logged: ${[s.spent ? `<b>${s.spent.toLocaleString("en-AU")}</b> spent at shops (${s.purchases} ${s.purchases === 1 ? "purchase" : "purchases"})` : "", s.money.out ? `<b>${s.money.out.toLocaleString("en-AU")}</b> sent` : "", (s.money.in || 0) + (s.money.awarded || 0) ? `<b>${((s.money.in || 0) + (s.money.awarded || 0)).toLocaleString("en-AU")}</b> received` : ""].filter(Boolean).join(", ")}. Contract pay and sales aren't logged.</span>` : ""}<div class="ss-auec"><label>At the start<input class="vr-inp" data-auec="s" inputmode="numeric" value="${esc(a.s || "")}" placeholder="e.g. 1,250,000"></label><label>At the end<input class="vr-inp" data-auec="e" inputmode="numeric" value="${esc(a.e || "")}" placeholder="e.g. 1,980,000"></label></div>
-        ${diff === null ? `<span class="vr-sub">The game doesn't record money anywhere the app can read, so type it in if you want to track it.</span>` : `<span class="ss-diff ${diff >= 0 ? "is-made" : "is-spent"}">${diff >= 0 ? "Made" : "Spent"} ${Math.abs(diff).toLocaleString("en-AU")} aUEC</span>`}`)}
+      ${box("aUEC", `<span class="oa-k">${XI(XP.info)}What the game logged</span><div class="au-log">
+        <div class="oa-stat"><span class="oa-k">${XI(XP.cart)}Shops</span><b>${(s.spent || 0).toLocaleString("en-AU")}</b><span>spent, ${s.purchases || 0} ${s.purchases === 1 ? "purchase" : "purchases"}</span></div>
+        <div class="oa-stat"><span class="oa-k">${XI(XP.sent)}Sent</span><b>${(s.money.out || 0).toLocaleString("en-AU")}</b><span>to other players</span></div>
+        <div class="oa-stat"><span class="oa-k">${XI(XP.recv)}Received</span><b>${((s.money.in || 0) + (s.money.awarded || 0)).toLocaleString("en-AU")}</b><span>${s.money.awarded ? `from other players, and ${Number(s.money.awarded).toLocaleString("en-AU")} the game awarded` : "from other players"}</span></div></div>
+        <p class="au-note" style="margin:0">${XI(XP.info)}Contract pay and sales aren't in the log, so this isn't your profit.</p><div class="au-sep"></div>
+        <span class="oa-k">Your own count (optional)</span><div class="ss-auec"><label>aUEC at the start<input class="vr-inp" data-auec="s" inputmode="numeric" value="${esc(a.s || "")}" placeholder="Type it in"></label><label>aUEC at the end<input class="vr-inp" data-auec="e" inputmode="numeric" value="${esc(a.e || "")}" placeholder="Type it in"></label></div>
+        ${diff === null ? AUEC_HINT : `<span class="ss-diff ${diff >= 0 ? "is-made" : "is-spent"}">${diff >= 0 ? "Made" : "Spent"} ${Math.abs(diff).toLocaleString("en-AU")} aUEC</span>`}`)}
      </div></div>`;
   }
 
@@ -2573,7 +3012,7 @@ const VR = (() => {
   document.addEventListener("pointerout", e => { const c = e.target.closest && e.target.closest(".vr .bp-card"); if (c && !c.contains(e.relatedTarget)) { c.style.setProperty("--x", 0); c.style.setProperty("--y", 0); } });
   setInterval(() => document.querySelectorAll(".vr [data-elapsed]").forEach(n => n.textContent = elapsed({ liveStart: +n.dataset.elapsed })), 15000);
 
-  return { MARK, LIC, licenceDetail, IC, P, blueprintCard, blueprintsTab, blueprintDetail, fromApi, sessionCard, sessionsPage, sessionReport, fromCard, dlg, closeDlg, vtoast, host, setGroups: g => { if (g && g.length) GROUPS = g; } };
+  return { MARK, LIC, licenceDetail, licenceCard, tierOf, AUEC_HINT, XI, XP, IC, P, blueprintCard, blueprintsTab, blueprintDetail, fromApi, sessionCard, sessionsPage, sessionReport, fromCard, dlg, closeDlg, vtoast, host, setGroups: g => { if (g && g.length) GROUPS = g; } };
 })();
 
 /* ---------- Your game settings (Set up) and the flag on Now: Claude Design round, 8 Nov 2026 ----------
@@ -2673,7 +3112,7 @@ async function renderBlueprints() {
   if (tab !== "blueprints") return;
   VR.setGroups(d.groups);
   bpState.earned = d.earned.map(VR.fromApi); bpState.want = d.want;
-  bpState.licences = (d.licences || []).map(l => ({ id: l.id, n: l.name, raw: l.raw, d: l.ts ? new Date(l.ts * 1000).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).replace(",", "") : "", c: l.contract, times: l.times, fresh: l.fresh }));
+  bpState.licences = (d.licences || []).map(l => ({ id: l.id, n: l.name, raw: l.raw, d: l.ts ? new Date(l.ts * 1000).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", "") : "", c: l.contract, times: l.times, fresh: l.fresh, ts: l.ts }));
   drawBlueprints();
 }
 function drawBlueprints(keep) {
@@ -2693,6 +3132,7 @@ function drawBlueprints(keep) {
     const t = e.target.closest("button, a"); if (!t || !v.contains(t)) return;
     if (t.dataset.g !== undefined && t.closest(".bp-groups")) { bpState.g = t.dataset.g === "" ? null : +t.dataset.g; return drawBlueprints(); }
     if (t.matches("[data-bpclear]")) { bpState.q = ""; return drawBlueprints(); }
+    if (t.matches("[data-lcjump]")) { const sec = $("bpl-sec"); if (sec) { sec.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); const c = sec.querySelector(".lc-card"); if (c) c.focus({ preventScroll: true }); } return; }
     if (t.matches("[data-unwant]")) { try { const r = await api("/api/blueprints/unwant", { name: t.dataset.unwant }); bpState.want = r.want; drawBlueprints(); } catch (x) { toast(x.message, true); } return; }
     if (t.dataset.bp !== undefined) { const b = bpState.earned.find(x => x.id === t.dataset.bp); if (b) VR.dlg(VR.blueprintDetail(b)); }
     if (t.dataset.lic !== undefined) { const l = bpState.licences.find(x => x.id === t.dataset.lic); if (l) VR.dlg(VR.licenceDetail(l)); }
@@ -2707,42 +3147,100 @@ async function drawSessions() {
   if (!$("ssList")) return;
   $("ssCount").textContent = ssCache.total ? `${ssCache.total} ${ssCache.total === 1 ? "session" : "sessions"} · newest first · one card per session (two in a day means two cards, marked 1st and 2nd)` : "";
   el.innerHTML = VR.sessionsPage(ssCache);
-  const wk = $("ssWeek"); if (wk) wk.innerHTML = ssCache.week && ssCache.page === 0 ? weekStrip(ssCache.week) : "";
+  const wk = $("ssWeek"); if (wk) { wk.innerHTML = ssCache.week && ssCache.page === 0 ? weekStrip(ssCache.week, ssCache.total) : "";
+    wk.onclick = e => { const t = e.target.closest("[data-wkss]"); if (t) { e.preventDefault(); openSession(t.dataset.wkss); } }; }
   el.onclick = e => {
     const t = e.target.closest("button"); if (!t || !el.contains(t)) return;
     if (t.dataset.pg !== undefined) { ssPage = +t.dataset.pg; drawSessions(); return; }
     if (t.dataset.ss !== undefined) openSession(t.dataset.ss);
   };
 }
-// Your week: the last 7 days against the 7 before, from the session cards. Port addition, built from the round's parts
-function weekStrip(w) {
+// Your week: the last 7 days against the 7 before. 1.5.2 extras round (x-panel wk). States: no sessions the week before
+// (no comparison), no health score this week, nothing played in either week (hidden).
+const WK_UP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 12l6-6 6 6"/></svg>`;
+const WK_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v13M6 12l6 6 6-6"/></svg>`;
+const WK_DOT = { good: "var(--teal)", ok: "var(--steel)", poor: "var(--gold)", bad: "var(--rust)" };
+function weekStrip(w, total) {
   const a = w.this, b = w.last;
   if (!a.sessions && !b.sessions) return "";
-  const hrs = m => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
-  const vs = (x, y, unit = "") => { if (!b.sessions || y == null || x == null || x === y) return ""; const up = x > y;
-    return ` <span class="vr-sub" style="color:${up ? "var(--teal)" : "var(--rust)"}">${up ? "▲" : "▼"} ${Math.abs(x - y)}${unit} on last week</span>`; };
-  const { IC, P } = VR;
-  return `<section class="ss-box" aria-label="Your week"><span class="vr-label">Your week · the last 7 days${b.sessions ? " against the 7 before" : ""}</span>
-    <ul class="ss-stats" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
-      <li>${IC(P.star)}<span><b>${hrs(a.minutes)}</b> played, ${a.sessions} ${a.sessions === 1 ? "session" : "sessions"}${b.sessions ? `<br><span class="vr-sub">${hrs(b.minutes)} the week before</span>` : ""}</span></li>
-      <li>${IC(P.contract)}<span><b>${a.contracts} of ${a.accepted}</b> contracts${vs(a.contracts, b.contracts)}</span></li>
-      <li class="${a.blueprints ? "is-gold" : ""}">${IC(P.bp)}<span><b>${a.blueprints}</b> ${a.blueprints === 1 ? "blueprint" : "blueprints"}${a.licences ? `, <b>${a.licences}</b> ${a.licences === 1 ? "licence" : "licences"}` : ""}</span></li>
-      <li>${IC(P.check)}<span>${a.score != null ? `Average health <b>${a.score}</b>${vs(a.score, b.score)}` : "No health score this week"}${a.best ? `<br><span class="vr-sub">Best ${esc(a.best.day)} (${a.best.score})${a.worst && a.worst.id !== a.best.id ? `, worst ${esc(a.worst.day)} (${a.worst.score})` : ""}</span>` : ""}</span></li>
-      <li class="${a.problems ? "is-bad" : ""}">${IC(P.prob)}<span><b>${a.problems}</b> ${a.problems === 1 ? "problem" : "problems"} hit${vs(a.problems, b.problems)}</span></li>
-    </ul></section>`;
+  const cmp = b.sessions > 0;
+  const hm = m => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
+  const big = m => m >= 60 ? `${Math.floor(m / 60)}<small>h</small>${m % 60}<small>min</small>` : `${m}<small>min</small>`;
+  // an arrow and words for a change; good says which way is better (null: neither)
+  const delta = (x, y, more, fewer, good = 1) => { if (!cmp || x == null || y == null || x === y) return "";
+    const up = x > y, cls = good === null ? "" : (up === (good > 0) ? " is-better" : " is-worse");
+    return `<span class="${up ? "x-up" : "x-down"}${cls}">${up ? WK_UP : WK_DOWN}${up ? more(x - y) : fewer(y - x)}</span>`; };
+  const md = d => { const x = new Date(d * 1000); return { d: x.getDate(), m: x.toLocaleDateString("en-AU", { month: "short" }) }; };
+  const range = r => { if (!r.from || !r.to) return ""; const f = md(r.from), t = md(r.to); return f.m === t.m ? `${f.d} to ${t.d} ${t.m}` : `${f.d} ${f.m} to ${t.d} ${t.m}`; };
+  const first = !cmp && total != null && total <= a.sessions;
+  const sub = cmp ? `against ${range(b)}` : first ? "your first week with the app, so nothing to compare yet" : "nothing played the week before, so nothing to compare";
+  const sdiff = a.sessions - b.sessions;
+  const sessW = `${a.sessions} ${a.sessions === 1 ? "session" : "sessions"}${cmp ? (sdiff > 0 ? `, ${sdiff} more than last week` : sdiff < 0 ? `, ${-sdiff} fewer than last week` : ", the same as last week") : ""}`;
+  const pct = a.accepted ? Math.round(100 * a.contracts / a.accepted) : 0;
+  const scored = a.score != null;
+  const dots = (a.dots || []).map(h => WK_DOT[h] ? `<i style="--c:${WK_DOT[h]}"></i>` : `<i class="is-none"></i>`).join("");
+  const link = x => `<a href="#" data-wkss="${esc(x.id)}">${esc(x.day)}, ${x.score}</a>`;
+  const bpd = a.blueprints !== b.blueprints ? delta(a.blueprints, b.blueprints, n => `${n} more ${n === 1 ? "blueprint" : "blueprints"}`, n => `${n} fewer ${n === 1 ? "blueprint" : "blueprints"}`)
+    : delta(a.licences, b.licences, n => `${n} more ${n === 1 ? "licence" : "licences"}`, n => `${n} fewer ${n === 1 ? "licence" : "licences"}`);
+  return `<section class="x-panel wk" aria-labelledby="wk-h"><div class="x-head"><div><span class="vr-label">Your week</span><h3 id="wk-h">${range(a)} <small>${esc(sub)}</small></h3></div><span class="wk-brag" data-brag-spot="week"></span></div>
+<div class="wk-grid">
+ <div class="wk-cell wk-hero"><span class="wk-k">Played</span><span class="wk-v">${big(a.minutes)}</span>${delta(a.minutes, b.minutes, n => `${hm(n)} more`, n => `${hm(n)} less`, null)}<span class="wk-s">${sessW}</span></div>
+ <div class="wk-cell" style="--wk-c:var(--teal)"><span class="wk-k">Contracts</span><span class="wk-v">${a.contracts}<small>of ${a.accepted}</small></span><div class="wk-bar"><i style="--w:${pct}%"></i></div>${delta(a.contracts, b.contracts, n => `${n} more done`, n => `${n} fewer done`)}</div>
+ <div class="wk-cell" style="--wk-c:var(--gold)"><span class="wk-k">Blueprints and licences</span><span class="wk-v">${a.blueprints}<small>bp</small>${a.licences}<small>lic</small></span>${bpd}</div>
+ ${scored ? `<div class="wk-cell" style="--wk-c:var(--teal)"><span class="wk-k">Average health</span><div style="display:flex;align-items:baseline;gap:10px"><span class="wk-v">${a.score}</span>${delta(a.score, b.score, n => `${n}`, n => `${n}`)}</div>
+      <div class="wk-dots" aria-label="${a.sessions} ${a.sessions === 1 ? "session" : "sessions"}, coloured by health">${dots}</div>
+      ${a.best ? `<span class="wk-s">Best ${link(a.best)}${a.worst && a.worst.id !== a.best.id ? `, worst ${link(a.worst)}` : ""}</span>` : ""}</div>`
+    : `<div class="wk-cell"><span class="wk-k">Average health</span><span class="wk-v" style="color:var(--muted)">–</span><div class="wk-dots">${dots}</div><span class="wk-none">No score this week. The overlay was off, so there were no readings.</span></div>`}
+ <div class="wk-cell" style="--wk-c:var(--rust)"><span class="wk-k">Problems hit</span><span class="wk-v">${a.problems}</span>${delta(a.problems, b.problems, n => `${n} more`, n => `${n} fewer`, -1)}${a.top_problem ? `<span class="wk-s">Most often: ${esc(generic(a.top_problem))}</span>` : ""}</div>
+</div></section>`;
 }
-// Your contracts: per kind, from every session's log
+// Your contracts: per kind, from every session's log. 1.5.2 extras round: blueprint sources first with a gold edge and the
+// blueprints they gave underneath, everything else in one plain block; find and sort.
+const ctState = { q: "", sort: "bp", kinds: [] };
+const CT_BP = `<svg width="15" height="15" style="stroke:var(--gold);vertical-align:-2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12l4 4v12H4zM8 4v16M4 9h16M4 14h16"/></svg>`;
+function ctRow(r) {
+  const day = ts => new Date(ts * 1000).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+  const bits = [r.failed ? `${r.failed} failed` : "", r.abandoned ? `${r.abandoned} abandoned` : ""].filter(Boolean).join(", ");
+  const sc = r.success == null ? "" : r.success >= 90 ? "var(--teal)" : r.success >= 75 ? "var(--gold)" : "var(--rust)";
+  const rep = (r.rep || []).map(x => { const m = /^([\d,]+)\s+Rep$/i.exec(x); return m ? `<b>${esc(m[1])}</b> Rep` : esc(x); }).join(", ");
+  return `<div class="ct-row" role="row"><span class="ct-name" role="cell">${esc(r.kind)}</span><span class="ct-done" role="cell"><b>${r.completed}</b><small${r.failed ? ' class="is-bad"' : ""}>${bits || "none failed"}</small></span><span role="cell" style="width:100%">${r.success != null ? `<div class="ct-succ" style="--sc:${sc}"><b>${r.success}%</b><i style="--w:${r.success}%"></i></div>` : `<div class="ct-succ"><b style="color:var(--muted)">–</b></div>`}</span><span class="ct-last" role="cell">${r.typical_min != null ? r.typical_min + " min" : "–"}</span><span class="ct-rep" role="cell">${rep || "–"}</span><span class="ct-last" role="cell">${r.last ? day(r.last) : "–"}</span></div>`;
+}
+const ctSrc = r => `<div class="ct-src"><div class="ct-in">${ctRow(r)}<div class="ct-gave"><span>Gave you</span>${r.blueprints.map(b => `<span class="ct-bp">${VR.MARK("").replace(' class=""', "")}${esc(b.name)}${b.times > 1 ? ` <small>×${b.times}</small>` : ""}</span>`).join("")}</div></div></div>`;
+function ctBody() {
+  const q = ctState.q.trim().toLowerCase();
+  let k = ctState.kinds.filter(r => !q || r.kind.toLowerCase().includes(q) || r.blueprints.some(b => b.name.toLowerCase().includes(q)));
+  if (!k.length) return `<div class="vr-empty"><b>Nothing matches “${esc(ctState.q)}”</b><button class="vr-btn is-sm" type="button" data-ctclear>Clear search</button></div>`;
+  const hd = `<div class="ct-hd" role="row"><span>Kind</span><span>Done</span><span>Success</span><span>Typical</span><span>Rep</span><span>Last</span></div>`;
+  const plain = list => list.length ? `<div class="ct-plain">${list.map(ctRow).join("")}</div>` : "";
+  if (ctState.sort === "bp") {
+    const src = k.filter(r => r.blueprints.length), rest = k.filter(r => !r.blueprints.length);
+    const nbp = src.reduce((n, r) => n + r.blueprints.length, 0);
+    return `<div class="ct" role="table" aria-label="Your contracts">${hd}
+      ${src.length ? `<div class="ct-sec">${CT_BP}<b>Blueprint sources</b> ${src.length} ${src.length === 1 ? "kind" : "kinds"}, ${nbp} ${nbp === 1 ? "blueprint" : "blueprints"}</div>${src.map(ctSrc).join("")}` : ""}
+      ${rest.length ? `<div class="ct-sec">Everything else <span style="letter-spacing:0;text-transform:none;font:500 13px var(--font)">${rest.length} ${rest.length === 1 ? "kind" : "kinds"}</span></div>${plain(rest)}` : ""}</div>`;
+  }
+  k = k.slice().sort(ctState.sort === "done" ? (x, y) => y.completed - x.completed || x.kind.localeCompare(y.kind) : (x, y) => (y.last || 0) - (x.last || 0));
+  // one run in the chosen order: sources keep their gold edge, plain rows between them share a block
+  const out = []; let run = [];
+  k.forEach(r => { if (r.blueprints.length) { out.push(plain(run), ctSrc(r)); run = []; } else run.push(r); });
+  out.push(plain(run));
+  return `<div class="ct" role="table" aria-label="Your contracts">${hd}${out.join("")}</div>`;
+}
 async function drawContracts() {
   const el = $("ctStats"); if (!el) return;
-  let d; try { d = await api("/api/contracts"); } catch (e) { el.innerHTML = `<div class="sub">${esc(e.message)}</div>`; return; }
+  let d; try { d = await api("/api/contracts"); } catch (e) { el.innerHTML = `<div class="vr-empty"><b>Couldn't load your contracts</b><span class="vr-sub">${esc(e.message)}</span></div>`; return; }
   if (!$("ctStats")) return;
-  const k = d.kinds || [];
-  if (!k.length) { el.innerHTML = `<div class="empty"><h3>No contracts yet</h3><p>Take a contract in game and it shows here.</p></div>`; return; }
-  el.innerHTML = `<div class="frame tscroll"><table><thead><tr><th>Kind</th><th class="num">Done</th><th class="num">Failed</th><th class="num">Success</th><th class="num">Typical time</th><th>Rep</th><th>Blueprints from it</th><th>Last</th></tr></thead><tbody>
-    ${k.map(r => `<tr><td>${esc(r.kind)}</td><td class="num">${r.completed}</td><td class="num ${r.failed ? "bad" : ""}">${r.failed}</td><td class="num">${r.success != null ? r.success + "%" : "–"}</td><td class="num">${r.typical_min != null ? r.typical_min + " min" : "–"}</td>
-      <td>${esc(r.rep.join(", ") || "–")}</td><td>${r.blueprints.length ? r.blueprints.map(b => esc(b.name) + (b.times > 1 ? ` ×${b.times}` : "")).join(", ") : `<span class="sub">none yet</span>`}</td><td>${r.last ? dtm(r.last) : ""}</td></tr>`).join("")}
-    </tbody></table></div>
-    <p class="sub">Typical time is from accepting to the game saying complete. Rep shows only where the game states one amount; “rep by rank” means a ladder. Blueprints are the ones that arrived within two minutes of that kind of contract finishing.</p>`;
+  ctState.kinds = d.kinds || [];
+  const k = ctState.kinds, done = k.reduce((n, r) => n + r.completed, 0);
+  if (!k.length) { el.innerHTML = `<section class="x-panel" aria-labelledby="ct-h"><div class="x-head"><div><span class="vr-label">By kind, from your game logs on this PC</span><h3 id="ct-h">Your contracts</h3></div></div><div class="vr-empty"><b>No contracts yet</b><span class="vr-sub">Take a contract in game and it shows here.</span></div></section>`; return; }
+  const opt = (v, t) => `<label><input type="radio" name="cs" value="${v}"${ctState.sort === v ? " checked" : ""}><span>${t}</span></label>`;
+  el.innerHTML = `<section class="x-panel" aria-labelledby="ct-h"><div class="x-head"><div><span class="vr-label">By kind, from your game logs on this PC</span><h3 id="ct-h">Your contracts <small>${k.length} ${k.length === 1 ? "kind" : "kinds"}, ${done} done</small></h3></div>
+<div class="ct-tools"><input class="vr-inp" type="search" data-ctq value="${esc(ctState.q)}" placeholder="Find a contract" aria-label="Find a contract"><div class="bm-seg" role="radiogroup" aria-label="Sort">${opt("bp", "Blueprints first")}${opt("done", "Most done")}${opt("recent", "Recent")}</div></div></div>
+<div id="ctBody">${ctBody()}</div>
+<p class="ct-foot" style="margin:0">Typical time is from accepting to the game saying complete. Rep shows only where the game states one amount; "rep by rank" means it lists a ladder. Blueprints are the ones that arrived within two minutes of that kind of contract finishing.</p></section>`;
+  el.querySelector("[data-ctq]").oninput = e => { ctState.q = e.target.value; $("ctBody").innerHTML = ctBody(); };
+  el.querySelectorAll("input[name=cs]").forEach(i => i.onchange = () => { ctState.sort = i.value; $("ctBody").innerHTML = ctBody(); });
+  el.onclick = e => { if (e.target.closest("[data-ctclear]")) { ctState.q = ""; el.querySelector("[data-ctq]").value = ""; $("ctBody").innerHTML = ctBody(); } };
 }
 async function openSession(id) {
   let c;
@@ -2767,7 +3265,7 @@ async function openSession(id) {
       const box = t.closest(".ss-box"), a = st.auec, sv = +String(a.s || "").replace(/\D/g, ""), en = +String(a.e || "").replace(/\D/g, "");
       const out = box.querySelector(".ss-diff, .ss-box > .vr-sub:last-child");
       if (out) out.outerHTML = sv && en ? `<span class="ss-diff ${en - sv >= 0 ? "is-made" : "is-spent"}">${en - sv >= 0 ? "Made" : "Spent"} ${Math.abs(en - sv).toLocaleString("en-AU")} aUEC</span>`
-        : `<span class="vr-sub">The game doesn't record money anywhere the app can read, so type it in if you want to track it.</span>`;
+        : VR.AUEC_HINT;
       clearTimeout(timerAuec); timerAuec = setTimeout(() => save({ auec_start: a.s || "", auec_end: a.e || "" }), 600); }
   });
 }
@@ -2799,7 +3297,7 @@ async function renderHistory() {
   <section class="sec vr" style="display:flex;flex-direction:column;gap:18px"><div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 class="vr-h">Your sessions</h3><span class="vr-sub" id="ssCount"></span></div>
     <div id="ssWeek"></div>
     <div id="ssList" style="display:flex;flex-direction:column;gap:18px"></div></section>
-  <section class="sec"><h3>Your contracts <span>by kind, from your game logs on this PC</span></h3><div id="ctStats"><div class="sub">Reading…</div></div></section>
+  <section class="sec vr"><div id="ctStats"><div class="vr-sub">Reading…</div></div></section>
   <section class="sec"><h3>Shards you've been on <span>from overlay readings</span></h3>
     ${sh.length ? `<div class="frame tscroll"><table><thead><tr><th>Shard</th><th class="num">Server fps</th><th class="num">Lowest</th><th class="num">Players</th><th class="num">Ping</th><th class="num">Readings</th><th>Last on it</th></tr></thead><tbody>
     ${sh.map(r => `<tr><td><code>${esc(r.shard_id)}</code></td><td class="num ${r.server_fps < 10 ? "bad" : ""}">${fmt(r.server_fps, 1)}</td><td class="num">${fmt(r.server_fps_low, 1)}</td><td class="num">${fmt(r.pop_shard)}</td><td class="num">${fmt(r.ping_ms)} ms</td><td class="num">${r.readings}</td><td>${dtm(r.last)}</td></tr>`).join("")}
@@ -2863,8 +3361,13 @@ async function renderPC() {
           ${p.fav ? `<div><span class="eyebrow">Favourite place</span><b>${esc(p.fav)}</b></div>` : ""}
         </div></div>
       <p class="sub pc-note">Your profile stays on this PC. It's never sent anywhere.</p></div>` + logbook() + `</section>`;
-  function logbook() { return `
-    <h3 class="pc-h">Logbook <span>worked out from Game.log and your readings on this patch</span></h3>
+  // 1.5.2 extras round: the logbook head with a spot for the pilot card, the existing tiles, then three groups
+  function logbook() {
+    const lbT = x => x == null ? "–" : x < 60 ? `${x} s` : `${Math.floor(x / 60)} min ${String(x % 60).padStart(2, "0")} s`;
+    const lbDay = ts => ts ? new Date(ts * 1000).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "";
+    const { XI, XP } = VR;
+    return `
+    <div class="vr lb-wrap"><div class="lb-head"><h3>Logbook</h3><span>worked out from Game.log and your readings on this patch</span><span class="lb-brag" data-brag-spot="pilot"></span></div></div>
     <div class="pc-stats">
       <div class="frame"><dt>Hours played</dt><dd>${hours}</dd><span class="sub">${plural(ss.length, "session")}</span></div>
       <div class="frame"><dt>Contracts completed</dt><dd>${done}</dd><span class="sub">of ${contracts.length} taken</span></div>
@@ -2872,13 +3375,15 @@ async function renderPC() {
       <div class="frame"><dt>Server fps on your sessions</dt><dd>${fmt(fpsAvg, 1)}</dd><span class="sub">average; about 20 is normal</span></div>
       ${st.share && fed ? `<div class="frame fed"><dt>Fed the board</dt><dd>${fed}</dd><span class="sub">times this week. Thanks</span></div>` : ""}
     </div>
-    ${lb ? `<div class="pc-stats">
-      <div class="frame"><dt>Quantum jumps</dt><dd>${fmt(lb.quantum)}</dd><span class="sub">across ${plural(lb.sessions, "session")} in your logs</span></div>
-      <div class="frame"><dt>Spent at shops</dt><dd>${lb.spent ? Number(lb.spent).toLocaleString("en-AU") : "0"}</dd><span class="sub">aUEC, ${plural(lb.purchases, "purchase")} the game logged</span></div>
-      <div class="frame"><dt>Waiting for your ship</dt><dd>${lb.wait_typical != null ? (lb.wait_typical < 60 ? lb.wait_typical + " s" : Math.floor(lb.wait_typical / 60) + " min " + String(lb.wait_typical % 60).padStart(2, "0") + " s") : "–"}</dd><span class="sub">${lb.waits ? `typical of ${lb.waits}; longest ${Math.round(lb.wait_longest / 60)} min` : "asking ASOP until it's ready"}</span></div>
-      <div class="frame"><dt>Downed</dt><dd>${lb.downed}</dd><span class="sub">${plural(lb.injuries, "injury", "injuries")}, ${plural(lb.medbed, "med bed heal")}</span></div>
-    </div>
-    ${lb.jurisdictions.length ? `<div class="frame card"><h4>Jurisdictions you've been in</h4><div class="dchips">${lb.jurisdictions.map(j => chip(j.name)).join("")}</div></div>` : ""}` : ""}
+    ${lb ? `<div class="vr lb-wrap"><div class="lb-groups">
+ <div class="lb-g"><h4>${XI(XP.map)}Out in the 'verse</h4>
+  <div class="lb-pair"><div class="lb-fig"><b>${fmt(lb.quantum)}</b><span>quantum ${lb.quantum === 1 ? "jump" : "jumps"}, across ${plural(lb.sessions, "session")}</span></div><div class="lb-fig"><b>${lbT(lb.wait_typical)}</b><span>${lb.waits ? `typical wait for your ship, longest ${lbT(lb.wait_longest)} (${plural(lb.waits, "wait")})` : "waiting for your ship after asking at a terminal"}</span></div></div>
+  ${lb.jurisdictions.length ? `<div><div class="lb-small" style="margin-bottom:6px">Jurisdictions you've been in <b style="color:var(--text)">${lb.jurisdictions.length}</b></div><div class="lb-jur">${lb.jurisdictions.map(j => `<span class="x-chip${/^ungoverned$/i.test(j.name) ? " is-lawless" : ""}"${j.first ? ` title="First seen ${esc(lbDay(j.first))}"` : ""}><i></i>${esc(j.name)}</span>`).join("")}</div></div>` : `<span class="lb-small">Jurisdictions show once the game logs you entering one.</span>`}</div>
+ <div class="lb-g"><h4>${XI(XP.bed)}Wear and tear</h4><div class="lb-fig"><b>${fmt(lb.downed)}</b><span>${lb.downed === 1 ? "time" : "times"} downed</span></div>
+  <div class="lb-rows"><div><span>Injuries the game reported</span><b>${fmt(lb.injuries)}</b></div><div><span>Healed at a med bed</span><b>${fmt(lb.medbed)}</b></div></div></div>
+ <div class="lb-g"><h4>${XI(XP.cart)}aUEC the game logged</h4><div class="lb-fig"><b>${Number(lb.spent || 0).toLocaleString("en-AU")}</b><span>spent at shops, ${plural(lb.purchases, "purchase")}</span></div>
+  <div class="lb-rows"><div><span>Sent to players</span><b>${Number(lb.sent || 0).toLocaleString("en-AU")}</b></div><div><span>Received</span><b>${Number(lb.received || 0).toLocaleString("en-AU")}</b></div></div><span class="lb-small">Contract pay and sales aren't logged.</span></div>
+</div></div>` : ""}
     <div class="pc-two">
       <div class="frame card"><h4>Most-visited places</h4>${places.length ? `<ol class="pc-list">${places.map(x => `<li><span>${esc(x.location)}</span><span class="sub">${x.readings} readings · ${x.client_fps} fps</span></li>`).join("")}</ol>` : `<p class="sub">Shows once the overlay has been read in a few places.</p>`}</div>
       <div class="frame card"><h4>Ships retrieved most</h4>${retrieved.length ? `<ol class="pc-list">${retrieved.slice(0, 4).map(x => `<li><span>${esc(x.ship)}</span><span class="sub">${plural(x.times, "time")}</span></li>`).join("")}</ol>` : `<p class="sub">Shows once you've called a ship from a terminal.</p>`}</div>
