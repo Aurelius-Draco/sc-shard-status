@@ -210,8 +210,7 @@ class App:
         s = self.session
         m = {"ts": time.time(), "source": source, "shard_id": snap.get("shard_id") or (s.shard_id if s else None),
              "server": snap.get("server_name"), "location": snap.get("location") or _last_loc(s)}
-        rows = [x for x in self.marks(24 * 3600)] + [m]
-        self.store.set_meta("marks", _json.dumps(rows[-30:]))
+        self._save_marks(self._kept_marks() + [m])
         if source == "hotkey":
             a = self.alerts
             a.recent.appendleft({"ts": m["ts"], "key": "mark", "title": "Moment marked", "body": "Look at it later with What's gone wrong?"})
@@ -222,6 +221,45 @@ class App:
                     pass
         say(f"Moment marked ({source}).")
         return m
+
+    MARK_KEEP_S = 24 * 3600            # a mark with nothing typed is kept a day
+    MARK_NOTE_KEEP_S = 30 * 86400      # one with a note (an idea, what went wrong) is kept a month
+    MARK_NOTE_MAX = 200
+
+    def _kept_marks(self):
+        now = time.time()
+        return [x for x in self.marks(self.MARK_NOTE_KEEP_S)
+                if now - x.get("ts", 0) <= (self.MARK_NOTE_KEEP_S if x.get("what") else self.MARK_KEEP_S)]
+
+    def _save_marks(self, rows):
+        import json as _json
+        noted = [x for x in rows if x.get("what")][-40:]
+        plain = [x for x in rows if not x.get("what")][-30:]
+        self.store.set_meta("marks", _json.dumps(sorted(noted + plain, key=lambda x: x.get("ts", 0))))
+
+    def marks_shown(self):
+        """The last 4 hours' marks, plus older ones with a note (kept a month)."""
+        now = time.time()
+        return [x for x in self.marks(self.MARK_NOTE_KEEP_S) if x.get("what") or now - x.get("ts", 0) <= 4 * 3600]
+
+    def mark_note(self, ts, what):
+        """What the player typed into a moment, saved with the mark as they type it (8 Nov: notes typed into five
+        marks were lost because they lived only in the moment window). Stays on this PC; sent only by Send."""
+        try:
+            ts = float(ts)
+        except (TypeError, ValueError):
+            raise ValueError("That moment isn't there any more.")
+        what = " ".join(str(what or "").split())[:self.MARK_NOTE_MAX]
+        rows = self.marks(self.MARK_NOTE_KEEP_S)
+        hit = min(rows, key=lambda x: abs(x.get("ts", 0) - ts), default=None)
+        if not hit or abs(hit.get("ts", 0) - ts) > 2:
+            raise ValueError("That moment isn't there any more.")
+        if what:
+            hit["what"] = what
+        else:
+            hit.pop("what", None)
+        self._save_marks(rows)
+        return hit
 
     def marks(self, within_s=4 * 3600):
         import json as _json
@@ -395,7 +433,7 @@ class App:
             "setup_needed": self.setup_needed, "setup_ask": self.setup_ask,
             "update": self.updater.info(), "patch": self.patch_state(), "notice": self.notice_state(), "alerts": list(self.alerts.recent)[:5],
             "migrated_from": self.cfg.get("migrated_from") if self.cfg.get("migrated_notice") else None,
-            "marks": self.marks(), "hotkey": self.hotkey.status,
+            "marks": self.marks_shown(), "hotkey": self.hotkey.status,
             "readings_paused": bool(self.watcher and self.watcher.status.startswith("overlay off")),
             "groups": {"open": self.groups.open, "mine": self.groups.mine(), "interest": self.groups.interest_rows()[:10],
                        "offer": self.groups.pirate_offer()},
@@ -1223,9 +1261,35 @@ def read_cfg(p):
     return txt, enc, nl
 
 
+def _edits(a, b):
+    """Levenshtein distance: characters changed, dropped or added."""
+    prev = list(range(len(b) + 1))
+    for i, x in enumerate(a, 1):
+        cur = [i]
+        for j, y in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x != y)))
+        prev = cur
+    return prev[-1]
+
+
 def _close(a, b):
-    """Same length and at most two characters different: an OCR slip, not a different shard."""
-    return len(a) == len(b) and sum(x != y for x, y in zip(a, b)) <= 2
+    """An OCR slip, not a different shard: the same region and at most three characters changed, dropped or added
+    (8 Nov: pub_apse2a_1288186_009 for pub_apse2a_12881860_090, a dropped 0 and a swap, slipped past a same-length
+    check). A real shard change in the same region differs in its last part, which is three digits apart at most,
+    so the build part has to match too for a near miss to count as a slip there."""
+    if not a or not b:
+        return False
+    pa, pb = a.split("_"), b.split("_")
+    if pa[:2] != pb[:2]:
+        return False
+    d = _edits(a, b)
+    if d > 3:
+        return False
+    if len(pa) == len(pb) == 4 and pa[2] == pb[2]:
+        # same build: only the instance number differs, so this could be a real other shard. Treat as a slip only
+        # when the digits are the same ones moved about (090 read as 009), not a different number
+        return sorted(pa[3]) == sorted(pb[3]) or d <= 1
+    return True
 
 
 def _active_contracts(contracts):

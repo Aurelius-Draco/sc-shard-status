@@ -1241,13 +1241,16 @@ async function openPirateReport(startKind) {
 // ---- Mark this moment, start to finish: screenshots, what went wrong, your moment ----
 const clockM = ts => new Date(ts * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
 const clockS = ts => new Date(ts * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"});
-async function openMoment(markTs) {
+async function openMoment(markTs, note) {
   // A fresh moment is marked first, so the app has the log and your readings for that second; an earlier one
   // (from the hotkey, or the list under What's gone wrong?) opens straight on its screenshots
   const fresh = !markTs;
   let t = markTs;
   if (fresh) { try { t = (await api("/api/mark", {})).mark.ts; } catch (e) { return toast(e.message, true); } }
-  const S = {step: fresh ? 1 : 2, took: fresh ? null : true, shots: null, picked: new Set(), what: "", m: null, sent: null, drafted: null};
+  const S = {step: fresh ? 1 : 2, took: fresh ? null : true, shots: null, picked: new Set(), what: note || "", m: null, sent: null, drafted: null};
+  // What you type is saved with the mark as you type it, so closing the window doesn't lose it (it stays on this PC)
+  let noteTimer = null;
+  const saveNote = () => { clearTimeout(noteTimer); noteTimer = setTimeout(() => api("/api/mark/note", {ts: t, what: S.what}).then(r => { const ms = nowData && nowData.marks; if (ms && r && r.mark) { const i = ms.findIndex(m => m.ts === r.mark.ts); if (i >= 0) ms[i] = r.mark; } }).catch(() => {}), 600); };
   const steps = () => `<div class="nv-steps">${["Screenshots", "What went wrong", "Your moment"].map((x, i) => `<span class="${S.step === i + 1 ? "on" : S.step > i + 1 ? "done" : ""}"><b>${S.step > i + 1 ? "✓" : i + 1}</b>${x}</span>`).join("")}</div>`;
   const fpsC = v => v == null ? "" : v < 9 ? "bad" : v < 15 ? "poor" : "";
   const shotSrc = n => `/api/shot?name=${encodeURIComponent(n)}&t=${encodeURIComponent(TOKEN)}`;
@@ -1296,9 +1299,9 @@ async function openMoment(markTs) {
     const b = $("dBody");
     b.querySelectorAll("[data-took]").forEach(x => x.onclick = async () => { S.took = x.dataset.took === "1"; S.step = 2; draw(); if (S.took) { await loadShots(); draw(); } });
     b.querySelectorAll("[data-shot]").forEach(x => x.onclick = () => { const i = +x.dataset.shot; S.picked.has(i) ? S.picked.delete(i) : S.picked.add(i); draw(); });
-    b.querySelectorAll("[data-chip]").forEach(x => x.onclick = () => { S.what = x.dataset.chip; draw(); $("nvWhat").focus(); });
+    b.querySelectorAll("[data-chip]").forEach(x => x.onclick = () => { S.what = x.dataset.chip; saveNote(); draw(); $("nvWhat").focus(); });
     if ($("nvLook")) $("nvLook").onclick = async () => { S.shots = null; draw(); await loadShots(); draw(); };
-    if ($("nvWhat")) $("nvWhat").oninput = e => { S.what = e.target.value; $("nvCount").textContent = S.what.length + " / 200"; };
+    if ($("nvWhat")) $("nvWhat").oninput = e => { S.what = e.target.value; $("nvCount").textContent = S.what.length + " / 200"; saveNote(); };
     if ($("nvNext")) $("nvNext").onclick = async () => { S.step = 3; S.m = null; draw(); await loadMoment(); draw(); };
     if ($("nvBack")) $("nvBack").onclick = () => { S.step = Math.max(fresh ? 1 : 2, S.step - 1); draw(); };
     if ($("nvSendRev")) $("nvSendRev").onclick = async e => {
@@ -1605,9 +1608,9 @@ async function renderCheck() {
   <div id="myReviews"></div>`;
   drawMyReviews();
   const marks = (nowData && nowData.marks) || (await api("/api/now").catch(() => ({marks: []}))).marks || [];
-  $("marks").innerHTML = marks.length ? `<span class="sub">Moments you marked:</span>${marks.slice().reverse().slice(0, 6).map(m => `<button class="btn sm ghost" data-protected="true" data-mark="${m.ts}">Your moment, ${tm(m.ts)}</button>`).join("")}`
+  $("marks").innerHTML = marks.length ? `<span class="sub">Moments you marked:</span>${marks.slice().reverse().slice(0, 6).map(m => `<button class="btn sm ghost" data-protected="true" data-mark="${m.ts}"${m.what ? ` title="${esc(m.what)}"` : ""}>Your moment, ${tm(m.ts)}${m.what ? `: ${esc(m.what.length > 28 ? m.what.slice(0, 27) + "…" : m.what)}` : ""}</button>`).join("")}`
     : `<span class="sub">Tip: press <b>Mark this moment</b> at the top${nowData && nowData.hotkey && nowData.hotkey.startsWith("on") ? ` (or ${esc(nowData.hotkey.slice(4))})` : ""} the moment something goes wrong, then check it here later.</span>`;
-  $("marks").querySelectorAll("[data-mark]").forEach(b => b.onclick = () => openMoment(+b.dataset.mark));
+  $("marks").querySelectorAll("[data-mark]").forEach(b => b.onclick = () => openMoment(+b.dataset.mark, (marks.find(m => m.ts === +b.dataset.mark) || {}).what));
   $("mins").onchange = e => { try { sessionStorage.setItem("mins", e.target.value); } catch (x) {} };
   $("runCheck").onclick = () => runCheck();
   if (autoCheck) { autoCheck = false; runCheck(); }

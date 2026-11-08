@@ -198,6 +198,8 @@ def handle_post(app, path, body):
     if path == "/api/mark":
         m = app.mark("button")
         return {"message": "Moment marked. Keep playing; \"What's gone wrong?\" will look at it.", "mark": m}
+    if path == "/api/mark/note":
+        return {"mark": app.mark_note(body.get("ts"), body.get("what"))}
     if path == "/api/groups/post":
         kind = body.get("kind")
         if kind not in ("recruit", "lfg", "pirate"):
