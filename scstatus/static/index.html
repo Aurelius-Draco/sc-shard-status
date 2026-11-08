@@ -1785,10 +1785,6 @@ async function renderNow() {
       ${d.contracts && d.contracts.length ? `<ul class="steps" style="margin-top:var(--s2)">${d.contracts.map(c => `<li><b>${esc(c.name)}</b>${c.times > 1 ? ` <span class="sub">taken ${c.times} times</span>` : ""}${Object.values(c.objectives || {}).length ? `<div class="sub">${Object.values(c.objectives).map(o => esc(o.text) + (o.state === "complete" ? " ✓" : "")).join("<br>")}</div>` : ""}</li>`).join("")}</ul>` : `<p class="sub">None accepted this session.</p>`}
     </div>
   </section>
-  <section class="sec"><a class="frame promo" href="https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest" target="_blank" rel="noopener">
-    <span class="eyebrow">Also by Aurelius_Draco</span><b>SC Inventory Tracker</b>
-    <span>Keeps track of what you've stored at every station: scans the storage kiosk, follows Game.log, wish lists with where to buy or craft, ship fittings. Free.</span>
-    <span class="btn sm">Download from GitHub</span></a></section>
   ${h.score !== null ? `<p class="sub" style="margin-top:var(--s5)">Overlay in the way? Press <kbd>~</kbd> and type <code>r_displayinfo 0</code> to hide it; <code>r_displayinfo 3</code> brings it back. <button class="link" id="goSetup2">More on the switches</button></p>` : ""}
   <p class="sub" style="margin-top:var(--s4)">Finding this useful? A star on GitHub helps other players find it and trust it. <a href="https://github.com/Aurelius-Draco/sc-shard-status" target="_blank" rel="noopener">★ Star on GitHub</a></p>
   <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
@@ -3147,9 +3143,9 @@ async function renderAbout() {
     <div class="rcode"><div class="rrow"><code>STAR-VD9W-346V</code><button class="btn ghost" type="button" data-protected="true" data-chat="STAR-VD9W-346V" data-plain>Copy</button></div><a class="btn" href="https://robertsspaceindustries.com/en/enlist?referral=STAR-VD9W-346V" target="_blank" rel="noopener">Sign up with the code</a></div></div></section>`;
   $("view").innerHTML = `<div class="abwrap">${siteAbout}</div>
   <section class="sec"><div class="frame starline"><p>${esc(d.star.text)}</p><a class="btn sm ghost" href="${esc(d.star.url)}" target="_blank" rel="noopener">★ Star on GitHub <span id="starN"></span></a></div></section>
-  <section class="sec"><h3>Also by Aurelius_Draco</h3><div class="tiles">
+  ${(d.also_by || []).length ? `<section class="sec"><h3>Also by Aurelius_Draco</h3><div class="tiles">
     ${d.also_by.map(a => `<a class="frame tile" href="${esc(a.download || a.url)}" target="_blank" rel="noopener"><b>${esc(a.name)}</b><span>${esc(a.about)}</span><span class="go">Download from GitHub →</span></a>`).join("")}
-  </div></section>
+  </div></section>` : ""}
   <section class="sec"><h3>Look</h3><div class="seg" role="radiogroup" aria-label="Theme">
     ${[["", "Match Windows"], ["dark", "Dark"], ["light", "Light"]].map(([v, l]) => `<button type="button" data-theme="${v}" aria-pressed="${theme === v}">${l}</button>`).join("")}</div></section>
   <p class="foot">Verse Shards for PC v${esc(d.version)}</p>`;

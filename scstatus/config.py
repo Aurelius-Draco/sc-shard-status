@@ -81,7 +81,7 @@ DEFAULT_CONFIG = {
     "monitor": 1,
     # "What's gone wrong?" looks back this many minutes
     "lookback_minutes": 30,
-    # Local dashboard (only reachable from this PC). The inventory tracker uses 8765.
+    # Local dashboard (only reachable from this PC).
     "dashboard_port": 8775,
     # Community board (both off until you switch them on in the app's Set up tab).
     # share_readings: send a 5-minute summary of your overlay readings. community_board: show other shards.

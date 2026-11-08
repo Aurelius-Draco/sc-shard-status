@@ -33,13 +33,9 @@ STAR = {"text": "Finding this useful? A star on GitHub helps other players find 
 COMING = ("Coming soon: org tools. Plan org events, pick the healthiest shard and server for them from live readings, "
           "and rally your members to the right place at the right time.")
 
-# Cross-links between the apps (shown on About and in the README)
-ALSO_BY = [
-    {"name": "SC Inventory Tracker", "url": "https://github.com/Aurelius-Draco/sc-inventory-tracker",
-     "download": "https://github.com/Aurelius-Draco/sc-inventory-tracker/releases/latest",
-     "about": "Keeps track of what you've stored at every station: scans the storage kiosk, follows Game.log, "
-              "wish lists with where to buy or craft, and ship fittings."},
-]
+# Other apps by the author, shown on About. Empty since 8 Nov 2026: the SC Inventory Tracker was dropped and Verse
+# Shards is the focus
+ALSO_BY = []
 
 MESSAGE = [
     "I built this after losing an evening (and a pile of items) to a contract that was never going to complete. "

@@ -22,7 +22,7 @@ Finding this useful? A star on GitHub helps other players find it and trust it.
 
 **Coming soon: org tools.** Plan org events, pick the healthiest shard and server for them from live readings, and rally your members to the right place at the right time.
 
-By Aurelius_Draco ([add me as a friend](https://robertsspaceindustries.com/citizens/Aurelius_Draco), [Spectrum thread](https://robertsspaceindustries.com/spectrum/community/SC/forum/50172/thread/sc-shard-status-free-app-that-scores-your-shard-s-/575329)). Help wanted: testers with 1440p, 4K or ultrawide screens, and moderators: https://verseshards.com/help. Also by me: [SC Inventory Tracker](https://github.com/Aurelius-Draco/sc-inventory-tracker), which keeps track of what you've stored at every station.
+By Aurelius_Draco ([add me as a friend](https://robertsspaceindustries.com/citizens/Aurelius_Draco), [Spectrum thread](https://robertsspaceindustries.com/spectrum/community/SC/forum/50172/thread/sc-shard-status-free-app-that-scores-your-shard-s-/575329)). Help wanted: testers with 1440p, 4K or ultrawide screens, and moderators: https://verseshards.com/help.
 
 ## What it looks like
 
