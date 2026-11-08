@@ -112,9 +112,9 @@ def make_grabber(monitor=1, sct=None):
         elif how == "window":
             grab.relisted = False
         img = cv2.cvtColor(np.array(s.grab(region)), cv2.COLOR_BGRA2BGR)
-        grab.how = how
+        grab.how, grab.region, grab.rect = how, region, rect
         return img, size
-    grab.how = None
+    grab.how = grab.region = grab.rect = None
     return grab
 
 
@@ -153,6 +153,7 @@ class OverlayWatcher:
             return None
         crop, size = self.grab(game_rect())
         self.screen = f"{size[0]}x{size[1]}"
+        self._note_area(size)
         self.tries += 1
         snap = self.reader.read(self.place(crop, size))
         snap["ts"] = time.time()
@@ -164,10 +165,34 @@ class OverlayWatcher:
         else:
             self.misses += 1
             self.failed += 1
+            if self.misses == 3:
+                self._save_miss(crop)
             if self.misses >= 3:
                 self.status = ("overlay off, readings paused (type r_displayinfo 3 to start again; bright scenery "
                                "behind the text also stops it, see Set up for tips)")
         return snap
+
+    def _note_area(self, size):
+        """One line in the log whenever what's read changes: the game's window or the monitor, where, what size."""
+        g = self.grab
+        r, how = getattr(g, "region", None), getattr(g, "how", None)
+        key = (how, tuple(sorted(r.items())) if r else None, size)
+        if key != getattr(self, "_area", None):
+            self._area = key
+            win = getattr(g, "rect", None)
+            say(f"Overlay: reading the {'game window' if how == 'window' else 'monitor'} "
+                f"({size[0]}x{size[1]}), top right from {r['left']},{r['top']} size {r['width']}x{r['height']}"
+                + (f"; game window {win}" if win else "; game window not found") if r else "Overlay: reading")
+
+    def _save_miss(self, crop):
+        """When the overlay can't be read, keep the last picture of what was looked at, in the app's data folder
+        (overlay-miss.png). Stays on this PC: it's for the player, or for help when they choose to send it."""
+        try:
+            import cv2
+            from .config import DATA
+            cv2.imwrite(str(DATA / "overlay-miss.png"), crop)
+        except Exception:
+            pass
 
     def run(self, stop):
         try:
