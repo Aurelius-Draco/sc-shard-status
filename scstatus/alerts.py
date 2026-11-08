@@ -163,7 +163,11 @@ class Alerts:
             return
         from .logparse import NORMAL_CAUSES
         for d in s.disconnects[self.disc_seen:]:
-            if d["cause"] not in NORMAL_CAUSES:
+            if d.get("to_menu") and d.get("by_server"):
+                self.fire("disconnect", "The server sent you back to the menu",
+                          "You didn't choose Exit to Menu, so the server ended your session. Anything you were doing "
+                          "may need redoing. \"What's gone wrong?\" on the dashboard looks at what happened just before.")
+            elif d["cause"] not in NORMAL_CAUSES:
                 self.fire("disconnect", f"Disconnected (error {d['cause']})",
                           f"{d.get('reason') or 'The game lost the server.'} When you're back, press "
                           "\"What's gone wrong?\" on the dashboard.")

@@ -35,3 +35,31 @@ def test_a_decimal_point_split_by_a_space_is_closed_up():
     assert fix_digits("113 . 2ms") == "113.2ms"
     assert fix_digits("pop. [shard 91, srv 10]") == "pop. [shard 91, srv 10]"     # a list stays a list
     assert parse_lines(["Net: ping 110. 9ms, loss 0.0% BwIn 222.221kbps, BwOut 50.556kbps"])["ping_ms"] == 110.9
+
+
+def _session(lines):
+    from scstatus import logparse
+    s = logparse.Session()
+    for raw in logparse.records(lines):
+        ev = logparse.parse_line(raw)
+        if ev:
+            s.add(ev)
+    return s
+
+
+DISC = ('<2026-09-16T10:30:27.271Z> [Notice] <Channel Disconnected> cause=30016 reason="{r}" frame=99835 isRemote={rem} '
+        'viewState=eCVS_InGame map="megamap" gamerules="SC_Default" hostType="Replicant" remoteAddr=1.2.3.4:64 [Team_Network]')
+MENU = '<2026-09-16T10:30:27.287Z> [CSessionManager::RequestFrontEnd] Started - RequestFrontEndReason="OnLobbyPostGameUnload"!'
+QUIT = '<2026-09-16T10:30:28.000Z> [CIG] CCIGBroker::FastShutdown'
+
+
+def test_sent_back_to_the_menu_by_the_server_or_by_you():
+    from scstatus.timeline import timeline
+    s = _session([DISC.format(r="Remote Disconnect - Player requested disconnect", rem=1), MENU])
+    assert s.disconnects[-1]["by_server"] is True
+    assert [i["text"] for i in timeline(s, None) if i["group"] == "connection"] == ["The server sent you back to the menu"]
+    s = _session([DISC.format(r="DisconnectCmd: disconnect light ExitToMenu", rem=0), MENU])
+    assert s.disconnects[-1]["to_menu"] is True and s.disconnects[-1]["by_server"] is False
+    assert [i["text"] for i in timeline(s, None) if i["group"] == "connection"] == ["Went back to the menu"]
+    s = _session([DISC.format(r="Remote Disconnect - Player requested disconnect", rem=1), QUIT])     # a quit
+    assert not s.disconnects[-1].get("to_menu")

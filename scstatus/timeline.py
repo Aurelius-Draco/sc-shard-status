@@ -80,7 +80,11 @@ def timeline(session, places=None, since=None, until=None):
     for d in session.disconnects:
         if d.get("frontend") and d["cause"] in NORMAL_CAUSES:
             continue                         # the menu's own connection closing as you join a shard
-        if d["cause"] in NORMAL_CAUSES and d.get("view_state") in (None, "eCVS_InGame"):
+        if d.get("to_menu") and d.get("by_server"):
+            add(d["ts"], "connection", "kicked", "The server sent you back to the menu", str(d["cause"]))
+        elif d.get("to_menu"):
+            add(d["ts"], "connection", "left", "Went back to the menu")
+        elif d["cause"] in NORMAL_CAUSES and d.get("view_state") in (None, "eCVS_InGame"):
             add(d["ts"], "connection", "left", "Left the server")
         else:
             reason = (d.get("reason") or "lost the server").strip().rstrip(".")

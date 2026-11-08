@@ -273,6 +273,8 @@ def _header(ts, msg):
         return {"ts": ts, "kind": "hardware", "cpu_bench_ms": float(m.group(1)), "cpu_bench_fp_ms": float(m.group(2))}
     if any(k in msg for k in SHUTDOWN_MARKS):
         return {"ts": ts, "kind": "shutdown"}
+    if "CSessionManager::RequestFrontEnd] Started" in msg:
+        return {"ts": ts, "kind": "to_frontend"}
     return None
 
 
@@ -383,6 +385,16 @@ class Session:
             self.loads.append(ev)
         elif k == "disconnect":
             self.disconnects.append(ev)
+        elif k == "to_frontend":
+            # Back to the main menu right after leaving the server. The log says "Player requested disconnect" both
+            # when you quit or chose Exit to Menu and when the server ended your session; Exit to Menu from the game's
+            # own menu is written on this PC ("DisconnectCmd ... ExitToMenu", isRemote=0), so a remote 30016 that
+            # lands on the menu with no such command was the server's doing (8 Nov, 44 of 119 in Ray's logs)
+            d = next((x for x in reversed(self.disconnects[-3:]) if ev["ts"] is not None and x.get("ts") is not None
+                      and 0 <= ev["ts"] - x["ts"] <= 10 and not x.get("frontend")), None)
+            if d is not None and d.get("view_state") in (None, "eCVS_InGame", "eCVS_UnstowPlayer"):
+                d["to_menu"] = True
+                d["by_server"] = bool(d.get("remote")) and not str(d.get("reason") or "").startswith("DisconnectCmd")
         elif k == "quit":
             self.quit = ev
             self.clean_exit = True

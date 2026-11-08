@@ -1,5 +1,5 @@
 {
- "version": "2026-11-05.1",
+ "version": "2026-11-08.1",
  "rules": [
   {
    "id": "cargo-no-resource-container",
@@ -290,10 +290,12 @@
     "tag": "Channel Disconnected",
     "regex": "cause=(?P<cause>30016) reason=\"(?P<reason>[^\"]*)\""
    },
-   "title": "You left the server",
-   "explain": "Code 30016 is a normal, player-requested disconnect (quit to desktop or exit to menu): \"{reason}\".",
+   "title": "Left the server (or sent back to the menu)",
+   "explain": "Code 30016 is written when your session ends: \"{reason}\". The game uses the same words when you quit or choose Exit to Menu and when the server sends you back to the menu, so the timeline says which it was (Exit to Menu from the game's own menu is logged on your PC; a return to the menu without it was the server).",
+   "fixes": [
+    "If you didn't choose to leave, it was the server. Rejoin; anything you were moving or delivering may need redoing, and a moment marked straight after helps work out why."
+   ],
    "links": [],
-   "fixes": [],
    "builds_seen": [
     "12572603",
     "12660092",

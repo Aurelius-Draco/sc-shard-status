@@ -834,7 +834,7 @@ class App:
         s = self.session
         if s:
             for it in timeline(s, self.places, since=t - 300, until=t + 300):
-                bad = it["group"] == "connection" and it["kind"] in ("disconnect", "crash")
+                bad = it["group"] == "connection" and it["kind"] in ("disconnect", "kicked", "crash")
                 log.append({"ts": it["ts"], "text": it["text"],
                             "kind": "bad" if bad else "travel" if it["group"] in ("travel", "place") else ""})
         for f in findings:
@@ -860,7 +860,7 @@ class App:
     # text, a place, a ship or a contract name
     EVENT_KINDS = {"join", "loaded", "qt_target", "qt_arrived", "location", "armistice", "ship_retrieved", "accepted",
                    "objective_complete", "objective_failed", "contract_complete", "contract_failed", "contract_abandoned",
-                   "contract_dropped", "elevator", "left", "disconnect", "quit", "crash"}
+                   "contract_dropped", "elevator", "left", "kicked", "disconnect", "quit", "crash"}
 
     def _moment_detail(self, t, res, snap, findings, earlier):
         """What a moment sent for review carries besides the description and the issue ids near it, so it can be
@@ -926,7 +926,7 @@ class App:
                    "objective_complete": "finished an objective", "objective_failed": "failed an objective",
                    "contract_complete": "finished a contract", "contract_failed": "contract failed",
                    "contract_abandoned": "contract abandoned", "contract_dropped": "contract dropped",
-                   "elevator": "used a freight elevator", "left": "left the server", "disconnect": "disconnected",
+                   "elevator": "used a freight elevator", "left": "left the server", "kicked": "the server sent you back to the menu", "disconnect": "disconnected",
                    "quit": "quit", "crash": "crashed", "server_change": "changed game server"}
 
     def _moment_send_lines(self, d):
