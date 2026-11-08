@@ -2882,7 +2882,7 @@ async function renderSetup() {
     <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
     <ul class="rules">
       <li><b>Show other shards</b> fetches the board every 2 minutes and puts your region on the Now tab. It sends nothing about you.</li>
-      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session it also sends that session's build and patch number, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only), for the patch report card. A copy reading a PTU or other test server shares nothing. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
+      <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session it also sends that session's build and patch number, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only), for the patch report card. While you wait in the login queue, once a minute: your place in it and the game's estimate, with the build, for "login queue right now" on the board. When you finish a contract with a blueprint reward: the kind of contract (its type and risk tier only, like "Verified Bounty (HRT)", never the target's or anyone's name), the blueprint it gave you or that it gave none, the build and the minute, for "Where blueprints drop". A copy reading a PTU or other test server shares nothing. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
     </ul>
     <div class="swlist" id="commToggles"></div>
     <details class="ex"><summary>See exactly what was last sent</summary><pre class="lines" id="commPayload">Nothing sent yet.</pre></details>
@@ -2951,7 +2951,9 @@ async function renderSetup() {
     $("commToggles").innerHTML =
       swRow("board", "Show other shards", st.board, st.board ? (st.board_error ? "On, but: " + esc(st.board_error) : "On. Your region shows on the Now tab, updated every 2 minutes.") : "Off. The Now tab doesn't show other shards.") +
       swRow("share", "Share my readings", st.share, shareNote(st));
-    $("commPayload").textContent = st.last_payload ? JSON.stringify(st.last_payload, null, 2) : "Nothing sent yet.";
+    $("commPayload").textContent = (st.last_payload ? JSON.stringify(st.last_payload, null, 2) : "Nothing sent yet.")
+      + (st.last_queue ? "\n\nLogin queue (the last one sent):\n" + JSON.stringify(st.last_queue, null, 2) : "")
+      + (st.last_drops ? "\n\nBlueprint rewards (the last batch sent):\n" + JSON.stringify(st.last_drops, null, 2) : "");
     bindRows($("commToggles"), drawComm);
     clearTimeout(window.__commT); window.__commT = setTimeout(() => { if (tab === "setup") drawComm(); }, 15000);
   };

@@ -1371,6 +1371,7 @@ class App:
                 "share": bool(self.cfg.get("share_readings")), "board": bool(self.cfg.get("community_board")),
                 "share_status": c.share_status, "sent": c.sent, "sent_at": c.sent_at if c.sent else None,
                 "last_payload": c.last_payload,
+                "last_queue": getattr(c, "last_queue", None), "last_drops": getattr(c, "last_drops", None),
                 "board_url": c.url, "board_error": c.board_error,
                 # off until the update question is answered, since nothing is checked before then
                 "updates": self.updater.enabled, "update": self.updater.info(),
