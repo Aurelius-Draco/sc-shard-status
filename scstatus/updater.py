@@ -52,11 +52,11 @@ def parse_release(rel):
     for a in rel.get("assets") or []:
         name = a.get("name") or ""
         if SETUP_RX.match(name):
-            out.update(setup_url=a.get("browser_download_url"), setup_name=name, setup_size=a.get("size"))
+            out.update(setup_url=_asset_url(a), setup_alt=a.get("browser_download_url"), setup_name=name, setup_size=a.get("size"))
     if out["setup_name"]:
         for a in rel.get("assets") or []:
             if a.get("name") == out["setup_name"] + ".sha256":
-                out["sha_url"] = a.get("browser_download_url")
+                out.update(sha_url=_asset_url(a), sha_alt=a.get("browser_download_url"))
     return out
 
 
@@ -68,17 +68,27 @@ def parse_test_release(rel):
     for a in rel.get("assets") or []:
         m = TEST_ZIP_RX.match(a.get("name") or "")
         if m:
-            out.update(setup_url=a.get("browser_download_url"), setup_name=a["name"], setup_size=a.get("size"),
+            out.update(setup_url=_asset_url(a), setup_alt=a.get("browser_download_url"), setup_name=a["name"], setup_size=a.get("size"),
                        build=m.group(1), version=f"TEST next {m.group(1)}")
     for a in rel.get("assets") or []:
         if out["setup_name"] and a.get("name") == out["setup_name"] + ".sha256":
-            out["sha_url"] = a.get("browser_download_url")
+            out.update(sha_url=_asset_url(a), sha_alt=a.get("browser_download_url"))
     return out
 
 
+def _asset_url(a):
+    """A release file's address. GitHub's API address for the file answers fast and reliably; the github.com download
+    link answered "504 Gateway Time-out" most of the time on 8 Nov, so it's kept only as the second choice."""
+    return a.get("url") if str(a.get("url") or "").startswith(ASSET_API) else a.get("browser_download_url")
+
+
+ASSET_API = "https://api.github.com/repos/"
+
+
 def _get(url, timeout=20):
-    req = urllib.request.Request(url, headers={"User-Agent": f"{APP_NAME}/{VERSION}",
-                                               "Accept": "application/vnd.github+json"})
+    # A release file through the API needs octet-stream, or GitHub sends the file's details instead of the file
+    accept = "application/octet-stream" if url.startswith(ASSET_API) and "/releases/assets/" in url else "application/vnd.github+json"
+    req = urllib.request.Request(url, headers={"User-Agent": f"{APP_NAME}/{VERSION}", "Accept": accept})
     return urllib.request.urlopen(req, timeout=timeout)
 
 
@@ -200,9 +210,10 @@ class Updater:
     def _download(self, L, dest):
         """Download L's file to dest, checking it against its .sha256. GitHub's download links sometimes answer 502, 503
         or 504 for a moment (seen 8 Nov), so a failed try is repeated a few times before giving up."""
+        alt = dict(L, setup_url=L.get("setup_alt") or L["setup_url"], sha_url=L.get("sha_alt") or L["sha_url"])
         for attempt in range(RETRIES):
             try:
-                return self._download_once(L, dest)
+                return self._download_once(L if attempt % 2 == 0 else alt, dest)   # the API address, then the other
             except Exception as e:  # noqa: BLE001 - only network hiccups are retried; anything else goes straight up
                 if attempt == RETRIES - 1 or not _retryable(e):
                     raise
