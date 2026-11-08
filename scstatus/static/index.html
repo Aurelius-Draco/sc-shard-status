@@ -1413,6 +1413,8 @@ code.cmdsm { background: #05070a; padding: 3px 8px; border-radius: 3px; border: 
 .lc-card .bp-in { height: 100%; }
 
 /* port: a licence that's just been earned stamps once; redraws keep the New chip without stamping again */
+/* port: keep the small icons their size when a label wraps (narrower columns at 900 px, wider fallback fonts) */
+.oa-k svg, .lb-g h4 svg, .ct-sec svg { flex: none; }
 .lc-card.is-new.is-seen, .lc-card.is-new.is-seen .bp-mark, .lc-card.is-new.is-seen .bp-in::before { animation: none; }
 @media (prefers-reduced-motion: reduce) { .lc-card.is-new .bp-mark, .lc-card.is-new .bp-in::before { animation: none; } }
 .vr.is-calm .lc-card.is-new .bp-mark, .vr.is-calm .lc-card.is-new .bp-in::before { animation: none; }
