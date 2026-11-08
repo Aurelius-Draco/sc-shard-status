@@ -1,5 +1,5 @@
 {
- "version": "2026-11-08.1",
+ "version": "2026-11-08.2",
  "rules": [
   {
    "id": "cargo-no-resource-container",
@@ -160,6 +160,70 @@
     "12660092",
     "12913470"
    ]
+  },
+  {
+   "id": "inventory-move-reverted",
+   "kind": "problem",
+   "severity": "low",
+   "area": "Inventory",
+   "match": {
+    "tag": "Revert Moves",
+    "regex": "Reverting first pending move Request\\[\\d+\\] ReqType\\[(?P<req>\\d+)\\]"
+   },
+   "title": "An item move was undone and snapped back",
+   "explain": "You moved an item, the server didn't confirm the move in time, and the game put the item back where it was. It happens most when looting a box or body: the item jumps back into the container. One now and then is harmless; several in a row mean the inventory service is struggling on this server.",
+   "fixes": [
+    "Close the container or inventory and open it again, then move the item once and wait for it to settle.",
+    "Move one item at a time rather than dragging several quickly.",
+    "If every move snaps back, relog. Server hop if it carries on."
+   ],
+   "ic_title": "Item moves revert (Revert Moves ReqType {req})",
+   "links": [],
+   "builds_seen": []
+  },
+  {
+   "id": "inventory-moves-failed-container",
+   "kind": "problem",
+   "severity": "medium",
+   "area": "Inventory",
+   "match": {
+    "tag": "Evaluate Inventory State On Failed Move",
+    "regex": "has failed (?P<n>\\d+) moves, requesting update of inventory owned by '(?P<owner>Lootable[A-Za-z_]*|[A-Za-z]+_[A-Za-z_]*?)(?:_\\d+)?'"
+   },
+   "title": "Several moves out of a container failed",
+   "explain": "{n} item moves in a row failed, so the game asked the server to reload the container. Loot can look stuck, or come back after a moment.",
+   "fixes": [
+    "Close the container, wait a few seconds and open it again.",
+    "Take items one at a time.",
+    "If the items never come out, relog and check the container again before leaving it."
+   ],
+   "ic_title": "Item moves out of container fail repeatedly ({n} failed moves)",
+   "links": [],
+   "builds_seen": []
+  },
+  {
+   "id": "qt-starmap-route-chatter",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Travel",
+   "match": {
+    "tag": "Failed to get starmap route data!"
+   },
+   "explain": "Background chatter from quantum route planning, written thousands of times in normal play.",
+   "fixes": [],
+   "builds_seen": []
+  },
+  {
+   "id": "qt-route-guard-chatter",
+   "kind": "noise",
+   "severity": "low",
+   "area": "Travel",
+   "match": {
+    "tag": "Local Route Guard - Server Rerouted"
+   },
+   "explain": "Background chatter from quantum route planning, written thousands of times in normal play.",
+   "fixes": [],
+   "builds_seen": []
   },
   {
    "id": "inventory-populate-failed",

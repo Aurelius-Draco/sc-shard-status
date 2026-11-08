@@ -183,6 +183,13 @@ def card(summary, snaps=(), notes=None, marks=(), problems=None, live=False, now
         "lost": [{"ship": ship_name(x.get("ship")), "reason": reason_word(x.get("reason"))}
                  for x in summary.get("ships_lost") or []],
         "moments": len(marks), "shards": shards, "servers": servers,
+        "quantum": summary.get("quantum") or 0,
+        "spent": sum(p["price"] for p in summary.get("spent") or []), "purchases": len(summary.get("spent") or []),
+        "money": {k: sum(m["amount"] for m in summary.get("money") or [] if m["kind"] == k) for k in ("in", "out", "awarded")},
+        "waits": [w["secs"] for w in summary.get("waits") or []],
+        "injuries": [{"level": i["level"], "part": i["part"], "tier": i["tier"]} for i in summary.get("injuries") or []],
+        "downed": len(summary.get("downed") or []), "medbed": len(summary.get("medbed") or []),
+        "jurisdictions": list(dict.fromkeys(j["name"] for j in summary.get("jurisdictions") or [])),
         "rating": n.get("rating"), "note": n.get("note") or "",
         "auec_start": n.get("auec_start"), "auec_end": n.get("auec_end"),
         "version": summary.get("version"), "branch": summary.get("branch"),
@@ -355,3 +362,26 @@ def week(cards, now=None):
             if w[k]:
                 w[k] = {"id": w[k]["id"], "day": w[k]["day"], "score": w[k]["score"], "word": w[k]["word"]}
     return {"this": this, "last": last}
+
+
+def logbook(summaries, live=None):
+    """Totals for My pilot from every session: quantum jumps, aUEC the game logged, ship waits, injuries, places."""
+    ss = list(summaries) + ([live.summary()] if live is not None else [])
+    waits = sorted(w["secs"] for s in ss for w in s.get("waits") or [])
+    jur = {}
+    for s in ss:
+        for j in s.get("jurisdictions") or []:
+            jur.setdefault(j["name"], j.get("ts"))
+    money = [m for s in ss for m in s.get("money") or []]
+    spent = [p for s in ss for p in s.get("spent") or []]
+    return {
+        "quantum": sum(s.get("quantum") or 0 for s in ss),
+        "spent": sum(p["price"] for p in spent), "purchases": len(spent),
+        "sent": sum(m["amount"] for m in money if m["kind"] == "out"),
+        "received": sum(m["amount"] for m in money if m["kind"] in ("in", "awarded")),
+        "waits": len(waits), "wait_typical": waits[len(waits) // 2] if waits else None, "wait_longest": waits[-1] if waits else None,
+        "injuries": sum(len(s.get("injuries") or []) for s in ss), "downed": sum(len(s.get("downed") or []) for s in ss),
+        "medbed": sum(len(s.get("medbed") or []) for s in ss),
+        "jurisdictions": [{"name": n, "first": t} for n, t in sorted(jur.items(), key=lambda x: x[1] or 0)],
+        "sessions": len(ss), "fmt_missing": sum(1 for s in ss if (s.get("fmt") or 0) < 4),
+    }

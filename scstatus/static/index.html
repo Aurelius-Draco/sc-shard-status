@@ -2143,7 +2143,7 @@ async function renderTimeline() {
 let gSuggested = null; let gKind = "recruit", gAct = null, gSpots = 2; let gDet = {voice: null, exp: null, style: null, seat: null, ship: "", lang: "", org: ""}, gHours = 2;
 const ACT_ICON = a => (a || "Group").replace(/[^A-Za-z ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "GR";
 const minsLeft = ts => { const m = Math.max(1, Math.round((ts - Date.now() / 1000) / 60)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`; };
-const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const plural = (n, w, many) => `${n} ${n === 1 ? w : (many || w + "s")}`;
 // Your post drawn the way players see it on verseshards.com/groups
 // Same card as verseshards.com/groups, so the poster sees exactly what others see.
 // NEW fields (not built yet): p.details {voice, exp, ship, seat, lang, style, org}, p.filled, p.hours. Extend and Mark filled need API calls.
@@ -2389,8 +2389,11 @@ const VR = (() => {
       auec: { s: c.auec_start != null ? Number(c.auec_start).toLocaleString("en-AU") : "", e: c.auec_end != null ? Number(c.auec_end).toLocaleString("en-AU") : "" },
       cont: groupContracts(c.contracts || []), bps: (c.blueprints || []).map(b => b.name), bpsFull: c.blueprints || [], lic: (c.journal || []).map(j => j.replace(/\s+Earned\b/i, "")), licRaw: c.journal || [],
       probs: (c.problems || []).map(p => [p.ts ? tmc(p.ts) : "", generic(p.title || ""), p.rule_id]), lost: (c.lost || []).map(l => [l.ship, l.reason]),
+      quantum: c.quantum || 0, spent: c.spent || 0, purchases: c.purchases || 0, money: c.money || {}, waits: c.waits || [],
+      injuries: c.injuries || [], downed: c.downed || 0, medbed: c.medbed || 0, jur: c.jurisdictions || [],
       short: !c.live && (c.minutes || 0) < 20, sameDay: c.same_day ? (today ? c.same_day.replace("that day", "today") : c.same_day) : "" };
   }
+  const mmss = x => x == null ? "" : x < 60 ? `${x} s` : `${Math.floor(x / 60)} min ${String(x % 60).padStart(2, "0")} s`;
   const tmc = ts => { const d = new Date(ts * 1000); return `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}`; };
   // Three or more of one kind of contract with the same result fold into one row: "Verified Bounty ×13"
   function groupContracts(list) {
@@ -2443,10 +2446,14 @@ const VR = (() => {
      </div><div style="display:flex;flex-direction:column;gap:14px">
       ${box(`Blueprints · ${s.bps.length}`, s.bps.length ? `<div class="bp-grid" style="grid-template-columns:1fr">${s.bpsFull.map(b => blueprintCard({ id: b.id, n: b.name, g: b.group, d: s.day }, {})).join("")}</div><a href="#" data-go-bp style="font-size:13px">See them all in Blueprints →</a>` : none("None this time."))}
       ${box("Licences and journal", s.lic.length ? (s.licRaw || s.lic).map(l => `<span style="font-size:14px">${IC(P.lic).replace("<svg", '<svg width="15" height="15" style="stroke:var(--gold);vertical-align:-2px;margin-right:6px"')}${/\sEarned\b/i.test(l) ? esc(l.replace(/\s+Earned\b/i, "")) + " earned" : esc(l)}</span>`).join("") : none("None."))}
+      ${box("Out and about", `<span style="font-size:14px">${s.quantum ? `<b>${s.quantum}</b> quantum ${s.quantum === 1 ? "jump" : "jumps"}` : "No quantum jumps"}${s.waits.length ? ` · ${s.waits.length === 1 ? "ship ready in" : "ships ready in a typical"} <b>${mmss(s.waits.slice().sort((a, b) => a - b)[Math.floor(s.waits.length / 2)])}</b>${s.waits.length > 1 ? `, longest ${mmss(Math.max(...s.waits))}` : ""}` : ""}</span>
+        ${s.jur.length ? `<span class="vr-sub">Jurisdictions: ${esc(s.jur.join(", "))}</span>` : ""}`)}
+      ${s.injuries.length || s.downed || s.medbed ? box("Injuries", `${s.injuries.length ? `<ul class="ss-rows">${s.injuries.map(i => `<li><span>${esc(i.level)} injury, ${esc(i.part.toLowerCase())}</span><span></span><span class="ss-res is-${i.level === "Severe" ? "failed" : "abandoned"}">tier ${i.tier}</span></li>`).join("")}</ul>` : ""}
+        <span class="vr-sub">${[s.downed ? `Downed ${s.downed} ${s.downed === 1 ? "time" : "times"}` : "", s.medbed ? `healed at a med bed ${s.medbed} ${s.medbed === 1 ? "time" : "times"}` : ""].filter(Boolean).join(", ") || "Not downed."}</span>`) : ""}
       ${box(`Moments marked · ${s.moments}`, s.moments ? `<span style="font-size:14px">${s.moments} marked. They're in What's gone wrong? for this session.</span>` : none("None."))}
       ${box("Your rating", `<div class="ss-rating"><button type="button" class="vr-btn is-sm is-good" data-rate="good" aria-pressed="${rate === "good"}">${IC(P.good).replace("<svg", '<svg width="15" height="15" style="stroke:currentColor"')}Good</button><button type="button" class="vr-btn is-sm is-bad" data-rate="bad" aria-pressed="${rate === "bad"}">${IC(P.bad).replace("<svg", '<svg width="15" height="15" style="stroke:currentColor"')}Bad</button></div>
         <textarea class="vr-inp" data-note rows="2" maxlength="200" placeholder="A short note for future you" aria-label="Note" style="height:auto;padding:8px 12px;resize:vertical">${esc(noteTxt)}</textarea>`)}
-      ${box("aUEC (optional)", `<div class="ss-auec"><label>At the start<input class="vr-inp" data-auec="s" inputmode="numeric" value="${esc(a.s || "")}" placeholder="e.g. 1,250,000"></label><label>At the end<input class="vr-inp" data-auec="e" inputmode="numeric" value="${esc(a.e || "")}" placeholder="e.g. 1,980,000"></label></div>
+      ${box("aUEC (optional)", `${s.spent || s.money.in || s.money.out || s.money.awarded ? `<span style="font-size:14px">The game logged: ${[s.spent ? `<b>${s.spent.toLocaleString("en-AU")}</b> spent at shops (${s.purchases} ${s.purchases === 1 ? "purchase" : "purchases"})` : "", s.money.out ? `<b>${s.money.out.toLocaleString("en-AU")}</b> sent` : "", (s.money.in || 0) + (s.money.awarded || 0) ? `<b>${((s.money.in || 0) + (s.money.awarded || 0)).toLocaleString("en-AU")}</b> received` : ""].filter(Boolean).join(", ")}. Contract pay and sales aren't logged.</span>` : ""}<div class="ss-auec"><label>At the start<input class="vr-inp" data-auec="s" inputmode="numeric" value="${esc(a.s || "")}" placeholder="e.g. 1,250,000"></label><label>At the end<input class="vr-inp" data-auec="e" inputmode="numeric" value="${esc(a.e || "")}" placeholder="e.g. 1,980,000"></label></div>
         ${diff === null ? `<span class="vr-sub">The game doesn't record money anywhere the app can read, so type it in if you want to track it.</span>` : `<span class="ss-diff ${diff >= 0 ? "is-made" : "is-spent"}">${diff >= 0 ? "Made" : "Spent"} ${Math.abs(diff).toLocaleString("en-AU")} aUEC</span>`}`)}
      </div></div>`;
   }
@@ -2724,7 +2731,7 @@ const PILOT_ACTS = ["Mining", "Salvage", "Cargo hauling", "Bounty hunting", "Mer
 const EXPW = {new: "New", regular: "Regular", veteran: "Veteran"}, VOICEW = {voice: "Voice", text: "Text only"};
 let pilotEdit = false;
 async function renderPC() {
-  const [d, hs, st, pr] = await Promise.all([api("/api/pc"), api("/api/history").catch(() => ({sessions: [], shards: []})), api("/api/settings").catch(() => ({})), api("/api/profile").catch(() => ({profile: null}))]);
+  const [d, hs, st, pr, lb] = await Promise.all([api("/api/pc"), api("/api/history").catch(() => ({sessions: [], shards: []})), api("/api/settings").catch(() => ({})), api("/api/profile").catch(() => ({profile: null})), api("/api/logbook").catch(() => null)]);
   const hw = d.hardware || {};
   if (tab !== "pc") return;
   const saved = pr.profile, empty = !saved;
@@ -2768,6 +2775,13 @@ async function renderPC() {
       <div class="frame"><dt>Server fps on your sessions</dt><dd>${fmt(fpsAvg, 1)}</dd><span class="sub">average; about 20 is normal</span></div>
       ${st.share && fed ? `<div class="frame fed"><dt>Fed the board</dt><dd>${fed}</dd><span class="sub">times this week. Thanks</span></div>` : ""}
     </div>
+    ${lb ? `<div class="pc-stats">
+      <div class="frame"><dt>Quantum jumps</dt><dd>${fmt(lb.quantum)}</dd><span class="sub">across ${plural(lb.sessions, "session")} in your logs</span></div>
+      <div class="frame"><dt>Spent at shops</dt><dd>${lb.spent ? Number(lb.spent).toLocaleString("en-AU") : "0"}</dd><span class="sub">aUEC, ${plural(lb.purchases, "purchase")} the game logged</span></div>
+      <div class="frame"><dt>Waiting for your ship</dt><dd>${lb.wait_typical != null ? (lb.wait_typical < 60 ? lb.wait_typical + " s" : Math.floor(lb.wait_typical / 60) + " min " + String(lb.wait_typical % 60).padStart(2, "0") + " s") : "–"}</dd><span class="sub">${lb.waits ? `typical of ${lb.waits}; longest ${Math.round(lb.wait_longest / 60)} min` : "asking ASOP until it's ready"}</span></div>
+      <div class="frame"><dt>Downed</dt><dd>${lb.downed}</dd><span class="sub">${plural(lb.injuries, "injury", "injuries")}, ${plural(lb.medbed, "med bed heal")}</span></div>
+    </div>
+    ${lb.jurisdictions.length ? `<div class="frame card"><h4>Jurisdictions you've been in</h4><div class="dchips">${lb.jurisdictions.map(j => chip(j.name)).join("")}</div></div>` : ""}` : ""}
     <div class="pc-two">
       <div class="frame card"><h4>Most-visited places</h4>${places.length ? `<ol class="pc-list">${places.map(x => `<li><span>${esc(x.location)}</span><span class="sub">${x.readings} readings · ${x.client_fps} fps</span></li>`).join("")}</ol>` : `<p class="sub">Shows once the overlay has been read in a few places.</p>`}</div>
       <div class="frame card"><h4>Ships retrieved most</h4>${retrieved.length ? `<ol class="pc-list">${retrieved.slice(0, 4).map(x => `<li><span>${esc(x.ship)}</span><span class="sub">${plural(x.times, "time")}</span></li>`).join("")}</ol>` : `<p class="sub">Shows once you've called a ship from a terminal.</p>`}</div>

@@ -736,6 +736,9 @@ class App:
                 "licences": played.licences(self.store.session_data(), self.session),
                 "import_status": self.import_status}
 
+    def logbook(self):
+        return played.logbook(self.store.session_data(), self.session)
+
     def contracts(self):
         return {"kinds": played.contract_stats(self.store.session_data(), self.session),
                 "import_status": self.import_status}

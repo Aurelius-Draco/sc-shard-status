@@ -233,6 +233,15 @@ def parse_line(raw):
         return {"ts": ts, "kind": "qt_arrived", "ship": q.group(1)}
     if tag == "RequestLocationInventory" and (loc := LOCATION.search(msg)):
         return {"ts": ts, "kind": "location", "code": loc.group(1)}
+    if tag == "CEntityComponentShopUIProvider::SendShopBuyRequest" and (b := SHOP_BUY.search(msg)):
+        # What you paid at a shop (client_price is the total for the quantity). The ids and the item code are dropped
+        return {"ts": ts, "kind": "shop_buy", "shop": b.group(1), "price": float(b.group(2)), "qty": int(b.group(4)),
+                "item": b.group(3)}
+    if tag == "CEntityComponentShopUIProvider::SendStandardItemBuyRequest" and (b := SHOP_BUY.search(msg)):
+        return {"ts": ts, "kind": "shop_buy", "shop": b.group(1), "price": float(b.group(2)), "qty": int(b.group(4)),
+                "item": b.group(3)}
+    if tag == "CEntityComponentShopUIProvider::RmShopFlowResponse" and (r := SHOP_OK.search(msg)):
+        return {"ts": ts, "kind": "shop_done", "shop": r.group(1), "ok": r.group(2) == "Success", "type": r.group(3)}
     if tag == "CEntityComponentShipListProvider::SetVehicleSpawningInformations":
         return {"ts": ts, "kind": "ship_retrieved", "ship": None}
     if tag == "ATC_Reset_VehiclesBeingStoredCleared" and (a := ATC_SHIP.search(msg)):
@@ -307,6 +316,18 @@ NOTE_KINDS = [
 ]
 
 
+# Shops: "shopName[SCShop_X] ... client_price[480000.000000] ... itemName[SHLD_X] quantity[2]", then a ShopFlowResponse
+SHOP_BUY = re.compile(r"shopName\[([^\]]*)\].*?client_price\[([\d.]+)\].*?itemName\[([^\]]*)\]\s*quantity\[(\d+)\]")
+SHOP_OK = re.compile(r"shopName\[([^\]]*)\].*?result\[(\w+)\]\s*type\[(\w+)\]")
+# Notifications with something worth keeping. Names of other players in transfers are never kept, only the amount
+MONEY_IN = re.compile(r"^.+? has sent you:\s*([\d,]+)\s*aUEC", re.S)
+MONEY_OUT = re.compile(r"^You sent .+?:\s*([\d,]+)\s*aUEC", re.S)
+AWARDED = re.compile(r"^Awarded\s*([\d,]+)\s*aUEC", re.S)
+INJURY = re.compile(r"^(Minor|Moderate|Severe) Injury Detected - (.+?) - Tier (\d) Treatment Required", re.S)
+DOWNED = re.compile(r"^Standby, Local Emergency Services Are En Route", re.S)
+MEDBED = re.compile(r"^Medical Bed: The bed has restored your health", re.S)
+JURISDICTION = re.compile(r"^Entered (.+?) Jurisdiction\s*:?\s*$", re.S)
+HANGAR_READY = re.compile(r"^Hangar Request Completed", re.S)
 BLUEPRINT = re.compile(r"^Received Blueprint:\s*(.+?)\s*:?\s*$", re.S)
 JOURNAL = re.compile(r"^Journal Entry Added:\s*(.+?)\s*:?\s*$", re.S)
 
@@ -322,6 +343,19 @@ def _notification(ts, text, mission_id, objective_id=None):
         return {"ts": ts, "kind": "armistice", "on": a.group(1).lower() == "entering"}
     if b := BLUEPRINT.match(text):
         return {"ts": ts, "kind": "blueprint", "name": _clean_name(b.group(1))}
+    for rx, kind in ((MONEY_IN, "money_in"), (MONEY_OUT, "money_out"), (AWARDED, "money_awarded")):
+        if m := rx.match(text):
+            return {"ts": ts, "kind": kind, "amount": int(m.group(1).replace(",", ""))}
+    if m := INJURY.match(text):
+        return {"ts": ts, "kind": "injury", "level": m.group(1), "part": _clean_name(m.group(2)), "tier": int(m.group(3))}
+    if DOWNED.match(text):
+        return {"ts": ts, "kind": "downed"}
+    if MEDBED.match(text):
+        return {"ts": ts, "kind": "medbed"}
+    if m := JURISDICTION.match(text):
+        return {"ts": ts, "kind": "jurisdiction", "name": _clean_name(m.group(1))}
+    if HANGAR_READY.match(text):
+        return {"ts": ts, "kind": "hangar_ready"}
     if j := JOURNAL.match(text):
         return {"ts": ts, "kind": "journal", "text": _clean_name(j.group(1))}
     for rx, kind in NOTE_KINDS:
@@ -340,7 +374,8 @@ NORMAL_CAUSES = {30010, 30016, 30028}      # 30028: kicked for being idle, not a
 
 
 BLUEPRINT_AFTER_S = 120     # a blueprint this soon after a contract finished came from that contract
-SUMMARY_FMT = 3             # bump to have past sessions read again (3: blueprints, journal, ships lost, rep)
+SUMMARY_FMT = 4             # bump to have past sessions read again (3: blueprints, journal, ships lost, rep; 4: spending,
+                            # injuries, jurisdictions, ship waits, quantum jumps)
 
 REP = re.compile(r"\s*\[([\d,/ ]+)\s*Rep\]\s*")
 
@@ -384,6 +419,16 @@ class Session:
         self.journal = []           # {ts, text}: "Journal Entry Added" (licences and the like)
         self.vehicles_lost = []     # {ts, ship, reason}: your own ships destroyed (Vehicle Destroyed lines, 4.10.3 on)
         self.queue = None           # the login queue while you wait in it; cleared once you're in
+        self.spent = []             # {ts, shop, price, qty}: shop purchases the shop confirmed
+        self._buying = {}           # shop -> the buy request waiting for its answer
+        self.money = []             # {ts, kind: in/out/awarded, amount}: aUEC the game stated (never who)
+        self.injuries = []          # {ts, level, part, tier}
+        self.downed = []            # times "Local Emergency Services Are En Route"
+        self.medbed = []            # times a med bed restored your health
+        self.jurisdictions = []     # {ts, name}
+        self.waits = []             # {ts, secs}: asking for a ship until "Hangar Request Completed"
+        self._asked = None
+        self.quantum = 0            # quantum jumps that arrived
         self._own_id = None         # your character's id, in memory only, to tell your ships from others'
         self.quit = None
         self.clean_exit = False
@@ -439,6 +484,28 @@ class Session:
                 self.vehicles_lost.append({"ts": ts, "ship": ev["ship"], "reason": ev["reason"]})
         elif k == "blueprint":
             self.blueprints.append({"ts": ts, "name": ev["name"], "contract": self._just_finished(ts)})
+        elif k == "shop_buy":
+            self._buying[ev["shop"]] = ev
+        elif k == "shop_done":
+            b = self._buying.pop(ev["shop"], None)
+            if b and ev["ok"] and ev["type"] == "Buying" and ts is not None and b["ts"] is not None and ts - b["ts"] <= 60:
+                self.spent.append({"ts": b["ts"], "shop": b["shop"], "price": round(b["price"]), "qty": b["qty"],
+                                   "item": b["item"]})
+        elif k in ("money_in", "money_out", "money_awarded"):
+            self.money.append({"ts": ts, "kind": k[6:], "amount": ev["amount"]})
+        elif k == "injury":
+            self.injuries.append({"ts": ts, "level": ev["level"], "part": ev["part"], "tier": ev["tier"]})
+        elif k == "downed":
+            if not self.downed or ts is None or self.downed[-1] is None or ts - self.downed[-1] > 30:
+                self.downed.append(ts)
+        elif k == "medbed":
+            self.medbed.append(ts)
+        elif k == "jurisdiction":
+            self.jurisdictions.append({"ts": ts, "name": ev["name"]})
+        elif k == "hangar_ready":
+            if self._asked is not None and ts is not None and 0 <= ts - self._asked <= 1200:
+                self.waits.append({"ts": self._asked, "secs": round(ts - self._asked)})
+            self._asked = None
         elif k == "journal":
             self.journal.append({"ts": ts, "text": ev["text"]})
         elif k == "login":
@@ -497,6 +564,9 @@ class Session:
             if k == "qt_arrived":
                 dest = next((e for e in reversed(self.travel) if e["kind"] == "qt_target"), None)
                 ev["dest"] = dest["dest"] if dest else None
+                self.quantum += 1
+            if k == "ship_retrieved":
+                self._asked = ts
             self.travel.append(ev)
 
     def _new_contract(self, mid, name, ts=None):
@@ -605,6 +675,8 @@ class Session:
                           for c in self.contracts.values()], "hardware": self.hardware,
             "fmt": SUMMARY_FMT,
             "blueprints": self.blueprints, "journal": self.journal, "ships_lost": self.ships_lost(),
+            "spent": self.spent, "money": self.money, "injuries": self.injuries, "downed": self.downed,
+            "medbed": self.medbed, "jurisdictions": self.jurisdictions, "waits": self.waits, "quantum": self.quantum,
             "freight_cycles": len(self.freight_cycles),
             # ships you called from an ASOP terminal this session, by class (names only, never a handle)
             "ships_retrieved": self.ships_retrieved(),
