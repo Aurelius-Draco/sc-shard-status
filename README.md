@@ -16,7 +16,7 @@ It reads two things the game already gives you: the debug overlay (`r_displayinf
 - **History.** Every shard you've been on with its server fps and population, past sessions with load times, disconnects, contracts and crashes, and server fps by time of day.
 - **My pilot.** Your own pilot card (kept on this PC, never sent), a logbook from Game.log, your hardware and the game's own CPU and GPU test results, plus your frame rate by location.
 
-**Live community board:** https://verseshards.com shows the health of every shard players are reporting from, and a page for every known issue with Issue Council links, workarounds and votes.
+**Live community board:** https://verseshards.com/board shows the health of every shard players are reporting from, and a page for every known issue with Issue Council links, workarounds and votes.
 
 Finding this useful? A star on GitHub helps other players find it and trust it.
 

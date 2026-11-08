@@ -1580,7 +1580,7 @@ code.cmdsm { background: #05070a; padding: 3px 8px; border-radius: 3px; border: 
   <button type="button" class="pill plink upd" data-protected="true" id="updPill" hidden></button>
   <button type="button" class="btn sm ghost" data-protected="true" id="markBtn" title="Something just went wrong? Mark it and keep playing. What's gone wrong? looks at this moment later.">Mark this moment</button>
   <button type="button" class="btn sm ghost" data-protected="true" id="fbBtn" title="Ask for a new feature or a change, with a picture if it helps">Send feedback</button>
-  <a class="hlink" href="https://verseshards.com" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">verseshards.com ↗</a>
+  <a class="hlink" href="https://verseshards.com/board" target="_blank" rel="noopener" title="Live shard board, known issues, Issue Council links and workarounds">verseshards.com ↗</a>
 </header>
 
 <nav class="tabbar" role="tablist" aria-label="Sections">
@@ -2158,7 +2158,7 @@ async function renderNow() {
           if (!mineB && !shareOn && sh.id && score !== null) rows.push(`<div class="hr me off"><b class="hs ${h.cls}">${score}</b><span class="hn"><b>${esc(sh.name || sh.id)} · you</b><span>Not on the board · nobody sharing from it</span></span><span class="hpips">${pip("you off")}${pip("")}${pip("")}${pip("")}${pip("")}</span></div>`);
           return rows.join("") || `<p class="sub">Nobody in your region is sharing right now.</p>`; })()}
         ${shareOn ? (d.crash ? txCrash : txOn) : txOff}
-        <a class="sub" href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">Open the full board ↗</a>`
+        <a class="sub" href="${esc(COMMUNITY_SITE)}/board" target="_blank" rel="noopener">Open the full board ↗</a>`
       : `<span class="hl">Your region on the board</span><p class="sub" style="margin:0">Turn on the community board to see which shard in your region is running best, from players' own readings. It sends nothing about you.</p><button class="btn sm ghost" id="goSetup4">Turn it on</button>`}
     </div>
   </section>
@@ -2246,7 +2246,7 @@ function commSection(d) {
     ${c.shards.length ? `<div class="frame" style="overflow-x:auto"><table class="comm"><thead><tr><th>Health</th><th>Shard</th><th class="num">Server fps</th><th class="num">Players</th><th class="num">Reporting</th></tr></thead><tbody>${rows}</tbody></table></div>`
       : `<p class="sub">${c.error ? esc(c.error) : "Nobody in your region is sharing readings right now."}</p>`}
     ${c.areas && c.areas.quiet && c.areas.quiet.length ? `<p class="sub" style="margin-top:var(--s3)"><b>Quieter areas right now:</b> ${c.areas.quiet.map(q => `${esc(q.area_name)} on ${esc(q.shard)} (${fmt(q.players)} players, ${fmt(q.server_fps, 1)} fps)`).join(" · ")}. Quieter means fewer players on that server, not safer.</p>` : ""}
-    <p class="sub"><a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">Open the full board</a> · <a href="${esc(COMMUNITY_SITE)}/trends" target="_blank" rel="noopener">Busiest times and patch report card</a></p></section>`;
+    <p class="sub"><a href="${esc(COMMUNITY_SITE)}/board" target="_blank" rel="noopener">Open the full board</a> · <a href="${esc(COMMUNITY_SITE)}/trends" target="_blank" rel="noopener">Busiest times and patch report card</a></p></section>`;
 }
 
 /* ---------- What's gone wrong ---------- */
@@ -3557,7 +3557,7 @@ async function renderSetup() {
   <div class="sec vr" id="gsCard"></div>
   <h2 class="sgroup">Sharing and the community board</h2><section class="sec frame setcard" id="commCard">
     <h4>Community board</h4>
-    <p>The <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
+    <p>The <a href="${esc(COMMUNITY_SITE)}/board" target="_blank" rel="noopener">community board</a> shows the health of every shard players are reporting from, so you can see which shard in your region is running best before you start something important. You answered these on first start; change them here any time.</p>
     <ul class="rules">
       <li><b>Show other shards</b> fetches the board every 2 minutes and puts your region on the Now tab. It sends nothing about you.</li>
       <li><b>Share my readings</b> sends one summary every 5 minutes while the overlay is being read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players on the shard and server, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session it also sends that session's build and patch number, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only), for the patch report card. While you wait in the login queue, once a minute: your place in it and the game's estimate, with the build, for "login queue right now" on the board. When you finish a contract with a blueprint reward: the kind of contract (its type and risk tier only, like "Verified Bounty (HRT)", never the target's or anyone's name), the blueprint it gave you or that it gave none, the build and the minute, for "Where blueprints drop". A copy reading a PTU or other test server shares nothing. Never your handle, other players' names, account or session numbers, file paths or screenshots.</li>
@@ -3793,7 +3793,7 @@ async function openWizard(all) {
       `Any screenshot (<kbd>Print Screen</kbd>) with the overlay on it becomes a reading, and screenshots from around a problem go into the Issue Council report folder.`,
       yn("screenshots") + now(st.screenshots)],
     ["board", "Community board", "Show how other shards are doing?",
-      `Fetches the <a href="${esc(COMMUNITY_SITE)}" target="_blank" rel="noopener">community board</a> every 2 minutes and shows your region on the Now tab, with the best shard to hop to. This sends nothing about you.`,
+      `Fetches the <a href="${esc(COMMUNITY_SITE)}/board" target="_blank" rel="noopener">community board</a> every 2 minutes and shows your region on the Now tab, with the best shard to hop to. This sends nothing about you.`,
       yn("board") + now(st.board)],
     ["share", "Community board", "Share your readings with the community board?",
       `The board only works if players share. One summary every 5 minutes while the overlay is read: shard id, server node number, the area your server runs (a planet, jump point or open space, never the exact place), server fps, hitches, restarts, players, ping rounded to 10 ms, packet loss, known-issue ids, game build and channel (LIVE), a random install id, your screen size and counts of how cleanly the overlay was read. After each game session: its build and patch number, length, load time, whether it crashed and any disconnect error codes with the game's wording for them (letters only). Never your handle, other players' names, account or session numbers, file paths or screenshots. You can see exactly what was sent on the Set up tab.`,
