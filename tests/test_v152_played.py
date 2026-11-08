@@ -195,3 +195,36 @@ def test_licences_contract_kinds_stats_and_your_week():
     w = played.week(cards, now)
     assert (w["this"]["sessions"], w["this"]["minutes"], w["this"]["contracts"], w["this"]["score"]) == (1, 90, 5, 80)
     assert w["this"]["best"]["id"] == "1" and w["last"]["score"] is None and w["last"]["contracts"] == 2
+
+
+def test_spending_money_injuries_places_waits_and_quantum():
+    shop = ("<{t}> [Notice] <CEntityComponentShopUIProvider::SendShopBuyRequest> Sending SShopBuyRequest - playerId[1] shopId[2] "
+            "shopName[SCShop_Made_Up] kioskId[3] client_price[12013.000000] itemClassGUID[x] itemName[behr_rifle_ballistic_03_mag] quantity[41]  [Team_CoreGameplayFeatures][Shops][UI]")
+    ok = ("<{t}> [Notice] <CEntityComponentShopUIProvider::RmShopFlowResponse> Received ShopFlowResponse - playerId[1] shopId[2] "
+          "shopName[SCShop_Made_Up] kioskId[3] kioskState[BuyRequestProcessing] result[{r}] type[Buying] [Team_CoreGameplayFeatures][Shops][UI]")
+    s = _feed([
+        shop.format(t=T + "10:00:00.000Z"), ok.format(t=T + "10:00:01.000Z", r="Success"),
+        shop.format(t=T + "10:01:00.000Z"), ok.format(t=T + "10:01:01.000Z", r="Failure"),
+        _note("10:02:00.000", "Made_Up_Friend has sent you: 35,000 aUEC"),
+        _note("10:03:00.000", "You sent Made_Up_Friend: 142,000 aUEC"),
+        _note("10:04:00.000", "Awarded 500 aUEC"),
+        _note("10:05:00.000", "Severe Injury Detected - Torso - Tier 1 Treatment Required "),
+        _note("10:05:01.000", "Standby, Local Emergency Services Are En Route"),
+        _note("10:05:05.000", "Standby, Local Emergency Services Are En Route"),
+        _note("10:20:00.000", "Medical Bed: The bed has restored your health and reset your BDL. Use the Treatment tab to heal injuries"),
+        _note("10:30:00.000", "Entered People's Alliance Jurisdiction"),
+        f"<{T}10:40:00.000Z> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [1], LandingArea: Made_Up's Medium Hangar [Team_GameServices][ASOP]",
+        _note("10:41:52.000", "Hangar Request Completed"),
+    ])
+    sm = s.summary()
+    assert [(p["price"], p["qty"]) for p in sm["spent"]] == [(12013, 41)]                  # the failed buy isn't counted
+    assert [(m["kind"], m["amount"]) for m in sm["money"]] == [("in", 35000), ("out", 142000), ("awarded", 500)]
+    assert "Made_Up_Friend" not in repr(sm)                                                     # never who
+    assert sm["injuries"] == [{"ts": sm["injuries"][0]["ts"], "level": "Severe", "part": "Torso", "tier": 1}]
+    assert len(sm["downed"]) == 1 and len(sm["medbed"]) == 1
+    assert [j["name"] for j in sm["jurisdictions"]] == ["People's Alliance"]
+    assert [w["secs"] for w in sm["waits"]] == [112]
+    lb = played.logbook([sm])
+    assert (lb["spent"], lb["received"], lb["sent"], lb["wait_typical"], lb["downed"]) == (12013, 35500, 142000, 112, 1)
+    c = played.card(sm)
+    assert c["spent"] == 12013 and c["money"]["in"] == 35000 and c["jurisdictions"] == ["People's Alliance"]

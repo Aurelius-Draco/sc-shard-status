@@ -7,6 +7,8 @@
 - **Licences and permits** sit with your blueprints: every licence, permit and certification the game has logged for you, with the date and the contract that gave it.
 - **Your week** at the top of Your sessions: hours played, contracts, blueprints and licences, average health and your best and worst session, against the week before.
 - **Your contracts** in History: every kind of contract you've done, how many, how many failed, typical time from accept to complete, the rep the game stated, and which blueprints came with it, so you can see what's worth farming.
+- **More in each session report:** quantum jumps, how long your ship took to be ready after you asked for it, the jurisdictions you entered, injuries and med bed heals, and the aUEC the game logged (spent at shops, sent, received; contract pay and sales aren't in the log, and other players' names are never kept).
+- **My pilot's logbook** adds your lifetime quantum jumps, aUEC spent at shops, typical wait for your ship, times downed, and the jurisdictions you've been in.
 - **The login queue** shows on the Now tab with your place and the game's own estimate.
 - **Why your ship was lost.** From 4.10.3 the log says why a ship was destroyed (combat, self destruct, collision); the session report shows it, never who did it. "Was it another player?" is only asked after a ship lost in combat.
 - **What you type into a moment is kept** as you type it, for a month, and shows on the list. Before, closing a moment without sending lost the note.
