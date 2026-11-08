@@ -157,7 +157,10 @@ class OverlayWatcher:
 
     def tick(self):
         if not game_in_front():
-            self.status = "waiting for the game window"
+            # Readings only happen with the game in front. Straight after one (the last minute), say it's reading and
+            # only paused, so the header doesn't say "waiting" beside live numbers (Ray, 9 Nov)
+            fresh = self.last_ok is not None and time.time() - self.last_ok < 60
+            self.status = "reading, paused while you're out of the game" if fresh else "waiting for the game window"
             return None
         crop, size = self.grab(game_rect())
         self.screen = f"{size[0]}x{size[1]}"

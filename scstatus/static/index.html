@@ -1938,8 +1938,9 @@ function header(d) {
   sp.querySelector("span").textContent = sh.id ? `${sh.name || sh.id} · ${sh.region}` : (d.game_found ? "Not in the PU yet" : "Game.log not found");
   sp.title = sh.id || "";
   const st = d.overlay_status || "off";
-  op.className = "stat" + (st === "reading" ? " on" : st === "off" ? "" : " warn");
-  op.querySelector("span").textContent = st === "reading" ? "Overlay reading" : st === "off" ? "Overlay off" : st.startsWith("overlay off") ? "Overlay off, readings paused" : "Overlay: " + st.split(" (")[0];
+  const rd = st === "reading" || st.startsWith("reading,");     // "reading, paused while you're out of the game" (9 Nov)
+  op.className = "stat" + (rd ? " on" : st === "off" ? "" : " warn");
+  op.querySelector("span").textContent = st === "reading" ? "Overlay reading" : rd ? "Overlay reading, paused while you're out of the game" : st === "off" ? "Overlay off" : st.startsWith("overlay off") ? "Overlay off, readings paused" : "Overlay: " + st.split(" (")[0];
   op.title = st;
   $("libCount").textContent = d.library && d.library.problem ? d.library.problem : "";
   const u = d.update || {}, up = $("updPill");

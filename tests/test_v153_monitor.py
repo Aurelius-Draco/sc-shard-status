@@ -102,3 +102,17 @@ def test_rays_setup_a_small_window_bottom_left_on_a_4k_screen_reads():
     crop, size = grab((wx, wy, ww, wh))
     s = OverlayReader(threads=2).read(capture.OverlayWatcher().place(crop, size))
     assert s["ok"] and s["shard_id"] == "pub_apse2a_12881860_090" and s["server_fps"] == 21.8
+
+
+def test_out_of_the_game_straight_after_a_reading_says_paused_not_waiting(monkeypatch):
+    import time as _t
+    w = capture.OverlayWatcher()
+    monkeypatch.setattr(capture, "game_in_front", lambda: False)
+    w.tick()
+    assert w.status == "waiting for the game window"              # never read yet
+    w.last_ok = _t.time() - 5
+    w.tick()
+    assert w.status == "reading, paused while you're out of the game"
+    w.last_ok = _t.time() - 120
+    w.tick()
+    assert w.status == "waiting for the game window"              # a while since the last reading
