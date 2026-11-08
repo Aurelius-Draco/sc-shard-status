@@ -8,7 +8,7 @@ import string
 import sys
 from pathlib import Path
 
-VERSION = "1.5.1"
+VERSION = "1.5.2"
 # A test copy started with SCSTATUS_LABEL set (e.g. "TEST next 2d477ea") says so in the dashboard header
 TEST_LABEL = (" " + os.environ["SCSTATUS_LABEL"].strip()[:40]) if os.environ.get("SCSTATUS_LABEL", "").strip() else ""
 # A TEST copy (Ray's, from the "Start Verse Shards TEST.cmd" launcher): its folder and the next build it is. It updates
