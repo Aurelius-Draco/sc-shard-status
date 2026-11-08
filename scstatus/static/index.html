@@ -1558,6 +1558,32 @@ header.top .hlink { color: var(--c-teal); font-weight: 600; text-underline-offse
 @media (min-width: 1300px) { header.top { padding: 14px 32px; } .tabbar { padding: 0 32px !important; } #view { padding: 28px 32px 0; } }
 #view > .sec:first-child, #view > section:first-child { margin-top: 0; }
 
+/* Wide and 4K screens (Ray, 8 Nov: "the cards run too wide"): the bars stay edge to edge, the content sits in the column
+   it had before the port (92rem, 1472 px), the side margins glow in the tab's colour like the site's pages, a big faint
+   word fills the margin from 2300 px, and from 1800 px the whole app scales up rather than spreading out (as the site). */
+:root { --w-app: 92rem; }
+#view { max-width: calc(var(--w-app) + 64px); margin-inline: auto; }
+@media (min-width: 1300px) {
+  header.top { padding-inline: max(32px, calc((100% - var(--w-app)) / 2)); }
+  .tabbar { padding-inline: max(32px, calc((100% - var(--w-app)) / 2)) !important; }
+}
+.wrap { position: relative; isolation: isolate; --subject: var(--c-teal); }
+.wrap::before, .wrap::after { content: ""; position: fixed; z-index: -1; top: 0; bottom: 0; width: max(0px, calc((100vw - var(--w-app)) / 2 + 160px)); pointer-events: none; opacity: .9; }
+.wrap::before { left: 0; background: radial-gradient(60% 50% at 0% 30%, color-mix(in srgb, var(--subject) 13%, transparent), transparent 70%); }
+.wrap::after { right: 0; background: radial-gradient(60% 50% at 100% 70%, color-mix(in srgb, var(--subject) 9%, transparent), transparent 70%); }
+.wrap[data-subject="board"] { --subject: var(--c-teal); }
+.wrap[data-subject="pirates"] { --subject: var(--c-rust); }
+.wrap[data-subject="community"] { --subject: var(--c-gold); }
+.wrap[data-subject="issues"] { --subject: var(--c-amber); }
+.wrap[data-subject="reading"] { --subject: var(--c-steel); }
+.edge-word { display: none; }
+@media (min-width: 2300px) {
+  .edge-word { display: block; position: fixed; z-index: -1; top: 180px; left: calc(50% - var(--w-app) / 2 - 40px); transform: translateX(-100%) rotate(180deg); writing-mode: vertical-rl;
+    font: 800 clamp(120px, 9vw, 240px)/.8 var(--f-head); letter-spacing: .02em; text-transform: uppercase; color: color-mix(in srgb, var(--subject) 7%, transparent); white-space: nowrap; pointer-events: none; user-select: none; }
+}
+@media (min-width: 1800px) { html { font-size: 112.5%; } }
+@media (min-width: 2600px) { html { font-size: 137.5%; } }
+
 /* the tab bar: the system's tabs; tabs that don't fit go under More (no sideways scroll at 900 px) */
 .tabbar { height: auto; min-height: var(--h-ctl); margin: 0; padding: 0 20px; gap: 2px; overflow: visible; flex-wrap: nowrap; background: rgba(7, 9, 12, .9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--c-line); box-shadow: none; }
 .tabbar button { min-height: var(--h-ctl); padding: 0 14px; font: 700 .875rem var(--f-head); letter-spacing: .12em; text-transform: uppercase; color: var(--c-muted); }
@@ -1638,7 +1664,18 @@ td { border-color: var(--c-line); }
 .now-gg.breath { background: linear-gradient(135deg, rgba(255, 209, 102, .85), rgba(255, 209, 102, .15) 30%, rgba(255, 255, 255, .05) 60%, rgba(242, 169, 59, .6)); }
 .now-gg.beacon, .now-gg.alarm { background: linear-gradient(135deg, rgba(236, 122, 94, .95), rgba(236, 122, 94, .2) 30%, rgba(255, 255, 255, .05) 60%, rgba(236, 122, 94, .7)); }
 .now-gg.idle { background: var(--edge-quiet); }
-.now-gg.alarm { animation: hudAlarm 1s ease-in-out infinite; }
+.now-gg.alarm { animation: nowAlarm 1s ease-in-out infinite; }
+/* The Now panel's edge moves as the old one did (Ray, 8 Nov: "we still have the red border flash when bad"): calm breathes
+   teal, struggling breathes gold, a bad shard or server flashes red, a crash alarms. The same keyframes as before, with the
+   glass panel's own drop shadow kept underneath so the panel doesn't lose its depth while it glows. */
+.now-gg.calm { animation: nowCalm 5s ease-in-out infinite; }
+.now-gg.breath { animation: nowBreath 3s ease-in-out infinite; }
+.now-gg.beacon { animation: nowBad 2s ease-in-out infinite; }
+@keyframes nowCalm { 0%, 100% { box-shadow: 0 0 0 1px rgba(76,196,176,.3), var(--shadow-2); } 50% { box-shadow: 0 0 0 1px rgba(76,196,176,.55), var(--shadow-2); } }
+@keyframes nowBreath { 0%, 100% { box-shadow: 0 0 0 1px rgba(255,209,102,.35), 0 0 0 0 rgba(255,209,102,0), var(--shadow-2); } 50% { box-shadow: 0 0 0 1px rgba(255,209,102,.85), 0 0 18px 0 rgba(255,209,102,.18), var(--shadow-2); } }
+@keyframes nowBad { 0%, 100% { box-shadow: 0 0 0 1px rgba(236,122,94,.45), 0 0 0 0 rgba(236,122,94,0), var(--shadow-2); } 50% { box-shadow: 0 0 0 2px rgba(236,122,94,.95), 0 0 20px 2px rgba(236,122,94,.28), var(--shadow-2); } }
+@keyframes nowAlarm { 0%, 100% { box-shadow: 0 0 0 2px rgba(236,122,94,1), 0 0 30px 4px rgba(236,122,94,.4), var(--shadow-2); } 50% { box-shadow: 0 0 0 2px rgba(236,122,94,.25), 0 0 0 0 rgba(236,122,94,0), var(--shadow-2); } }
+@media (prefers-reduced-motion: reduce) { .now-gg, .now-gg .hazard, .ring.sweep .arc { animation: none !important; } }
 .now-gg .hazard { border-radius: 0; }
 .gauges { display: grid; grid-template-columns: auto repeat(5, minmax(0, 1fr)); align-items: stretch; }
 .gauges > div { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 16px 18px; border-left: 1px solid var(--c-line); min-width: 0; }
@@ -1715,6 +1752,7 @@ td { border-color: var(--c-line); }
 </nav>
 
 <main id="view"></main>
+<span class="edge-word" id="edgeWord" aria-hidden="true"></span>
 </div>
 
 <div class="scrim" id="scrim"></div>
@@ -1805,6 +1843,11 @@ function show(t) {
   tab = t;
   try { sessionStorage.setItem("tab", t); } catch (e) {}
   document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  // The edges carry the tab's colour, as the site's pages do (teal for live, rust for groups and pirates, gold for your
+  // own game, amber for known issues, steel for set-up and about), and a big faint word on very wide screens
+  const subj = {now: "board", check: "board", timeline: "board", groups: "pirates", history: "community", blueprints: "community", pc: "community", issues: "issues", setup: "reading", about: "reading"}[t] || "board";
+  const wrap = document.querySelector(".wrap"); if (wrap) wrap.dataset.subject = subj;
+  const ew = $("edgeWord"); if (ew) ew.textContent = {now: "Now", check: "What broke", timeline: "Timeline", groups: "Groups", history: "History", blueprints: "Blueprints", pc: "My pilot", issues: "Known issues", setup: "Set up", about: "About"}[t] || "";
   clearInterval(timer);
   const fn = {now: renderNow, check: renderCheck, timeline: renderTimeline, history: renderHistory, blueprints: renderBlueprints, groups: renderGroups, pc: renderPC, issues: renderIssues, setup: renderSetup, about: renderAbout}[t] || renderNow;
   Promise.resolve().then(fn).catch(e => {
