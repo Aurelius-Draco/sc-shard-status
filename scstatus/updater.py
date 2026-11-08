@@ -15,6 +15,7 @@ import tempfile
 import threading
 import time
 import urllib.request
+import urllib.error
 from pathlib import Path
 
 from .config import APP_NAME, FROZEN, GITHUB_COPY, REPO, STORE, STORE_URL, TEST_BUILD, TEST_DIR, VERSION, say
@@ -79,6 +80,17 @@ def _get(url, timeout=20):
     req = urllib.request.Request(url, headers={"User-Agent": f"{APP_NAME}/{VERSION}",
                                                "Accept": "application/vnd.github+json"})
     return urllib.request.urlopen(req, timeout=timeout)
+
+
+RETRIES, RETRY_WAIT_S = 4, 2
+
+
+def _retryable(e):
+    """A server hiccup or a dropped connection, worth another try (not a 404 or a bad checksum)."""
+    import socket
+    if isinstance(e, urllib.error.HTTPError):
+        return e.code in (408, 429, 500, 502, 503, 504)
+    return isinstance(e, (urllib.error.URLError, TimeoutError, socket.timeout, ConnectionError))
 
 
 def _exists(p):
@@ -186,7 +198,18 @@ class Updater:
         return self.info()
 
     def _download(self, L, dest):
-        """Download L's file to dest, checking it against its .sha256."""
+        """Download L's file to dest, checking it against its .sha256. GitHub's download links sometimes answer 502, 503
+        or 504 for a moment (seen 8 Nov), so a failed try is repeated a few times before giving up."""
+        for attempt in range(RETRIES):
+            try:
+                return self._download_once(L, dest)
+            except Exception as e:  # noqa: BLE001 - only network hiccups are retried; anything else goes straight up
+                if attempt == RETRIES - 1 or not _retryable(e):
+                    raise
+                self.progress = 0.0
+                time.sleep(RETRY_WAIT_S * (2 ** attempt))
+
+    def _download_once(self, L, dest):
         with _get(L["sha_url"]) as r:
             want = r.read().decode("utf-8", "ignore").split()[0].strip().lower()
         if not re.fullmatch(r"[0-9a-f]{64}", want):
