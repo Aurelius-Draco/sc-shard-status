@@ -286,6 +286,36 @@ class App:
         say(f"Moment marked ({source}).")
         return m
 
+    def conduct_draft(self, ts=None):
+        """The details for a player conduct report to CIG (9 Nov, Ray): a support ticket the player writes and sends
+        themselves on RSI's site, since there's no report button in the game. When, where, shard, server and game
+        version come from the app's readings and Game.log, at a marked moment or now. Never anyone else's handle (the
+        player types that), never who did what to whom, and nothing is sent anywhere."""
+        s = self.session
+        p = self.community.places
+        marks = sorted(self.marks_shown(), key=lambda x: x.get("ts", 0), reverse=True)
+        m = None
+        if ts not in (None, "", "now"):
+            try:
+                t = float(ts)
+            except (TypeError, ValueError):
+                t = None
+            m = next((x for x in marks if t is not None and abs(x.get("ts", 0) - t) < 1), None)
+        if m:
+            when, shard, server, loc = m["ts"], m.get("shard_id"), m.get("server"), m.get("location")
+        else:
+            snap = self.latest_snap() or {}
+            when = time.time()
+            shard = snap.get("shard_id") or (s.shard_id if s else None)
+            server, loc = snap.get("server_name"), snap.get("location") or _last_loc(s)
+        w = (p.where(loc) or {}) if loc else {}
+        return {"ts": when, "source": "mark" if m else "now", "shard_id": shard,
+                "shard": community.shard_name(shard) if shard else None, "server": node_of(server) if server else None,
+                "place": _plain(loc, p) if loc else None, "system": w.get("system"),
+                "version": getattr(s, "version", None) if s else None, "build": (getattr(s, "build", None) if s else None) or self.build,
+                "handle": self.groups.handle(),
+                "marks": [{"ts": x["ts"], "what": x.get("what") or ""} for x in marks[:6]]}
+
     MARK_KEEP_S = 24 * 3600            # a mark with nothing typed is kept a day
     MARK_NOTE_KEEP_S = 30 * 86400      # one with a note (an idea, what went wrong) is kept a month
     MARK_NOTE_MAX = 200

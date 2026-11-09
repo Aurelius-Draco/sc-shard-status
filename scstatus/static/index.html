@@ -482,6 +482,9 @@ details.why > summary:hover { color: var(--text); }
 details.why[open] > summary { margin-bottom: var(--s2); }
 .goodline { margin: 0; color: var(--st-good); font-weight: 600; }
 
+/* Report a player to CIG: the ticket text as it will be pasted */
+.con-pre { margin: 0; padding: 12px 14px; border-radius: var(--r-s, 8px); background: var(--c-well, #0a0d11); border: 1px solid var(--c-line, #262d36); white-space: pre-wrap; overflow-wrap: anywhere; font: 500 .875rem/1.5 ui-monospace, "Cascadia Mono", monospace; color: var(--c-text, #e7eaee); }
+.conduct-link { justify-self: start; font-size: .8125rem; color: var(--c-dim, #8f99a6); }
 /* Copy for chat: one line, more behind a fold */
 .chatbox { display: grid; gap: var(--s2); padding: var(--s3) var(--s4); }
 .chatbox h4 { margin: 0; font-size: .875rem; }
@@ -2456,6 +2459,7 @@ async function renderNow() {
       <div class="hacts">${trouble ? `<button class="btn sm" data-protected="true" id="goCheck">What's gone wrong?</button>` : `<button class="btn sm ghost" data-protected="true" id="markNow">Mark this moment</button>`}
         ${lines.length ? `<button class="btn sm ghost" type="button" data-protected="true" data-chat="${esc(lines[0])}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v12H8zM5 16V4h11"/></svg>Copy for chat</button>` : ""}
         <button class="btn sm pirbtn" type="button" data-protected="true" id="pirNow" ${areaName ? "" : "disabled"}><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-4 0-7 3-7 7 0 2.4 1.1 4.1 3 5v3h8v-3c1.9-.9 3-2.6 3-5 0-4-3-7-7-7zM9 11h.01M15 11h.01"/></svg>Pirates near ${esc(areaName || "here")}</button>${pirMore}</div>
+      <button class="link conduct-link" type="button" data-protected="true" id="conductNow">Report a player to CIG</button>
       <span class="sub">${esc([d.where ? `At ${d.where.place}` : "", h.ts ? `last reading ${ago(h.ts)}` : "", cmpTxt && !smooth ? cmpTxt : ""].filter(Boolean).join(" · "))}</span>
       ${youLine(d.you)}
     </div></div>
@@ -2508,6 +2512,7 @@ async function renderNow() {
     } catch (e) { toast(e.message, true); }
   });
   if ($("markNow")) $("markNow").onclick = () => openMoment();
+  if ($("conductNow")) $("conductNow").onclick = () => openConduct();
   if ($("pirNow")) $("pirNow").onclick = async e => { const b = e.currentTarget; b.disabled = true; try { const r = await api("/api/groups/post", {kind: "pirate"}); toast(r.message); b.textContent = "Reported. Thanks"; } catch (x) { toast(x.message, true); b.disabled = false; } };
   if ($("goShare")) $("goShare").onclick = () => { show("setup"); setTimeout(() => { const c = $("commCard"); if (c) c.scrollIntoView({block: "start"}); }, 400); };
   if ($("nudgeNo")) $("nudgeNo").onclick = () => { try { sessionStorage.setItem("nudgeNo", "1"); } catch (e) {} renderNow(); };
@@ -2747,6 +2752,53 @@ function openDrawer(eyebrow, title, html) {
   $("dEyebrow").textContent = eyebrow; $("dTitle").textContent = title; $("dBody").innerHTML = html;
   $("drawer").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("scrim").classList.add("show");
   $("dClose").focus();
+}
+// Report a player to CIG (9 Nov, Ray): there's no report button in the game, so CIG take conduct reports as support
+// tickets. The app fills in when, where, shard, server and game version (at a marked moment or now); the player types
+// who and what. Nothing is sent: they copy it into a ticket on RSI's site and attach their own screenshots.
+const RSI_TICKET = "https://support.robertsspaceindustries.com/hc/en-us/requests/new";
+async function openConduct(ts) {
+  let D;
+  try { D = await api(`/api/conduct?ts=${encodeURIComponent(ts || "now")}`); } catch (e) { return toast(e.message, true); }
+  const S = {who: "", what: ""};
+  const when = t => { const d = new Date(t * 1000);
+    const local = d.toLocaleString([], {weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short"});
+    return `${local} (${d.toISOString().slice(0, 16).replace("T", " ")} UTC)`; };
+  const text = () => [
+    "Player conduct report",
+    "",
+    `Their handle: ${S.who.trim() || "(type their handle)"}`,
+    `What happened: ${S.what.trim() || "(say what they did)"}`,
+    `When: ${when(D.ts)}`,
+    D.place || D.system ? `Where: ${[D.place, D.system].filter(Boolean).join(", ")}` : "",
+    D.shard ? `Shard: ${D.shard}${D.shard_id && D.shard_id !== D.shard ? ` (${D.shard_id})` : ""}${D.server ? `, game server ${D.server}` : ""}` : "",
+    D.version || D.build ? `Game version: ${[D.version, D.build ? `build ${D.build}` : ""].filter(Boolean).join(", ")}` : "",
+    D.handle ? `My handle: ${D.handle}` : "",
+    "Evidence: screenshots or video attached."].filter((l, i) => l || i === 1).join("\n");
+  const draw = () => {
+    $("dBody").innerHTML = `<div class="nv" id="nvCon">
+      <p class="nv-note" style="margin:0">There's no report button in the game. CIG take player reports as a support ticket on RSI's site, and a person reviews each one. The app fills in when and where from your log; you say who and what.</p>
+      <label style="display:grid;gap:6px"><span class="nv-lbl">When</span><select class="inp" id="conWhen">
+        <option value="now"${D.source === "now" ? " selected" : ""}>Now</option>
+        ${(D.marks || []).map(m => `<option value="${m.ts}"${D.source === "mark" && Math.abs(m.ts - D.ts) < 1 ? " selected" : ""}>Your marked moment at ${esc(clockS(m.ts))}${m.what ? `: ${esc(m.what.slice(0, 40))}` : ""}</option>`).join("")}</select></label>
+      <label style="display:grid;gap:6px"><span class="nv-lbl">Their handle</span><input class="inp" id="conWho" maxlength="40" autocomplete="off" placeholder="As it shows in game" value="${esc(S.who)}"></label>
+      <label style="display:grid;gap:6px"><span class="nv-lbl">What happened</span><textarea class="inp" id="conWhat" rows="3" maxlength="600" placeholder="e.g. Kept abusing people in global chat after being asked to stop">${esc(S.what)}</textarea></label>
+      <div><div class="nv-lbl" style="margin-bottom:6px">Your ticket</div><pre class="con-pre" id="conText">${esc(text())}</pre></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><button class="btn" type="button" id="conCopy">Copy the report</button>
+        <a class="btn ghost" href="${RSI_TICKET}" target="_blank" rel="noopener">Open an RSI support ticket ↗</a></div>
+      <p class="nv-note" style="margin:0">Attach your screenshots or video to the ticket yourself. Verse Shards sends nothing; this stays on your PC until you paste it. Player fights and piracy aren't misconduct on their own: for a heads-up about an area, send a pirate report instead. Then block them in game (Comms list, right-click their handle, Block). <a href="${esc(COMMUNITY_SITE)}/guide/report-a-player" target="_blank" rel="noopener">How reporting works ↗</a></p>
+    </div>`;
+    $("conWhen").onchange = e => openConduct(e.target.value);
+    $("conWho").oninput = e => { S.who = e.target.value; $("conText").textContent = text(); };
+    $("conWhat").oninput = e => { S.what = e.target.value; $("conText").textContent = text(); };
+    $("conCopy").onclick = async () => { const t = text();
+      try { await navigator.clipboard.writeText(t); } catch (e) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); }
+      flashCopied($("conCopy")); toast("Report copied. Paste it into your RSI support ticket, then attach your screenshots."); };
+  };
+  if ($("drawer").classList.contains("open") && $("dTitle").textContent === "Report a player to CIG") {
+    S.who = ($("conWho") || {}).value || ""; S.what = ($("conWhat") || {}).value || ""; draw(); return;
+  }
+  openDrawer("Verse Shards", "Report a player to CIG", ""); draw();
 }
 function closeDrawer() { $("drawer").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); $("scrim").classList.remove("show"); }
 $("dClose").onclick = closeDrawer; $("scrim").onclick = closeDrawer;

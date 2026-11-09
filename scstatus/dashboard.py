@@ -176,6 +176,8 @@ def start_server(app, open_browser=False):
                 if path == "/api/pilot/lists":
                     from .pilotlists import lists
                     return self._send(200, lists())
+                if path == "/api/conduct":
+                    return self._send(200, app.conduct_draft(qs.get("ts")))
                 if path == "/api/moment":
                     if qs.get("part") == "shots":
                         from .issues import asks_for
