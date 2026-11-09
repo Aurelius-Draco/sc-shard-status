@@ -210,7 +210,7 @@ def _pad_stuck(session, since, names=None):
         except Exception:
             pass
         out.append(_finding(
-            severity="high", area="Vehicles", rule_id=None,
+            severity="high", area="Vehicles", rule_id="ship-pad-stuck-raising",   # its page: verseshards.com/issues/ship-pad-stuck-raising
             title="Your ship's pad never finished coming up",
             explain=f"The hangar pad started raising your {ship} and never reported it was up. When that happens the ship "
                     "usually won't take off, even though it looks ready, and the pad's door sounds can play late or "
