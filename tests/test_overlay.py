@@ -414,7 +414,7 @@ def test_second_look_only_fills_gaps_and_checks_them():
     """A second look through the banner never replaces a value already read, never takes hitches, the location or
     the shard id, and keeps server fps only when it agrees with its own frame time."""
     from scstatus.overlay import INK_FIELDS, OverlayReader
-    assert "shard" not in INK_FIELDS and "location" not in INK_FIELDS and INK_FIELDS["server"] == ("server_name",)
+    assert "shard" not in INK_FIELDS and "location" not in INK_FIELDS and INK_FIELDS["server"] == ("server_name", "pop_shard", "pop_srv")   # 1.6: counts only when they agree (test_v16_pop_hold)
     assert all("hitches" not in v for v in INK_FIELDS.values())
     r = OverlayReader()
     img = np.zeros((400, 800, 3), np.uint8)

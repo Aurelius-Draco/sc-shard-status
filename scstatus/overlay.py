@@ -631,18 +631,33 @@ ROW_FIELDS = {"fps": ("client_fps",), "shard": ("shard_id",), "server_fps": ("se
 # Not the shard id: a pop-up glyph over its last part reads as another valid-looking shard (LAB 8 Nov: 010 as 610);
 # the session QR code and Game.log give it instead
 INK_FIELDS = {"fps": ("client_fps",), "server_fps": ("server_fps", "server_ms"),
-              "server": ("server_name",), "net": ("ping_ms", "loss_pct"),
+              "server": ("server_name", "pop_shard", "pop_srv"), "net": ("ping_ms", "loss_pct"),
               "server_time": ("server_time",), "vram": ("vram_used_mb",)}
 
 
-def _banner_drop(snap):
+# 9 Nov (Ray: the player counts went missing; the mission tracker sat across the Server line on most readings): a count
+# from the second look is only taken when it agrees with one read cleanly in the last few minutes, so a glyph over
+# "shard 427" can't turn it into 3. Counts drift slowly; a big jump waits for a clean read.
+POP_AGREE_S = 300
+
+
+def _pop_agrees(f, v, good, now):
+    g = good.get(f)
+    if v is None or not g or now - g[1] > POP_AGREE_S:
+        return False
+    tol = max(3, 0.2 * g[0]) if f == "pop_srv" else max(10, 0.1 * g[0])
+    return abs(v - g[0]) <= tol
+
+
+def _banner_drop(snap, keep=()):
     """A reading taken through a banner or pop-up (the block was only found, or its Server FPS line only read, with
     the overlay's own text picked out) keeps fps, frame times, ping, the server name, the server time and VRAM. The
     location, hitches, the shard id and the player counts sit where pop-ups cover them and read as a wrong place or
     number ("locatigh__NyxStart", shard 339 as 330, 8 Nov), so they're left out of it; the session QR code and
     Game.log still give the shard."""
     for f in ("location", "hitches", "shard_id", "pop_shard", "pop_srv"):
-        snap[f] = None
+        if f not in keep:
+            snap[f] = None
     snap["ok"] = bool(snap.get("server_fps") is not None and snap.get("ping_ms") is not None)
 
 
@@ -755,6 +770,7 @@ class OverlayReader:
         self.wide_search_every = wide_search_every
         self.last_path = None        # "fast", "search", "wide", "ink" or None (diagnostics)
         self.last_ink = []           # lines the last look at only the overlay's own text fixed (diagnostics)
+        self._pop_good = {}          # pop_shard/pop_srv -> (value, monotonic time) from a clean read (POP_AGREE)
         self._game_h = None          # the height the game draws at, once found (None: the screen's)
         self._extras = ({}, 0.0)     # the 1.5.0 extra lines (fields, when read)
         self._extra_n = 0
@@ -960,7 +976,13 @@ class OverlayReader:
             texts[key] = t
             labels_ok = labels_ok and classify(t)[0] == key
         snap, seen = _parse([texts[k] for k, _, _ in rows])
+        clean_pop = {f: snap.get(f) for f in ("pop_shard", "pop_srv") if snap.get(f) is not None}
         fixed = self._ink_look(img, blk, rows, texts, snap)
+        if "server_fps" not in fixed:          # read without a banner across the block: these counts are good
+            t = time.monotonic()
+            for f, v in clean_pop.items():
+                if snap.get(f) == v:
+                    self._pop_good[f] = (v, t)
         self.last_ink = sorted(fixed)
         for key, _, _ in todo:
             if key in seen:
@@ -986,7 +1008,7 @@ class OverlayReader:
         if not need:
             return set()
         x0, y0, x1, y1 = (int(v) for v in blk["rect"])
-        fixed = set()
+        fixed, pop_ink = set(), set()
         for strict in (False, True):
             if not need:
                 break
@@ -1005,14 +1027,18 @@ class OverlayReader:
                             (new.get("server_name") or "").split("-")[1:2]:
                         new = {}                  # a server name only when the shard id's region agrees
                     for f in gaps(k):
+                        if f in ("pop_shard", "pop_srv") and not _pop_agrees(f, new.get(f), self._pop_good, time.monotonic()):
+                            continue
                         if new.get(f) is not None:
                             snap[f] = new[f]
                             fixed.add(k)
+                            if f in ("pop_shard", "pop_srv"):
+                                pop_ink.add(f)
                 if gaps(k):
                     still.append((k, lx, cy))
             need = still
         if "server_fps" in fixed:
-            _banner_drop(snap)               # something is across the block: see _banner_drop
+            _banner_drop(snap, keep=pop_ink)  # something is across the block: see _banner_drop (agreed counts stay)
         elif fixed:
             snap["ok"] = bool(snap.get("server_fps") is not None and (
                 snap.get("pop_shard") is not None or snap.get("pop_srv") is not None or snap.get("ping_ms") is not None))

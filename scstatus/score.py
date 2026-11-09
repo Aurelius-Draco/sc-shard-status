@@ -51,6 +51,23 @@ def band(score):
     return BANDS[-1][1:]
 
 
+# 9 Nov (Ray: "we're no longer seeing the players on the shard, and On your server often shows -"): a banner or the
+# mission tracker across the overlay's Server line hides the player counts on many readings (his session: read on 33%
+# of them). They change slowly, so the last good counts on this same server stint stand in for up to HOLD_S, with
+# their age, instead of a dash. The game server's number is held the same way.
+HOLD_S = 180
+
+
+def _held(recent, key, now):
+    """The newest value of key in this server stint's readings no older than HOLD_S: (value, its reading's time)."""
+    for s in reversed(recent):
+        if now - s["ts"] > HOLD_S:
+            break
+        if s.get(key) is not None:
+            return s[key], s["ts"]
+    return None, None
+
+
 def assess(snaps, now=None, window_s=300):
     """Score the most recent readings. snaps: overlay snapshots, oldest first."""
     now = now or time.time()
@@ -61,7 +78,15 @@ def assess(snaps, now=None, window_s=300):
         return {"score": None, "label": "No readings", "cls": "none",
                 "summary": "No overlay readings yet. In game, open the console (~) and type r_displayinfo 3.",
                 "points": [], "readings": 0}
-    last = recent[-1]
+    last = dict(recent[-1])
+    pop_ts = None
+    for k in ("pop_shard", "pop_srv", "server_name"):
+        if last.get(k) is None:
+            v, t = _held(recent, k, now)
+            if v is not None:
+                last[k] = v
+                if k != "server_name":
+                    pop_ts = min(pop_ts or t, t)
     sfps = _vals(recent, "server_fps")
     med_fps = st.median(sfps) if sfps else None
     p10_fps = _pct(sfps, 10)
@@ -104,6 +129,8 @@ def assess(snaps, now=None, window_s=300):
         "ping_ms": round(ping) if ping is not None else None, "loss_pct": loss,
         "hitches": hitches, "restarts": restarts,
         "pop_shard": last.get("pop_shard"), "pop_srv": last.get("pop_srv"),
+        # seconds since the player counts were last read, when they're held from an earlier reading (None: read now)
+        "pop_age": round(now - pop_ts) if pop_ts is not None else None,
         "client_fps": last.get("client_fps"), "shard_id": last.get("shard_id"),
         "server_name": last.get("server_name"), "location": last.get("location"),
         "parts": {"server": _r(server), "network": _r(net), "stability": _r(stab)},
