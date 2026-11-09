@@ -53,6 +53,7 @@ def test_my_pilot_is_the_design_and_doesnt_restyle_the_app():
 
 def test_timeline_lives_in_history():
     assert 'data-tab="timeline"' not in PAGE and 'data-sub="timeline"' in PAGE
+    assert 'data-tab="groups"' not in PAGE                      # no Groups tab for now (Ray, 9 Nov)
     order = [m for m in ("data-tab=\"now\"", "data-tab=\"check\"", "data-tab=\"pc\"", "data-tab=\"blueprints\"",
                          "data-tab=\"history\"", "data-tab=\"issues\"")]
     assert [PAGE.index(o) for o in order] == sorted(PAGE.index(o) for o in order)

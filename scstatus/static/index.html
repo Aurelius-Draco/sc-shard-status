@@ -1824,7 +1824,7 @@ td { border-color: var(--c-line); }
   <button role="tab" data-tab="blueprints">Blueprints</button>
   <button role="tab" data-tab="history">History</button>
   <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
-  <button role="tab" data-tab="groups">Groups <span class="count" id="grpCount"></span></button>
+  <!-- Groups is off the app's tabs for now (Ray, 9 Nov), as on the site's top nav; the page itself is still there -->
   <button role="tab" data-tab="setup" class="t2 tsetup"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Set up <i class="dot" id="setupDot" hidden></i></button>
   <button role="tab" data-tab="about">About</button>
 </nav>
@@ -1919,6 +1919,7 @@ document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => show(
 })();
 
 function show(t) {
+  if (t === "groups") t = "now";   // no Groups tab for now (9 Nov): anything that opened it lands on Now
   tab = t;
   try { sessionStorage.setItem("tab", t); } catch (e) {}
   // Timeline lives inside History (Ray, 9 Nov): History's own switch picks "Your sessions" or "Timeline"
@@ -1967,7 +1968,7 @@ function header(d) {
   if (u.state === "starting installer") waitForRestart();
   const dot = $("setupDot"); dot.hidden = !!d.game_found; dot.title = d.game_found ? "" : "Game folder not found";
   const g = d.groups || {}, nInt = (g.interest || []).length;
-  $("grpCount").textContent = g.offer ? "!" : nInt ? nInt : "";
+  if ($("grpCount")) $("grpCount").textContent = g.offer ? "!" : nInt ? nInt : "";   // no Groups tab for now
 }
 $("markBtn").onclick = () => openMoment();
 $("fbBtn").onclick = () => openFeedback();
@@ -2498,7 +2499,7 @@ async function renderNow() {
   if ($("goSetup")) $("goSetup").onclick = () => show("setup");
   if ($("goSetup2")) $("goSetup2").onclick = () => show("setup");
   if ($("goSetup3")) $("goSetup3").onclick = () => show("setup");
-  if ($("goGroups")) $("goGroups").onclick = () => show("groups");
+  if ($("goGroups")) $("goGroups").onclick = () => window.open(COMMUNITY_SITE + "/groups", "_blank", "noopener");   // the site's Groups page (no tab in the app for now)
   if ($("goCheck")) $("goCheck").onclick = () => { autoCheck = true; show("check"); };
   $("view").querySelectorAll("[data-pirate]").forEach(b => b.onclick = async () => {
     try {
