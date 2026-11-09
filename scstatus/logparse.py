@@ -50,6 +50,8 @@ OBJECTIVE_UPSERT = re.compile(r"mission_id ([0-9a-f-]{36}) - objective_id (\S+) 
 PLAYER_LEFT = re.compile(r"mission_id ([0-9a-f-]{36})")
 PU_LOADED = re.compile(r'establisher="CReplicationModel" runningTime=([\d.]+) map="[^"]*" gamerules="([^"]*)"')
 PLATFORM = re.compile(r"Loading Platform Manager \[([^\]]+)\] Platform state changed to (\w+)")
+# Leaving the pilot seat ("releasing control token for 'ORIG_m80_<id>'"): the ship class only
+SEAT_LEFT = re.compile(r"ClearDriver: Local client node \[\d+\] releasing control token for '([A-Za-z][A-Za-z0-9_]*?)_\d+'")
 UNSTOW = re.compile(r"Processed bindings into transfer request - Entities: (\d+)")
 LOGIN = re.compile(r"Handle\[([^\]]+)\]")
 # Waiting to get in: "queue name global - position 12 - eta (seconds) 340"
@@ -222,7 +224,11 @@ def parse_line(raw):
     if tag == "CSCLoadingPlatformManager::OnLoadingPlatformStateChanged" and (p := PLATFORM.search(msg)):
         if "FreightElevator" in p.group(1):
             return {"ts": ts, "kind": "freight_state", "manager": p.group(1), "state": p.group(2)}
+        if "ShipElevator" in p.group(1):
+            return {"ts": ts, "kind": "pad_state", "manager": p.group(1), "state": p.group(2)}
         return None
+    if tag == "Vehicle Control Flow" and (v := SEAT_LEFT.search(msg)):
+        return {"ts": ts, "kind": "seat_left", "ship": v.group(1)}
     if tag == "CEntityComponentFreightElevatorUIProvider::FillUnstowRequest" and (u := UNSTOW.search(msg)):
         return {"ts": ts, "kind": "freight_unstow", "entities": int(u.group(1))}
     if tag == "Player Selected Quantum Target - Local" and (q := QT_TARGET.search(msg)):
@@ -393,6 +399,14 @@ def contract_title(name):
     return re.sub(r"\s+", " ", name).strip(" :"), rep
 
 
+# A ship pad takes about 13 s to raise (Ray's log, 9 Nov). Still "raising" when you leave the pilot seat 45 s to
+# 5 minutes after it started is the stuck pad: in Ray's logs (175 raises since September) that happened 3 times, each
+# time followed by him storing the ship again (23 Oct, 7 Nov, 9 Nov). Leaving the seat much later is ordinary flying
+# (the client stops hearing about the pad once you've gone), so it doesn't count.
+PAD_RAISE_S = 45
+PAD_WINDOW_S = 300
+
+
 class Session:
     """Everything one Game.log says, built up event by event."""
 
@@ -435,6 +449,11 @@ class Session:
         self.crash = None
         self.events = []
         self._last_platform = {}
+        # 9 Nov (Ray's M80 at microTech): the hangar pad started raising the ship and never reported it was up; he got
+        # in, couldn't take off, got out, stored it and retrieved it again, and then it worked. {ts (pad started up),
+        # seen (you left the seat), manager, ship, ended (the pad's next state, None while it's still stuck)}
+        self.pad_stuck = []
+        self._pad = {}              # ship elevator -> (state, since)
 
     TRAVEL_KINDS = ("qt_target", "qt_arrived", "location", "armistice", "ship_retrieved")
 
@@ -545,6 +564,17 @@ class Session:
                 self.crash.setdefault("flags", {})[ev["flag"]] = ev["value"]
         elif k == "error":
             self.errors.append(ev)
+        elif k == "pad_state":
+            open_stuck = [x for x in self.pad_stuck if x["manager"] == ev["manager"] and x["ended"] is None]
+            for x in open_stuck:
+                x["ended"] = ts
+                x["then"] = ev["state"]
+            self._pad[ev["manager"]] = (ev["state"], ts)
+        elif k == "seat_left":
+            for mgr, (state, since) in self._pad.items():
+                if state == "RaisingPlatform" and PAD_RAISE_S <= ts - since <= PAD_WINDOW_S and \
+                        not any(x["manager"] == mgr and x["ts"] == since for x in self.pad_stuck):
+                    self.pad_stuck.append({"ts": since, "seen": ts, "manager": mgr, "ship": ev["ship"], "ended": None})
         elif k == "freight_state":
             prev = self._last_platform.get(ev["manager"])
             self._last_platform[ev["manager"]] = ev["state"]

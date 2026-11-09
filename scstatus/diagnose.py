@@ -113,6 +113,7 @@ def diagnose(log_path, library, names=None, snapshots=None, lookback_min=30, now
     item_findings = list(findings)
     for p, sess in sessions:
         findings += _disconnects(sess, since, library)
+        findings += _pad_stuck(sess, since, names)
         findings += _contracts(sess, since, item_findings, names, now)
     if session.crash:
         findings += crash_findings(log_path, library, session)
@@ -193,6 +194,32 @@ def _disconnects(session, since, library):
                                    "If it keeps happening on the same shard, pick another region in the launcher."],
                             ic_title=f"Disconnected with error {d['cause']}: {d['reason']}",
                             first_ts=d["ts"], last_ts=d["ts"], fields={"cause": d["cause"]}))
+    return out
+
+
+def _pad_stuck(session, since, names=None):
+    """The hangar pad never finished raising your ship (logparse.Session.pad_stuck): it won't take off."""
+    out = []
+    for x in getattr(session, "pad_stuck", []):
+        if x["seen"] < since:
+            continue
+        ship = x["ship"]
+        try:
+            from .pilotlists import ship_common
+            ship = ship_common(ship) or ship
+        except Exception:
+            pass
+        out.append(_finding(
+            severity="high", area="Vehicles", rule_id=None,
+            title="Your ship's pad never finished coming up",
+            explain=f"The hangar pad started raising your {ship} and never reported it was up. When that happens the ship "
+                    "usually won't take off, even though it looks ready, and the pad's door sounds can play late or "
+                    "over again." + (" The pad has moved on since." if x.get("ended") else ""),
+            fixes=["Get out, store the ship at the ASOP terminal, then retrieve it again. That's what worked when it was seen.",
+                   "If storing doesn't help, relog to a new server and retrieve it there.",
+                   "Report it with the Issue Council draft: it's a server-side fault CIG need to hear about."],
+            ic_title="Ship won't take off after retrieval: hangar pad stuck raising",
+            first_ts=x["ts"], last_ts=x.get("ended") or x["seen"], fields={"ship": x["ship"]}))
     return out
 
 
