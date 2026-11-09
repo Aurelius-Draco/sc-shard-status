@@ -26,6 +26,7 @@ jobs:
           git archive --format=zip --prefix=SC-Shard-Status/ -o "SC-Shard-Status-${VER}.zip" HEAD
           awk -v v="## ${VER}" 'index($0, v)==1 {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
           printf '\n**Install:** download `SC-Shard-Status-Setup-%s.exe` below and run it. Windows may say it protected your PC the first time: click **More info**, then **Run anyway**. Already have it? The app offers the update itself.\n\nPrefer to run it from source? `SC-Shard-Status-%s.zip` is the same app for Python 3.12 or 3.13: unzip it and double-click **Setup.bat**.\n' "$VER" "$VER" >> notes.md
+          printf '\n**Made with AI:** Claude, an AI made by Anthropic, was used to help with the coding and building of this release and to help write these notes. Aurelius_Draco reviewed the code, and every change passed the app'"'"'s automated tests (more than 300) before release. The app itself sends nothing to an AI: it reads the overlay with RapidOCR, a text-recognition model that runs on your PC, and its scores and findings come from fixed rules. More at https://verseshards.com/privacy\n' >> notes.md
           echo "VER=$VER" >> "$GITHUB_ENV"
       - name: Publish
         env:
