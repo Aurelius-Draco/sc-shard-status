@@ -4479,6 +4479,7 @@ const BC_SVG = {
 };
 const BRAG = (() => {
   const SIZES = { sq: [1080, 1080], land: [1200, 630], story: [1080, 1920] };
+  const BRAG_SCALE = 2;      // the saved and copied picture is this many times the card's layout size
   // The Fankit pictures bundled with the app, with the corner their watermark sits in (from the site's PICKS list)
   const PICS = { SC_01: ["bl", "Fighters over cloud tops"], SC_10: ["bl", "A ship against the sun"], SC_13: ["bl", "Ship over a snowy planet"],
     SC_14: ["bl", "Dogfight above a planet"], SC_25: ["br", "Capital ship over a planet"], SC_32: ["br", "A wreck in an alien forest"],
@@ -4699,7 +4700,9 @@ const BRAG = (() => {
       await document.fonts.ready;
       await Promise.all([...box.querySelectorAll("img")].map(i => i.decode ? i.decode().catch(() => null) : null));
       const node = box.firstElementChild;
-      const blob = await h2i.toBlob(node, { width: w, height: h, canvasWidth: w, canvasHeight: h, pixelRatio: 1, cacheBust: false, fontEmbedCSS: css });
+      // 9 Nov (Ray: "quality is very low, not usable on sites like Facebook"): drawn at twice the size (2160 x 2160 for
+      // a square card) from the Fankit pictures at 2400 px, so it stays sharp after Facebook and Discord recompress it
+      const blob = await h2i.toBlob(node, { width: w, height: h, canvasWidth: w, canvasHeight: h, pixelRatio: BRAG_SCALE, cacheBust: false, fontEmbedCSS: css });
       if (!blob) throw new Error("The card didn't draw.");
       return blob;
     } finally { box.remove(); }

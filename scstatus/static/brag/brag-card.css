@@ -27,7 +27,8 @@
   --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .14);
   --trk: rgba(255, 255, 255, .1);
   --edge-grad: linear-gradient(135deg, #ffd166 0%, #f2a93b 16%, rgba(242, 169, 59, .28) 38%, rgba(255, 255, 255, .08) 58%, rgba(255, 209, 102, .55) 82%, #ffe7a8 100%);
-  --foil: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .55) 45%, rgba(181, 245, 233, .35) 50%, rgba(255, 209, 102, .5) 55%, transparent 70%);
+  /* 9 Nov (Ray: "bump the shine"): a brighter, wider glint than the 8 Nov port (.55/.35/.5 over 30-70%) */
+  --foil: linear-gradient(115deg, transparent 26%, rgba(255, 255, 255, .78) 44%, rgba(181, 245, 233, .5) 50%, rgba(255, 209, 102, .7) 56%, transparent 74%);
   --scrim: rgba(7, 9, 12, .86);
   --bp: #163a63; --bp-line: #9fd0ff; --bp-ink: #e7f3ff;
 
@@ -52,7 +53,7 @@
   --chip: #ffffff; --chip-line: rgba(19, 30, 45, .16);
   --trk: rgba(19, 30, 45, .1);
   --edge-grad: linear-gradient(135deg, #8c5000 0%, #c98a1b 16%, rgba(242, 169, 59, .45) 38%, rgba(140, 80, 0, .12) 58%, #e3a73a 82%, #8c5000 100%);
-  --foil: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .7) 47%, rgba(255, 236, 190, .6) 53%, transparent 70%);
+  --foil: linear-gradient(115deg, transparent 26%, rgba(255, 255, 255, .85) 46%, rgba(255, 236, 190, .75) 54%, transparent 74%);
 }
 
 .bc-in {
