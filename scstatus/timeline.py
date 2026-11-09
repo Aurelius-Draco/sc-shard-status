@@ -22,9 +22,13 @@ def shard_label(shard_id):
 
 
 def ship_name(cls):
-    """'ORIG_m80' -> 'ORIG M80', 'RSI_Constellation_Mk5_Centaurus' -> 'RSI Constellation Mk5 Centaurus'."""
+    """'ORIG_m80' -> 'Origin M80', 'RSI_Constellation_Mk5_Centaurus' -> 'Constellation Mk V Centaurus' (the names
+    players use, from the pilot card's ship list); a ship we don't know: 'XXXX_Some_Ship' -> 'XXXX Some Ship'."""
     if not cls:
         return "a ship"
+    from .pilotlists import ship_common
+    if hit := ship_common(cls):
+        return hit
     parts = [p for p in cls.split("_") if p]
     return " ".join([parts[0].upper()] + [p[:1].upper() + p[1:] for p in parts[1:]])
 

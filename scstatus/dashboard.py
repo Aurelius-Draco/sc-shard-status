@@ -29,13 +29,15 @@ BRAG_FILES = dict(
     [("img/mbtc-white.png", "image/png"), ("brag-card.css", "text/css"), ("fonts.css", "text/css"),
      ("html-to-image.js", "text/javascript")])
 
-# About (1.6): the site's own About, drawn by the site's home page code (home.js, home.css, holo-foil.js and .css,
+# About and My pilot (1.6). About: the site's own About, drawn by the site's home page code (home.js, home.css, holo-foil.js and .css,
 # copied from verseshards.com into static/site) with the pictures it uses in static/img/home. A fixed list again.
 SITE_FILES = {
     "/site/home.js": "text/javascript", "/site/home.css": "text/css",
     "/site/holo-foil.js": "text/javascript", "/site/holo-foil.css": "text/css",
     "/img/home/fankit-sc-28.webp": "image/webp", "/img/home/fankit-sc-28-800.webp": "image/webp",
     "/img/home/fankit-sc-06-800.webp": "image/webp", "/img/home/ms-store-badge-dark.svg": "image/svg+xml",
+    # My pilot (1.6): Claude Design's page, drawn by its own code
+    "/pilot/my-pilot.js": "text/javascript", "/pilot/my-pilot.css": "text/css",
 }
 
 

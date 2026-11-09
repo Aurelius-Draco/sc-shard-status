@@ -144,7 +144,7 @@ def test_pirate_offer_only_after_a_death_that_wasnt_a_crash():
     assert g.pirate_offer(now) is None
     s.deaths.append({"ts": now - 30, "ship": "DRAK_Cutlass_Red", "collision": False})
     offer = g.pirate_offer(now)
-    assert offer["area_name"] == "Hurston" and offer["ship"] == "DRAK Cutlass Red"
+    assert offer["area_name"] == "Hurston" and offer["ship"] == "Cutlass Red"
     g.pirate_done()
     assert g.pirate_offer(now) is None
     assert g.pirate_offer(now + 3600) is None                 # and it doesn't hang around

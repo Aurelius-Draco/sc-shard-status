@@ -38,7 +38,7 @@ def test_the_new_lines_parse_without_ids_or_positions():
 
 
 def test_ship_mission_and_pc():
-    assert appmod.ship_of_zone("RSI_Constellation_Mk5_Centaurus") == "RSI Constellation Mk5 Centaurus"
+    assert appmod.ship_of_zone("RSI_Constellation_Mk5_Centaurus") == "Constellation Mk V Centaurus"
     assert appmod.ship_of_zone("rs_int_layout_keeger_03") is None
     assert appmod.mission_words("InterSec_Bounty_Nyx_Intro") == "InterSec Bounty Nyx Intro"
     assert appmod.pc_bound(12.7, 3.9, 15.4)["bound"] == "gpu"
@@ -57,7 +57,7 @@ def test_you_state_and_low_fps_advice():
     a = SimpleNamespace(lock=threading.Lock(), snaps=[snap], places=SimpleNamespace(place=lambda c: None),
                         library=issues.Library())
     y = appmod.App.you_state(a, now)
-    assert y["ship"] == "RSI Constellation Mk5 Centaurus" and y["mission"] == "InterSec Bounty Nyx Intro"
+    assert y["ship"] == "Constellation Mk V Centaurus" and y["mission"] == "InterSec Bounty Nyx Intro"
     assert y["activity"] == "Bounty hunting" and y["pc"]["bound"] == "gpu" and y["planet"] is None
     assert appmod.App.you_state(SimpleNamespace(lock=threading.Lock(), snaps=[dict(snap, ts=now - 999)]), now) is None
     tips = score.tips(23.0, 22.0, 60, 0, 0, 0, dict(snap, client_fps=24.0))

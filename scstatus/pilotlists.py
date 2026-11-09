@@ -148,6 +148,46 @@ def common_name(text):
     return None
 
 
+_ROMAN = {"1": "i", "2": "ii", "3": "iii", "4": "iv", "5": "v", "6": "vi"}
+_SHIP_ALIAS = {"starliftera2": "A2 Hercules", "starliftec2": "C2 Hercules", "starlifterc2": "C2 Hercules",
+               "starlifterm2": "M2 Hercules"}
+_ship_index = None
+
+
+def _ship_norm(text):
+    t = re.sub(r"mk\s*_?(\d)", lambda m: "mk" + _ROMAN.get(m.group(1), m.group(1)), str(text).lower())
+    return re.sub(r"[^a-z0-9]", "", t)
+
+
+def ship_common(cls):
+    """A ship class the game writes (RSI_Constellation_Mk5_Centaurus, ORIG_m80, DRAK_Cutlass_Black) as players say
+    it (Constellation Mk V Centaurus, Origin M80, Cutlass Black), from the pilot card's ship list. None when it
+    isn't one we know (9 Nov, Ray: "sometimes not using the common names")."""
+    global _ship_index
+    if not cls:
+        return None
+    if _ship_index is None:
+        _ship_index = {_ship_norm(n): n for n in SHIPS}
+    parts = [p for p in re.split(r"[_\s]+", str(cls)) if p]
+    for rest in (parts[1:], parts):
+        key = _ship_norm(" ".join(rest))
+        if not key:
+            continue
+        if key in _ship_index:
+            return _ship_index[key]
+        if key in _SHIP_ALIAS:
+            return _SHIP_ALIAS[key]
+        ends = [n for k, n in _ship_index.items() if len(key) >= 3 and k.endswith(key)]
+        if len(ends) == 1:
+            return ends[0]
+        # the same words in another order (ANVL_Hornet_F7C_Mk2 -> F7C Hornet Mk II)
+        words = sorted(_ship_norm(w) for w in rest)
+        same = [n for n in SHIPS if sorted(_ship_norm(w) for w in re.split(r"[\s-]+", n.replace("Mk ", "Mk"))) == words]
+        if len(same) == 1:
+            return same[0]
+    return None
+
+
 def place_name(code, names=None):
     """A place code or name as players say it: our common name, else the game's own text (names: a Places), else
     the code made readable. For the logbook's most-visited places."""

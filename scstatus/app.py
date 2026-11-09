@@ -33,10 +33,34 @@ def ship_of_zone(zone):
 
 
 def mission_words(mission):
-    """InterSec_Bounty_Nyx_Intro -> "InterSec Bounty Nyx Intro" (the overlay's internal name, made readable)."""
+    """InterSec_Bounty_Nyx_Intro -> "InterSec Bounty Nyx Intro"; BountyHuntersGuild_Bounty_Stanton_Medium_2 ->
+    "Bounty Hunters Guild Bounty Stanton Medium" (the overlay's internal name, made readable)."""
     if not mission:
         return None
-    return " ".join(p for p in str(mission).split("_") if p)[:80] or None
+    parts = [p for p in str(mission).split("_") if p]
+    if len(parts) > 1 and parts[-1].isdigit():
+        parts = parts[:-1]
+    words = " ".join(p if p in ("InterSec",) else re.sub(r"(?<=[a-z])(?=[A-Z])", " ", p) for p in parts)
+    return words[:80] or None
+
+
+def contract_title(name):
+    """A contract's title as the game shows it, without the reputation ladder at the end:
+    "Verified Bounty: Augustus Emerson | MRT (Small Craft, Avg. Support) [500/1000/2000/8000/16000 Rep]" ->
+    "Verified Bounty: Augustus Emerson | MRT (Small Craft, Avg. Support)"."""
+    return re.sub(r"\s*\[[\d/ ]+Rep\]\s*$", "", str(name or "")).strip() or None
+
+
+def mission_label(mission, contracts=None):
+    """What you're tracking, as the game shows it to you: with one active contract, its title (9 Nov, Ray: the
+    overlay's internal "BountyHuntersGuild Bounty Stanton Medium 2" while the contract was "Verified Bounty: ...");
+    otherwise the internal name made readable."""
+    if not mission:
+        return None
+    active = [c for c in (contracts or []) if c.get("name")]
+    if len(active) == 1:
+        return contract_title(active[0]["name"]) or mission_words(mission)
+    return mission_words(mission)
 
 
 def pc_bound(mt, rt, gpu):
@@ -487,13 +511,13 @@ class App:
                        "offer": self.groups.pirate_offer()},
         }
         out["server_view"] = server_view(a, out["community"])
-        out["you"] = self.you_state()
+        out["you"] = self.you_state(contracts=out["contracts"])
         out["settings_flag"] = self.gamesettings_flag()
         from .groups import chat_lines
         out["chat_lines"] = chat_lines(out, a)
         return out
 
-    def you_state(self, now=None):
+    def you_state(self, now=None, contracts=None):
         """What else the overlay says about you (r_displayinfo 3, read now and then): the ship you're in or that
         you're in a room, the planet, the mission you're tracking, and whether your PC's frame time goes on the
         CPU or the GPU. Shown on the Now tab only; none of it is shared."""
@@ -502,15 +526,17 @@ class App:
             snaps = [x for x in self.snaps if x.get("ok") and now - x.get("ts", 0) <= 120]
         last = {}
         for x in snaps:
-            for k in ("zone", "planet", "mission", "render_mt_ms", "render_rt_ms", "render_gpu_ms"):
+            for k in ("zone", "planet", "location", "mission", "render_mt_ms", "render_rt_ms", "render_gpu_ms"):
                 if x.get(k) is not None:
                     last[k] = x[k]
         if not last:
             return None
         from .issues import activity_for_mission
         out = {"ship": ship_of_zone(last.get("zone")), "in_room": bool(last.get("zone")) and not ship_of_zone(last.get("zone")),
-               "planet": (self.places.place(last["planet"]) or last["planet"]) if last.get("planet") else None,
-               "mission": mission_words(last.get("mission")),
+               # The overlay's Planet line can be wrong (9 Nov: "Crusader" at MIC-L3, by microTech), so it's only used
+               # when there's no location; the Now tab names the location itself ("At MIC-L3 Endless Odyssey Station")
+               "planet": _plain(last["planet"], self.places) if last.get("planet") and not last.get("location") else None,
+               "mission": mission_label(last.get("mission"), contracts),
                "activity": activity_for_mission(getattr(self.library, "activity_hints", []), last.get("mission")),
                "pc": pc_bound(last.get("render_mt_ms"), last.get("render_rt_ms"), last.get("render_gpu_ms"))}
         return out if any(v for v in out.values()) else None
@@ -524,7 +550,7 @@ class App:
         p = self.community.places
         w = p.where(last["location"]) or {}
         node = node_of(last.get("server_name"))
-        return {"place": p.place(last["location"]), "area_name": w.get("area_name"), "server": node,
+        return {"place": _plain(last["location"], p), "area_name": w.get("area_name"), "server": node,
                 "pop_srv": last.get("pop_srv")}
 
     PATCH_NOTICE_S = 36 * 3600
@@ -1582,6 +1608,17 @@ def _active_contracts(contracts):
         row["times"] += 1
         row["objectives"] = c["objectives"]
     return list(by.values())
+
+
+def _plain(code, places):
+    """A place as players say it (MIC-L3 Endless Odyssey Station, microTech, Orison): the common name, else the
+    game's own text. None when it isn't a place."""
+    from .pilotlists import place_name
+    try:
+        n = place_name(code, places)
+    except Exception:
+        n = None
+    return None if not n or n == "Not known" else n
 
 
 def _last_loc(session):

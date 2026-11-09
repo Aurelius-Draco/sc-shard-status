@@ -213,6 +213,10 @@ select { background: var(--field); border: 1px solid var(--line2); border-radius
 .seg { display: inline-flex; border: 1px solid var(--line2); border-radius: var(--r-sm); overflow: hidden; background: var(--field); }
 .seg button { height: var(--h-sm); background: none; border: 0; border-left: 1px solid var(--line2); padding: 0 var(--s3); color: var(--muted); font-weight: 600; font-size: .8125rem; }
 .seg button:first-child { border-left: 0; }
+/* History's switch between your sessions and this session's timeline (Timeline folded into History, 9 Nov) */
+.subnav { max-width: var(--w-content, 92rem); margin: var(--s5) auto 0; padding: 0 var(--s7); }
+.subnav .seg button { height: 40px; padding: 0 var(--s5); font-size: .9375rem; }
+.subnav .seg button[aria-pressed="true"] { background: var(--amber); color: #1a1205; }
 .seg button[aria-pressed="true"] { background: var(--raise2); color: var(--text); box-shadow: inset 0 -2px 0 var(--amber); }
 
 /* Sections and cells */
@@ -1767,6 +1771,12 @@ td { border-color: var(--c-line); }
 .app-grid > .glass:last-child:nth-child(odd) { grid-column: 1 / -1; }
 @media (max-width: 1100px) { .app-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (min-width: 1400px) { .app-grid.is-3 { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, .9fr); } .app-grid.is-3 > .glass:last-child { grid-column: auto; } }
+/* Now: each column stacks its own blocks (Situation then Active contracts, the board then Copy for chat, This session),
+   so contracts and the chat lines sit above the fold (Ray, 9 Nov) */
+.now-col { display: grid; gap: var(--s5); align-content: start; min-width: 0; }
+.app-grid > .now-col:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (min-width: 1400px) { .app-grid.is-3 > .now-col:last-child { grid-column: auto; } }
+.now-col .chatbox, .now-col > section { margin: 0; }
 .sit { display: grid; gap: var(--s3); align-content: start; padding: clamp(16px, 2vw, 24px); }
 .sit .hv { margin: 0; font: 700 1.5rem/1.2 var(--f-head); }
 .hreg { padding: clamp(16px, 2vw, 24px); }
@@ -1810,16 +1820,16 @@ td { border-color: var(--c-line); }
 <nav class="tabbar" role="tablist" aria-label="Sections">
   <button role="tab" data-tab="now" aria-selected="true">Now</button>
   <button role="tab" data-tab="check">What's gone wrong? <span class="count rust" id="findCount"></span></button>
-  <button role="tab" data-tab="timeline">Timeline</button>
-  <button role="tab" data-tab="groups">Groups <span class="count" id="grpCount"></span></button>
-  <button role="tab" data-tab="history">History</button>
-  <button role="tab" data-tab="blueprints">Blueprints</button>
   <button role="tab" data-tab="pc">My pilot</button>
+  <button role="tab" data-tab="blueprints">Blueprints</button>
+  <button role="tab" data-tab="history">History</button>
   <button role="tab" data-tab="issues">Known issues <span class="count" id="libCount"></span></button>
+  <button role="tab" data-tab="groups">Groups <span class="count" id="grpCount"></span></button>
   <button role="tab" data-tab="setup" class="t2 tsetup"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Set up <i class="dot" id="setupDot" hidden></i></button>
   <button role="tab" data-tab="about">About</button>
 </nav>
 
+<div id="subnav" class="subnav" hidden></div>
 <main id="view"></main>
 <span class="edge-word" id="edgeWord" aria-hidden="true"></span>
 </div>
@@ -1911,7 +1921,15 @@ document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => show(
 function show(t) {
   tab = t;
   try { sessionStorage.setItem("tab", t); } catch (e) {}
-  document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  // Timeline lives inside History (Ray, 9 Nov): History's own switch picks "Your sessions" or "Timeline"
+  const lit = t === "timeline" ? "history" : t;
+  document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === lit));
+  const sn = $("subnav");
+  if (sn) {
+    sn.hidden = lit !== "history";
+    sn.innerHTML = lit !== "history" ? "" : `<div class="seg" role="group" aria-label="History"><button type="button" data-sub="history" aria-pressed="${t === "history"}">Your sessions</button><button type="button" data-sub="timeline" aria-pressed="${t === "timeline"}">Timeline of this session</button></div>`;
+    sn.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => { if (b.dataset.sub !== tab) show(b.dataset.sub); });
+  }
   // The edges carry the tab's colour, as the site's pages do (teal for live, rust for groups and pirates, gold for your
   // own game, amber for known issues, steel for set-up and about), and a big faint word on very wide screens
   const subj = {now: "board", check: "board", timeline: "board", groups: "pirates", history: "community", blueprints: "community", pc: "community", issues: "issues", setup: "reading", about: "reading"}[t] || "board";
@@ -2424,6 +2442,7 @@ async function renderNow() {
   </section>
   ${d.settings_flag ? `<div class="sec vr">${GS.nowFlag(d.settings_flag)}</div>` : ""}
   <div class="app-grid is-3 now-grid">
+    <div class="now-col">
     <div class="glass"><div class="glass-in sit hsit">
       <span class="t-label">Situation${sh.id ? ` · ${esc(sh.name || sh.id)}` : ""}${srvName ? ` · server ${esc(srvName)}` : ""}${areaName ? ` · ${esc(areaName)}` : ""}</span>
       ${crash ? `<div class="crashline" role="alert"><b>Star Citizen closed without a clean exit at ${tm(crash.ts)}.</b> ${crash.after_code && libTitle(crash.after_code) ? `Just before, the log shows: ${esc(libTitle(crash.after_code))}.` : "Game.log stops without the usual shutdown lines."} What's gone wrong? looks at the last few minutes before it closed.</div>`
@@ -2439,6 +2458,11 @@ async function renderNow() {
       <span class="sub">${esc([d.where ? `At ${d.where.place}` : "", h.ts ? `last reading ${ago(h.ts)}` : "", cmpTxt && !smooth ? cmpTxt : ""].filter(Boolean).join(" · "))}</span>
       ${youLine(d.you)}
     </div></div>
+    <div class="glass"><div class="glass-in"><div class="glass-h"><h3>Active contracts</h3></div>
+      ${d.contracts && d.contracts.length ? `<ul class="steps">${d.contracts.map(c => `<li><b>${esc(c.name)}</b>${c.times > 1 ? ` <span class="sub">taken ${c.times} times</span>` : ""}${Object.values(c.objectives || {}).length ? `<div class="sub">${Object.values(c.objectives).map(o => esc(o.text) + (o.state === "complete" ? " ✓" : "")).join("<br>")}</div>` : ""}</li>`).join("")}</ul>` : `<p class="sub" style="margin:0">None accepted this session.</p>`}
+    </div></div>
+    </div>
+    <div class="now-col">
     <div class="glass"><div class="glass-in hreg">
       ${c0 ? `<div class="glass-h"><h3>${esc(c0.region || "Your region")} on the board</h3><span class="hme ${shareOn ? "on" : ""}"><i></i>${shareOn ? "You're on the board" : "You: not on the board"}</span></div>
         ${(() => { const rows = (c0.shards || []).slice(0, 5).map(regRow);
@@ -2449,6 +2473,9 @@ async function renderNow() {
         <a class="sub" href="${esc(COMMUNITY_SITE)}/board" target="_blank" rel="noopener">Open the full board ↗</a>`
       : `<div class="glass-h"><h3>Your region on the board</h3></div><p class="sub" style="margin:0">Turn on the community board to see which shard in your region is running best, from players' own readings. It sends nothing about you.</p><button class="btn sm ghost" id="goSetup4">Turn it on</button>`}
     </div></div>
+    ${lines.length ? chatBox(lines) : ""}
+    </div>
+    <div class="now-col">
     <div class="glass"><div class="glass-in"><div class="glass-h"><h3>This session</h3></div>
       <div class="ses">
         <div><span>Patch</span><b>${esc(s.version || "–")}</b><small>build ${esc(s.build || "–")}</small></div>
@@ -2456,17 +2483,12 @@ async function renderNow() {
         <div><span>Load into PU</span><b>${s.load_s != null ? s.load_s + " s" : "–"}</b></div>
         <div class="${s.bad_disconnects ? "rust" : ""}"><span>Disconnects</span><b>${s.bad_disconnects ?? 0}</b><small>not counting normal exits</small></div>
       </div></div></div>
+    </div>
   </div>
   ${gOn ? `<div class="notice teal grpline"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 20c.8-3.5 3.6-5.5 7-5.5s6.2 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 6.5"/></svg><div><p><b>${plural(gOn, "group")} recruiting on your shard right now.</b></p></div><a class="btn sm ghost" href="${esc(COMMUNITY_SITE)}/groups" target="_blank" rel="noopener">Open on Verse Shards</a></div>` : ""}
   ${setup.length ? `<div class="sec" style="display:grid;gap:var(--s2)">${setup.join("")}</div>` : ""}
   ${d.alerts && d.alerts.length ? `<section class="sec"><h3>Alerts this run <span>also sent as Windows notifications</span></h3><div class="frame alist">${d.alerts.slice().reverse().map(a => { const hm = a.key === "group" && /^(\S+) wants to join/.exec(a.body || ""); return `<div class="arow ${esc(a.key || "")}"><span class="at">${tm(a.ts)}</span><i class="ad"></i><span class="ab"><b>${esc(a.title)}</b><span>${esc(a.body)}</span></span>${hm ? `<button class="btn sm" type="button" data-protected="true" data-chat="${esc(hm[1])}" data-plain>Copy ${esc(hm[1])}</button>` : "<span></span>"}</div>`; }).join("")}</div></section>` : ""}
 
-  ${lines.length ? `<section class="sec">${chatBox(lines)}</section>` : ""}
-  <section class="sec">
-    <div class="glass"><div class="glass-in"><div class="glass-h"><h3>Active contracts</h3></div>
-      ${d.contracts && d.contracts.length ? `<ul class="steps">${d.contracts.map(c => `<li><b>${esc(c.name)}</b>${c.times > 1 ? ` <span class="sub">taken ${c.times} times</span>` : ""}${Object.values(c.objectives || {}).length ? `<div class="sub">${Object.values(c.objectives).map(o => esc(o.text) + (o.state === "complete" ? " ✓" : "")).join("<br>")}</div>` : ""}</li>`).join("")}</ul>` : `<p class="sub" style="margin:0">None accepted this session.</p>`}
-    </div></div>
-  </section>
   ${h.score !== null ? `<p class="sub" style="margin-top:var(--s5)">Overlay in the way? Press <kbd>~</kbd> and type <code>r_displayinfo 0</code> to hide it; <code>r_displayinfo 3</code> brings it back. <button class="link" id="goSetup2">More on the switches</button></p>` : ""}
   <p class="sub" style="margin-top:var(--s4)">Finding this useful? A star on GitHub helps other players find it and trust it. <a href="https://github.com/Aurelius-Draco/sc-shard-status" target="_blank" rel="noopener">★ Star on GitHub</a></p>
   <p class="foot"><span>${esc(d.import_status)}</span><span>Library ${esc(d.library.version || "")}: ${d.library.problem || 0} known problems, ${d.library.noise || 0} harmless messages</span></p>`;
@@ -3836,6 +3858,40 @@ async function renderPC() {
     <div class="pe-row"><label>Home region<select class="inp" name="region">${["", "Australia", "Asia", "US West", "US East", "Europe"].map(x => `<option value="${x}" ${p.region === x ? "selected" : ""}>${x || "Pick one"}</option>`).join("")}</select></label><label>Usual play times<input class="inp" name="times" maxlength="40" value="${esc(p.times || "")}" placeholder="e.g. Evenings, AEST"></label></div>
     <label>Short bio<textarea class="inp" name="bio" maxlength="200" placeholder="A line or two about you in the 'verse">${esc(p.bio || "")}</textarea></label>
     <div class="gfoot"><button class="btn ghost" type="button" id="pCancel">Cancel</button><span class="grow"></span><button class="btn" type="submit">Save profile</button></div></form></section>`;
+  // 1.6: My pilot is Claude Design's page (My pilot round, 9 Nov), drawn by its own code in static/pilot with the
+  // site's holo card family; the edit form and the old page (if those files can't load) stay as they were
+  let VP = null;
+  if (!pilotEdit) { try { VP = await pilotLoad(); } catch (e) { VP = null; } }
+  if (tab !== "pc") return;
+  if (VP) {
+    const n1 = v => Math.round(v * 10) / 10;
+    const data = {
+      profile: saved ? Object.assign({}, p, { verified: ver ? { at: p.verified.at } : null, fav: placeCommon(p.fav, L), main: p.main || "" }) : null,
+      shipPics: L.ship_pics || {},
+      hours, sessions: ss.length, contractsDone: done, contractsTaken: contracts.length,
+      shards: shards.map(x => x.name || (m => m ? ({apse2: "AU", apse1: "AS", use1: "USE", usw2: "USW", euw1: "EU"}[m[1]] || m[1].toUpperCase()) + "-" + Number(m[2]) : x.shard_id)(/^[a-z]+_([a-z]+\d)[a-z]?_\d+_(\d+)$/.exec(x.shard_id || ""))).filter(Boolean), fpsAvg,
+      fed: st.share && fed ? fed : null,
+      logbook: lb ? { quantum: lb.quantum, waits: lb.waits, waitTypical: lb.wait_typical, waitLongest: lb.wait_longest,
+        jurisdictions: (lb.jurisdictions || []).map(j => j && typeof j === "object" ? j.name : j).filter(Boolean), downed: lb.downed, injuries: lb.injuries, medbed: lb.medbed,
+        spent: lb.spent, purchases: lb.purchases, sent: lb.sent, received: lb.received } : null,
+      places: (d.by_location || []).slice().sort((a, b) => b.readings - a.readings).slice(0, 4).map(x => ({ name: placeCommon(x.location, L) || x.location, readings: x.readings, fps: x.client_fps })),
+      morePlaces: (d.by_location || []).slice().sort((a, b) => b.readings - a.readings).slice(4).map(x => ({ name: placeCommon(x.location, L) || x.location, readings: x.readings, fps: x.client_fps })),
+      retrieved,
+      pc: hw.cpu || hw.gpu ? { cpu: hw.cpu || "Not known", threads: hw.threads || "–", gpu: hw.gpu || "Not known",
+        vram: hw.vram_mb ? Math.round(hw.vram_mb / 1024) + " GB" : "–", ram: hw.ram_mb ? Math.round(hw.ram_mb / 1000) + " GB" : "–",
+        cpuTest: hw.cpu_bench_ms != null ? n1(hw.cpu_bench_ms) : "–", gpuTest: hw.gpu_bench_ms != null ? n1(hw.gpu_bench_ms) : "–",
+        vramUsed: d.vram_total_mb ? `${d.vram_used_mb} of ${d.vram_total_mb} MB` : "" } : null
+    };
+    $("view").innerHTML = VP.render(data);
+    const head = $("view").querySelector(".mp-head");
+    if (head) head.insertAdjacentHTML("afterend", `<div id="pVerBox" hidden></div>`);
+    $("view").querySelectorAll('[data-act="brag"]').forEach(b => b.dataset.brag = "pilot");   // the brag maker's own click handler
+    $("view").querySelectorAll('[data-act="edit"]').forEach(b => b.onclick = () => { pilotEdit = true; renderPC(); });
+    $("view").querySelectorAll('[data-act="verify"]').forEach(b => b.onclick = () => verifyFlow($("pVerBox")));
+    VP.mount($("view"));
+    if (saved && p.verify && p.verify.expires > Date.now() / 1000 && $("pVerBox")) verifyFlow($("pVerBox"));
+    return;
+  }
   $("view").innerHTML = (pilotEdit ? edit : view) + `
   <section class="sec"><h3>Your PC <span>as the game reports it at start-up</span></h3>
     <div class="frame card"><dl class="readout">
@@ -4162,6 +4218,10 @@ const siteJs = (h, ok) => new Promise((res, rej) => { if (ok()) return res(); co
 const siteLoad = () => siteAssets || (siteAssets = Promise.all([siteCss("site/holo-foil.css"), siteCss("site/home.css"),
   siteJs("site/holo-foil.js", () => window.VSHolo), siteJs("site/home.js", () => window.VSHome)])
   .then(() => window.VSHome).catch(e => { siteAssets = null; throw e; }));
+let pilotAssets = null;
+const pilotLoad = () => pilotAssets || (pilotAssets = Promise.all([siteCss("site/holo-foil.css"), siteCss("pilot/my-pilot.css"),
+  siteJs("site/holo-foil.js", () => window.VSHolo), siteJs("pilot/my-pilot.js", () => window.VSPilot)])
+  .then(() => window.VSPilot).catch(e => { pilotAssets = null; throw e; }));
 async function renderAbout() {
   const [d, st] = await Promise.all([api("/api/about"), api("/api/settings").catch(() => ({}))]);
   let V = null; try { V = await siteLoad(); } catch (e) { V = null; }

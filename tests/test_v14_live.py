@@ -226,7 +226,7 @@ def test_ships_retrieved_adds_past_sessions_on_this_build(tmp_path):
                             "clean_exit": True, "ships_retrieved": ships}, 1)
     fake = SimpleNamespace(store=store, build="12913470", session=_parse(RETRIEVE))
     out = App.ships_retrieved(fake)
-    assert out == [{"ship": "ORIG M80", "times": 5}, {"ship": "RSI Constellation Mk5 Centaurus", "times": 1}]
+    assert out == [{"ship": "Origin M80", "times": 5}, {"ship": "Constellation Mk V Centaurus", "times": 1}]
 
 
 def test_crash_state_names_the_library_entry_just_before(tmp_path):

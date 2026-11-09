@@ -39,7 +39,7 @@ def test_timeline_reads_plainly_and_never_names_the_player():
     items = timeline(_session(), p)
     texts = [i["text"] for i in items]
     assert texts == ["Joined shard AU-20", "Loaded into the game (95 s)", "Entered an armistice zone",
-                     "At CRU-L4 Shallow Fields Station", "Retrieved ORIG M80 from the hangar", "Set course to Bloom",
+                     "At CRU-L4 Shallow Fields Station", "Retrieved Origin M80 from the hangar", "Set course to Bloom",
                      "Arrived near Bloom", "Accepted contract \"Very Hungry\""]
     assert {i["group"] for i in items} == {"connection", "place", "ship", "travel", "contract"}
     assert not any("Test_Pilot" in t for t in texts)
@@ -50,7 +50,7 @@ def test_steps_built_from_the_timeline():
     p = Places()
     p.names = {"rr_cru_l4": "CRU-L4 Shallow Fields Station", "pyro3": "Bloom"}
     steps = steps_from(timeline(_session(), p), "The objective doesn't update.")
-    assert steps == ["Join shard AU-20.", "Be at CRU-L4 Shallow Fields Station.", "Retrieve ORIG M80 from the hangar.",
+    assert steps == ["Join shard AU-20.", "Be at CRU-L4 Shallow Fields Station.", "Retrieve Origin M80 from the hangar.",
                      "Set a quantum course to Bloom and arrive.", "Accept the contract \"Very Hungry\".",
                      "The objective doesn't update."]
 
@@ -72,4 +72,4 @@ def test_issue_council_steps_use_the_timeline_and_fall_back_without_one():
 
 def test_names():
     assert shard_label("pub_euw1b_12881860_410") == "EU-410" and shard_label("odd") == "odd"
-    assert ship_name("RSI_Constellation_Mk5_Centaurus") == "RSI Constellation Mk5 Centaurus"
+    assert ship_name("RSI_Constellation_Mk5_Centaurus") == "Constellation Mk V Centaurus"

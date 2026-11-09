@@ -1,6 +1,12 @@
 # Changelog
 
 ## 1.6 (not released yet)
+- **My pilot, redesigned (Claude Design).** Your ID card in the holo card family beside your main ship's hangar (the Fankit render on the pad, or a lit landing pad for ships the Fankit doesn't have), Make a pilot card as the page's main button, the logbook as one strip of figures that count up, then Out in the 'verse, Wear and tear and aUEC, your most-visited places and ships with bars, and Your PC folded away at the bottom. Before Set up it shows what the card will hold and a button to fill it in.
+- **Tabs in a new order:** Now, What's gone wrong?, My pilot, Blueprints, History, Known issues, Groups, then Set up and About. **Timeline is inside History** now: a switch at the top of History picks Your sessions or Timeline of this session.
+- **Active contracts and Copy for chat are above the fold on Now.** Active contracts sits under the Situation, Copy for chat under the board, This session on the right.
+- **Where you are, the way players say it.** The Now tab names your location from the game's Current player location (MIC-L3 Endless Odyssey Station, microTech, Orison). The overlay's Planet line is only used when there's no location, since the game can get it wrong (it said Crusader at MIC-L3).
+- **What you're tracking, by its contract title.** With one active contract, "tracking" shows its title (Verified Bounty: Augustus Emerson ...) instead of the game's internal name (BountyHuntersGuild Bounty Stanton Medium 2).
+- **Ships by the names players use** everywhere the app names one: Constellation Mk V Centaurus, Origin M80, Cutlass Black, C2 Hercules, F7C Hornet Mk II (not RSI Constellation Mk5 Centaurus or DRAK Cutlass Black).
 - **About is the same as verseshards.com/about.** The maker scene with Aurelius_Draco's holo card, "What it does with your PC" with its sharing switch (it only shows what happens, and says whether your own sharing is on), ground rules, the org, coming up, thanks, feedback, help wanted and the referral, drawn by the site's own code bundled in the app. The card's live numbers (players sharing this week, sessions shared, updates shipped) come from verseshards.com only when Show other shards or update checks are on; otherwise the card shows without them.
 
 ## 1.5.3 (9 Nov 2026)

@@ -157,7 +157,7 @@ def test_the_pirate_question_only_follows_a_ship_lost_in_combat():
     g = groups.Groups(_App(s), _Comm())
     assert g.pirate_offer(now) is None                       # you self-destructed: nobody to report
     s.vehicles_lost.append({"ts": now - 20, "ship": "DRAK_Cutlass_Black", "reason": "Combat"})
-    assert g.pirate_offer(now)["ship"] == "DRAK Cutlass Black"
+    assert g.pirate_offer(now)["ship"] == "Cutlass Black"
 
 
 def test_licences_contract_kinds_stats_and_your_week():
