@@ -1760,7 +1760,7 @@ td { border-color: var(--c-line); }
 .gauges .v small { font: 600 .875rem var(--f-body); color: var(--c-muted); margin-left: 4px; }
 .gauges .v.good { color: var(--st-healthy); } .gauges .v.poor { color: var(--st-struggling); } .gauges .v.bad { color: var(--st-bad); }
 .gauges .sub { font-size: var(--fs-small); color: var(--c-dim); }
-.gauges .gbars { height: 16px; }
+.gauges .gbars { height: 16px; flex: none; } .gauges .gbars i { flex: 0 0 calc((100% - 26px) / 14); }  /* 14 slots: the same bar width in every gauge, however many readings */
 .g-word { font-size: 1.6rem; line-height: 1.05; } .g-word.good { color: var(--st-healthy); } .g-word.ok { color: var(--st-ok); } .g-word.poor { color: var(--st-struggling); } .g-word.bad { color: var(--st-bad); }
 @media (max-width: 1100px) { .gauges { grid-template-columns: repeat(3, minmax(0, 1fr)); } .gauges > div:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--c-line); } .gauges > div:nth-child(2), .gauges > div:nth-child(5) { border-left: 0; } .gauges > div:nth-child(n+5) { border-top: 1px solid var(--c-line); } }
 .ring { position: relative; width: 92px; height: 92px; flex: none; }
@@ -2401,7 +2401,7 @@ async function renderNow() {
       : `The log check at ${tm(unp.checked)} found nothing on your side, so it's the server.`) + `</div>` : "";
   const sp = (d.spark || []).filter((p, k, a) => (a.length - 1 - k) % 5 === 0).slice(-14);
   const gb = (key, cf, max) => { const v = sp.map(p => p[key]).filter(x => x !== null && x !== undefined); if (v.length < 2) return `<span class="gbars"></span>`; const mx = max || Math.max(1, ...v) * 1.1;
-    return `<span class="gbars${sweep ? " draw" : ""}">${v.map((x, k) => `<i style="--i:${k};height:${Math.max(3, Math.round(x / mx * 24))}px;background:${cf(x)}"></i>`).join("")}</span>`; };
+    return `<span class="gbars${sweep ? " draw" : ""}">${v.map((x, k) => `<i style="--i:${k};height:${Math.max(3, Math.round(Math.min(x, mx) / mx * 16))}px;background:${cf(x)}"></i>`).join("")}</span>`; };
   const fpsC = x => x >= 15 ? "var(--st-good)" : x >= 9 ? "var(--st-poor)" : "var(--st-bad)";
   const pingC = x => x <= 80 ? "var(--st-good)" : x <= 200 ? "var(--st-poor)" : "var(--st-bad)";
   const flat = () => "#4a7f9a";
@@ -2430,7 +2430,8 @@ async function renderNow() {
   const ringOff = (351.9 * (1 - frac)).toFixed(1);
   const word = crash ? "Crashed" : unp ? "Unplayable" : esc(h.label);
   const wcls = crash || unp ? "bad" : h.cls;
-  const ggv = (l, v, t, bars, sub) => `<div><span class="t-label">${l}</span><span class="v ${t}">${v}</span>${bars}${sub ? `<span class="sub">${sub}</span>` : ""}</div>`;
+  // Every gauge has the same four rows (label, number, bars, line under), so the text and bars line up across the panel
+  const ggv = (l, v, t, bars, sub) => `<div><span class="t-label">${l}</span><span class="v ${t}">${v}</span>${bars || `<span class="gbars"></span>`}<span class="sub">${sub || "&nbsp;"}</span></div>`;
   $("view").innerHTML = `
   <section class="glass now-gg ${edgeCls}">
     ${crash || unp ? `<div class="hazard" aria-hidden="true"></div>` : ""}
@@ -2438,7 +2439,7 @@ async function renderNow() {
       <div class="g-score"><div class="ring${sweep ? " sweep" : ""}" style="--rc:${crash || unp ? "var(--st-bad)" : col}"><svg viewBox="0 0 132 132" aria-hidden="true"><circle cx="66" cy="66" r="56" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/><circle class="arc" cx="66" cy="66" r="56" fill="none" stroke-width="10" stroke-dasharray="351.9" stroke-dashoffset="${score === null ? 351.9 : ringOff}"/></svg><b>${score ?? "–"}<small>${score === null ? "no reading" : "of 100"}</small></b></div>
         <div><span class="t-label">Your shard</span><div class="t-num g-word ${wcls}">${word}</div><span class="sub">${crash ? "game closed at " + tm(crash.ts) : unp ? `server at ${fmt(unp.fps ?? h.server_fps_now, 1)} fps, under 5` : esc([sh.id ? (sh.name || sh.id) : "", srvName ? "server " + srvName : ""].filter(Boolean).join(" · ") || "health out of 100")}</span></div></div>
       ${ggv("Server fps", fmt(h.server_fps, 1) + (h.server_fps_low != null ? `<small>low ${fmt(h.server_fps_low, 1)}</small>` : ""), tone(h.server_fps, 15, 9), gb("server_fps", fpsC, 30), "")}
-      ${ggv("On your server", fmt(h.pop_srv), "", gb("pop_srv", flat), [h.pop_shard != null ? `of ${fmt(h.pop_shard)} on the shard` : "", h.pop_age >= 30 && h.pop_srv != null ? `read ${h.pop_age < 90 ? "a minute" : Math.round(h.pop_age / 60) + " min"} ago` : ""].filter(Boolean).join(", "))}
+      ${ggv("On your server", fmt(h.pop_srv), "", gb("pop_srv", flat), h.pop_shard != null ? `of ${fmt(h.pop_shard)} on the shard` : "")}
       ${ggv("Ping", h.ping_ms == null ? "–" : fmt(h.ping_ms) + "<small>ms</small>", tone(h.ping_ms, 80, 200, true), gb("ping_ms", pingC, 300), "")}
       ${ggv("Packet loss", h.loss_pct == null ? "–" : h.loss_pct + "<small>%</small>", tone(h.loss_pct, 0.4, 2, true), "", `${h.hitches || 0} ${(h.hitches || 0) === 1 ? "hitch" : "hitches"}, ${plural(h.restarts || 0, "restart")}`)}
       ${ggv("Your fps", fmt(h.client_fps), "", gb("client_fps", flat), "the game's own count")}
