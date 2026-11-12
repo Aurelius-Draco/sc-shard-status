@@ -13,7 +13,7 @@
             ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>Verse Shards for PC</DisplayName>
-    <PublisherDisplayName>Verse Shards</PublisherDisplayName>
+    <PublisherDisplayName>Raymond McConville</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
     <!-- Settings, history and reports stay in %LOCALAPPDATA%\SC Shard Status, the same folder the GitHub copy
          uses, so moving between the two keeps everything (and uninstalling the Store copy doesn't delete them) -->
